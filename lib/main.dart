@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:taxi_servicios/ui/pages/home.dart';
+import 'package:taxi_servicios/ui/presentation/screens/home_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,8 +11,11 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Home(),
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme:
+          ThemeData(useMaterial3: true, colorSchemeSeed: Colors.amber.shade600),
+      home: const Home(),
     );
   }
 }
