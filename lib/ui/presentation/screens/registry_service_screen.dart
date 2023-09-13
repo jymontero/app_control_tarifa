@@ -35,7 +35,7 @@ class _ServiceTaxiState extends State<ServiceTaxi> {
               ],
               decoration: const InputDecoration(
                 helperText: 'Ingrese valor del servicio',
-                helperStyle: TextStyle(color: Colors.black, fontSize: 18),
+                helperStyle: TextStyle(color: Colors.black, fontSize: 16),
               ),
             ),
           ),
@@ -50,7 +50,7 @@ class _ServiceTaxiState extends State<ServiceTaxi> {
             padding: const EdgeInsets.all(20),
             child: Text(
               'Hora del Viaje\n${time.hour}:${time.minute}:${time.second}',
-              style: const TextStyle(fontSize: 18),
+              style: const TextStyle(fontSize: 16),
             ),
           )
         ],
@@ -62,9 +62,11 @@ class _ServiceTaxiState extends State<ServiceTaxi> {
         children: [
           Container(
             padding: const EdgeInsets.all(20),
-            child: Text(
-                'Fecha del Viaje \n${time.day}/${time.month}/${time.year}',
-                style: const TextStyle(fontSize: 18)),
+            child:
+                Text('Fecha del Viaje \n${time.day}/${time.month}/${time.year}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                    )),
           )
         ],
       );
@@ -77,7 +79,9 @@ class _ServiceTaxiState extends State<ServiceTaxi> {
           ElevatedButton(
               style: ButtonStyle(
                   backgroundColor: MaterialStateProperty.all(Colors.amber),
-                  foregroundColor: MaterialStateProperty.all(Colors.black)),
+                  foregroundColor: MaterialStateProperty.all(Colors.black),
+                  shape: MaterialStateProperty.all(RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5)))),
               onPressed: () {
                 Navigator.pop(context, int.parse(myController.text));
               },
@@ -92,10 +96,35 @@ class _ServiceTaxiState extends State<ServiceTaxi> {
     return Scaffold(
       appBar: const AppBarCustomized(),
       body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Row(mainAxisAlignment: MainAxisAlignment.center, children: const [
+            Text(
+              'Registro De Servicio',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ]),
           _createInputService(),
-          _createlabelDate(),
-          _createInputDate(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Column(
+                children: [
+                  _createlabelDate(),
+                ],
+              ),
+              Column(
+                children: [
+                  _createInputDate(),
+                ],
+              )
+            ],
+          ),
+          const Padding(padding: EdgeInsets.all(20)),
           _createRegistryButtom()
         ],
       ),

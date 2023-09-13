@@ -25,6 +25,7 @@ class _AppBarCustomizedState extends State<AppBarCustomized> {
             //backgroundImage: NetworkImage(),
             ),
       ),
+
       title: const Padding(
         padding: EdgeInsets.all(8.0),
         child: Text(

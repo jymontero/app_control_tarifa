@@ -31,7 +31,7 @@ class _GoalDairyState extends State<GoalDairy> {
     QuickAlert.show(context: context, type: QuickAlertType.confirm);
   }
 
-  Column _buildTextGoal(Color color, int monto) {
+  Column _buildTextGoal(Color color, int monto, double sizeLetter) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
@@ -40,7 +40,7 @@ class _GoalDairyState extends State<GoalDairy> {
         Text(
           'COP \$ $monto',
           style: TextStyle(
-            fontSize: 30,
+            fontSize: sizeLetter,
             fontWeight: FontWeight.bold,
             color: color,
           ),
@@ -53,7 +53,7 @@ class _GoalDairyState extends State<GoalDairy> {
     return Text(
       mensaje,
       textAlign: TextAlign.center,
-      style: const TextStyle(color: Colors.white, fontSize: 14),
+      style: const TextStyle(color: Colors.black, fontSize: 16),
     );
   }
 
@@ -62,14 +62,14 @@ class _GoalDairyState extends State<GoalDairy> {
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildTextGoal(Colors.lightGreenAccent.shade700, metaActual),
+          _buildTextGoal(Colors.lightGreenAccent.shade700, metaActual, 20),
         ],
       );
     } else {
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildTextGoal(Colors.red, metaActual),
+          _buildTextGoal(Colors.red, metaActual, 20),
         ],
       );
     }
@@ -77,6 +77,33 @@ class _GoalDairyState extends State<GoalDairy> {
 
   @override
   Widget build(BuildContext context) {
-    return const Text("Impuestos");
+    return Scaffold(
+        body: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildTextGoal(Colors.black, 260000, 30),
+        _createInfolabels('Meta x Hacer'),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Column(
+              children: [
+                _createLabelRate(260000, 1),
+                _createInfolabels('Meta Registrada'),
+              ],
+            ),
+            const Padding(padding: EdgeInsets.all(15)),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _createLabelRate(20000, 0),
+                _createInfolabels('Meta obtenida'),
+              ],
+            )
+          ],
+        )
+      ],
+    ));
   }
 }

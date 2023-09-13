@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "216440924868",
+    "project_id": "apptaxicontrol",
+    "storage_bucket": "apptaxicontrol.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:216440924868:android:74997f409f484e191a7791",
+        "android_client_info": {
+          "package_name": "com.example.taxi_servicios"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "216440924868-q3sedo5qhrmmks3henpfvdic9k35l2bn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-2K1oSD4BLmyoLURHpeGimOhYNVAGNFE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "216440924868-q3sedo5qhrmmks3henpfvdic9k35l2bn.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -76,7 +76,7 @@ class _Home extends State<Home> {
             )
           ]),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.amber,
+        backgroundColor: Colors.amber.shade600,
         onPressed: () {
           Navigator.push(context,
               MaterialPageRoute(builder: (context) => const ServiceTaxi()));
