@@ -25,8 +25,8 @@ class _Home extends State<Home> {
     const GoalDairy(),
     const ListService(),
     const Gasoline(),
-    const FinishTurn(),
-    const Configuration()
+    const Configuration(),
+    const FinishTurn()
   ];
 
   @override
@@ -38,56 +38,98 @@ class _Home extends State<Home> {
   Widget build(BuildContext context) {
     // ignore: no_leading_underscores_for_local_identifiers
 
-    return Scaffold(
-      appBar: const AppBarCustomized(),
-      body: _pages[_paginaActual],
-      bottomNavigationBar: BottomNavigationBar(
-          onTap: (index) {
-            setState(() {
-              _paginaActual = index;
-            });
-          },
-          currentIndex: _paginaActual,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: "Inicio",
-              backgroundColor: Colors.amber,
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.list),
-              label: "Lista Servicios",
-              backgroundColor: Colors.purple,
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.oil_barrel_sharp),
-              label: "Gasolina",
-              backgroundColor: Colors.green,
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.taxi_alert_rounded),
-              label: "Fin Turno",
-              backgroundColor: Colors.blue,
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings),
-              label: "Config",
-              backgroundColor: Colors.black,
-            )
-          ]),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.amber.shade600,
-        onPressed: () {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (context) => const ServiceTaxi()));
+    return WillPopScope(
+        onWillPop: () async {
+          final shouldPop = await showDialog<bool>(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: const Text('Quires salir de la APP?'),
+                actionsAlignment: MainAxisAlignment.spaceBetween,
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context, true);
+                    },
+                    child: const Text('Si'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context, false);
+                    },
+                    child: const Text('No'),
+                  ),
+                ],
+              );
+            },
+          );
+          return shouldPop!;
         },
-        child: const Icon(Icons.add),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-    );
+        child: Scaffold(
+          appBar: const AppBarCustomized(),
+          body: _pages[_paginaActual],
+          bottomNavigationBar: BottomNavigationBar(
+              onTap: (index) {
+                setState(() {
+                  _paginaActual = index;
+                });
+              },
+              currentIndex: _paginaActual,
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.home),
+                  label: "Inicio",
+                  backgroundColor: Colors.amber,
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.list),
+                  label: "Lista Servicios",
+                  backgroundColor: Colors.purple,
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.oil_barrel_sharp),
+                  label: "Gasolina",
+                  backgroundColor: Colors.green,
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.settings),
+                  label: "Config",
+                  backgroundColor: Colors.black,
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.taxi_alert_rounded),
+                  label: "Fin Turno",
+                  backgroundColor: Colors.red,
+                ),
+              ]),
+          floatingActionButton: FloatingActionButton(
+            backgroundColor: Colors.amber.shade600,
+            onPressed: () {
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => const ServiceTaxi()));
+            },
+            child: const Icon(Icons.add),
+          ),
+          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+        ));
+  }
+
+  Future _onWillPopScope() {
+    return showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+                title: const Text(''),
+                content: const Text(''),
+                actions: <Widget>[
+                  ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: const Text('Cancelar')),
+                  ElevatedButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: const Text('Salir'))
+                ]));
   }
 }
-
     /*Widget _createInputService() {
       return Column(
         children: [

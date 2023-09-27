@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:taxi_servicios/providers/configuracion_provider.dart';
+import 'package:taxi_servicios/providers/contadorservicio_provider.dart';
 import 'package:taxi_servicios/ui/presentation/screens/home_screen.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MyApp());
+
+  runApp(MultiProvider(providers: [
+    ChangeNotifierProvider(create: (_) => ContadorServicioProvider()),
+    ChangeNotifierProvider(create: (_) => ConfiguracionProvider())
+  ], child: const MyApp()));
 }
 
 class MyApp extends StatelessWidget {

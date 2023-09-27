@@ -2,7 +2,9 @@
 // ignore_for_file: unused_element, prefer_final_fields, unused_field
 
 import 'package:flutter/material.dart';
-import 'package:quickalert/quickalert.dart';
+import 'package:provider/provider.dart';
+import 'package:taxi_servicios/providers/contadorservicio_provider.dart';
+import 'package:intl/intl.dart';
 
 class GoalDairy extends StatefulWidget {
   const GoalDairy({super.key});
@@ -15,21 +17,8 @@ class _GoalDairyState extends State<GoalDairy> {
   late int _costService = 0;
   int _goal = 260000;
   int _currentGoal = 0;
-  List<int> listServicesDay = [];
-
-  void showAlert() {
-    QuickAlert.show(
-        context: context,
-        title: "Error",
-        text: "Valor del servicio Nulo",
-        autoCloseDuration: const Duration(seconds: 3),
-        confirmBtnText: "OK",
-        type: QuickAlertType.error);
-  }
-
-  void showConfirmDialog() {
-    QuickAlert.show(context: context, type: QuickAlertType.confirm);
-  }
+  final numberFormat =
+      NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 0);
 
   Column _buildTextGoal(Color color, int monto, double sizeLetter) {
     return Column(
@@ -38,7 +27,7 @@ class _GoalDairyState extends State<GoalDairy> {
       children: [
         const Padding(padding: EdgeInsets.all(10.0)),
         Text(
-          'COP \$ $monto',
+          'COP ${numberFormat.format(monto)}',
           style: TextStyle(
             fontSize: sizeLetter,
             fontWeight: FontWeight.bold,
@@ -82,14 +71,15 @@ class _GoalDairyState extends State<GoalDairy> {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildTextGoal(Colors.black, 260000, 30),
+        _buildTextGoal(Colors.black,
+            context.watch<ContadorServicioProvider>().configuracion, 30),
         _createInfolabels('Meta x Hacer'),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Column(
               children: [
-                _createLabelRate(260000, 1),
+                _createLabelRate(265000, 1),
                 _createInfolabels('Meta Registrada'),
               ],
             ),
@@ -97,7 +87,9 @@ class _GoalDairyState extends State<GoalDairy> {
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _createLabelRate(20000, 0),
+                _createLabelRate(
+                    context.watch<ContadorServicioProvider>().valorMetaObtenida,
+                    0),
                 _createInfolabels('Meta obtenida'),
               ],
             )
