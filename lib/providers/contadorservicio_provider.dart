@@ -9,7 +9,7 @@ class ContadorServicioProvider with ChangeNotifier {
   //int _valorMetaRegistrada =
   //  Provider.of<ConfiguracionProvider>(listen: true).metaRegistrada;
   int _valorMetaObtenida = 0;
-  int _valorMetaHacer = 265000;
+  final int _valorMetaHacer = 265000;
   final List<Servicio> _listServicesDay = [];
   int _configuracion = ConfiguracionProvider().metaRegistrada;
 

@@ -1,14 +1,15 @@
 // ignore_for_file: no_leading_underscores_for_local_identifiers, duplicate_ignore, avoid_print
 
 import 'package:flutter/material.dart';
-import 'package:taxi_servicios/ui/presentation/screens/registry_service_screen.dart';
-import 'package:taxi_servicios/ui/presentation/screens/setup_screen.dart';
+import 'package:taxi_servicios/services/bd_confi.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_servicios/registryservice_screen.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_configuracion/listvariables_screen.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 
-import 'finish_screen.dart';
-import 'gas_screen.dart';
-import 'goaltaxes_screen.dart';
-import 'list_services.dart';
+import 'screens_finturno/finish_screen.dart';
+import 'screens_tanqueo/gas_screen.dart';
+import 'screens_servicios/goaltaxes_screen.dart';
+import 'screens_servicios/listservices.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -30,6 +31,14 @@ class _Home extends State<Home> {
   ];
 
   @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    print('SE INICILIAO CARGANDO DATA DESDE BN');
+    FutureBuilder ;
+  }
+
+  @override
   void dispose() {
     super.dispose();
   }
@@ -37,6 +46,7 @@ class _Home extends State<Home> {
   @override
   Widget build(BuildContext context) {
     // ignore: no_leading_underscores_for_local_identifiers
+    print('SE CONSTRUYO EN EL BUILDER');
 
     return WillPopScope(
         onWillPop: () async {
@@ -44,7 +54,7 @@ class _Home extends State<Home> {
             context: context,
             builder: (context) {
               return AlertDialog(
-                title: const Text('Quires salir de la APP?'),
+                title: const Text('Quieres salir de la APP?'),
                 actionsAlignment: MainAxisAlignment.spaceBetween,
                 actions: [
                   TextButton(
@@ -99,10 +109,11 @@ class _Home extends State<Home> {
                 BottomNavigationBarItem(
                   icon: Icon(Icons.taxi_alert_rounded),
                   label: "Fin Turno",
-                  backgroundColor: Colors.red,
+                  backgroundColor: Colors.amber,
                 ),
               ]),
           floatingActionButton: FloatingActionButton(
+            heroTag: 'btnaddService',
             backgroundColor: Colors.amber.shade600,
             onPressed: () {
               Navigator.push(context,
@@ -112,22 +123,6 @@ class _Home extends State<Home> {
           ),
           floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         ));
-  }
-
-  Future _onWillPopScope() {
-    return showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-                title: const Text(''),
-                content: const Text(''),
-                actions: <Widget>[
-                  ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(false),
-                      child: const Text('Cancelar')),
-                  ElevatedButton(
-                      onPressed: () => Navigator.of(context).pop(true),
-                      child: const Text('Salir'))
-                ]));
   }
 }
     /*Widget _createInputService() {

@@ -22,8 +22,8 @@ class _AppBarCustomizedState extends State<AppBarCustomized> {
       leading: const Padding(
         padding: EdgeInsets.all(1.0),
         child: CircleAvatar(
-            //backgroundImage: NetworkImage(),
-            ),
+          backgroundImage: AssetImage("assets/images/perfil.jpg"),
+        ),
       ),
 
       title: const Padding(

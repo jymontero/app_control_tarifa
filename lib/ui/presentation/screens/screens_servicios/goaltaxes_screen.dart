@@ -51,14 +51,14 @@ class _GoalDairyState extends State<GoalDairy> {
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildTextGoal(Colors.lightGreenAccent.shade700, metaActual, 20),
+          _buildTextGoal(Colors.lightGreenAccent.shade700, metaActual, 22),
         ],
       );
     } else {
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildTextGoal(Colors.red, metaActual, 20),
+          _buildTextGoal(Colors.deepPurple, metaActual, 22),
         ],
       );
     }
@@ -71,7 +71,7 @@ class _GoalDairyState extends State<GoalDairy> {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildTextGoal(Colors.black,
+        _buildTextGoal(Colors.red,
             context.watch<ContadorServicioProvider>().configuracion, 30),
         _createInfolabels('Meta x Hacer'),
         Row(

@@ -8,8 +8,10 @@ import 'package:provider/provider.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:taxi_servicios/domain/entitis/servicio.dart';
 import 'package:taxi_servicios/providers/contadorservicio_provider.dart';
+import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/screens/home_screen.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
+import 'package:pattern_formatter/pattern_formatter.dart';
 
 class ServiceTaxi extends StatefulWidget {
   const ServiceTaxi({super.key});
@@ -29,8 +31,8 @@ class _ServiceTaxiState extends State<ServiceTaxi> {
   void showAlert() {
     QuickAlert.show(
         context: context,
-        title: "Error",
-        text: "Valor del servicio Nulo",
+        title: "Valor del servicio",
+        text: "Ingrese un valor mayor a \nCOP ${0.0}",
         autoCloseDuration: const Duration(seconds: 3),
         confirmBtnText: "OK",
         type: QuickAlertType.error);
@@ -52,8 +54,17 @@ class _ServiceTaxiState extends State<ServiceTaxi> {
             keyboardType: TextInputType.number,
             inputFormatters: <TextInputFormatter>[
               FilteringTextInputFormatter.digitsOnly,
+              ThousandsFormatter()
             ],
             decoration: const InputDecoration(
+              prefixIcon: Align(
+                widthFactor: 1.0,
+                heightFactor: 1.0,
+                child: Icon(
+                  Icons.monetization_on,
+                  color: Colors.green,
+                ),
+              ),
               helperText: 'Ingrese valor del servicio',
               helperStyle: TextStyle(color: Colors.black, fontSize: 16),
             ),
@@ -102,22 +113,62 @@ class _ServiceTaxiState extends State<ServiceTaxi> {
                 foregroundColor: MaterialStateProperty.all(Colors.black),
                 shape: MaterialStateProperty.all(RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(5)))),
-            onPressed: () {
-              Servicio servicio = Servicio(
-                  valorservicio: int.parse(myController.text),
-                  hora: '${time.day}/${time.month}/${time.year}',
-                  fecha: '${time.hour}:${time.minute}:${time.second}');
-              context
-                  .read<ContadorServicioProvider>()
-                  .incrementarMeta(int.parse(myController.text));
+            onPressed: () async {
+              final valor = myController.text.replaceAll(',', '');
+              if (myController.text.isEmpty) {
+                showAlert();
+              } else {
+                await showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: Text(
+                        'Registrar COP ${numberFormat.format(int.parse(valor))}',
+                      ),
+                      actionsAlignment: MainAxisAlignment.spaceBetween,
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            final fechaTemp =
+                                '${time.hour}:${time.minute}:${time.second}';
+                            final horaTemp =
+                                '${time.day}/${time.month}/${time.year}';
+                            Servicio servicio = Servicio(
+                                valorservicio: int.parse(valor),
+                                hora: horaTemp,
+                                fecha: fechaTemp);
+                            context
+                                .read<ContadorServicioProvider>()
+                                .incrementarMeta(int.parse(valor));
 
-              context
-                  .read<ContadorServicioProvider>()
-                  .decrementarMeta(int.parse(myController.text));
+                            context
+                                .read<ContadorServicioProvider>()
+                                .decrementarMeta(int.parse(valor));
 
-              context.read<ContadorServicioProvider>().addServicio(servicio);
-              Navigator.pop(context,
-                  MaterialPageRoute(builder: (context) => const Home()));
+                            context
+                                .read<ContadorServicioProvider>()
+                                .addServicio(servicio);
+                            addServicioBD(
+                                fechaTemp, horaTemp, int.parse(valor));
+                            Navigator.pop(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => const Home()));
+                            Navigator.pop(context, true);
+                          },
+                          child: const Text('Si'),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context, false);
+                          },
+                          child: const Text('No'),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              }
             },
             child: const Text('Agregar Viaje',
                 style: TextStyle(
