@@ -1,6 +1,7 @@
 // ignore_for_file: unused_element
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:taxi_servicios/providers/configuracion_provider.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_configuracion/registrysetup_screen.dart';
@@ -13,62 +14,47 @@ class Configuration extends StatefulWidget {
 }
 
 class _ConfigurationState extends State<Configuration> {
-  final TextEditingController myControllerName =
-      TextEditingController(text: "");
-  final TextEditingController myControllerValue =
-      TextEditingController(text: "");
-
-  Widget _createRegistryButtom() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        ElevatedButton(
-            style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.all(Colors.amber),
-                foregroundColor: MaterialStateProperty.all(Colors.black),
-                shape: MaterialStateProperty.all(RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5)))),
-            onPressed: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const RegistryVariable()));
-
-              //Navigator.pop(context, int.parse(myController.text));
-            },
-            child: const Text('Agregar ',
-                style: TextStyle(
-                  fontSize: 18,
-                )))
-      ],
-    );
-  }
-
+  final numberFormat =
+      NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 0);
   Widget _createListVariable(BuildContext context) {
     final listVariables = context.watch<ConfiguracionProvider>().listaVariables;
     return ListView.builder(
+      padding: const EdgeInsets.only(left: 5, bottom: 70),
       itemCount: listVariables.length,
       itemBuilder: (BuildContext context, int index) {
         return ListTile(
-            leading: const Icon(
-              Icons.money_off,
-              size: 30,
-              color: Colors.green,
-            ),
-            title: Text(
-              'COP ${listVariables[index].nombre}',
-              style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black),
-            ),
-            subtitle: Text(
-              '${listVariables[index].valor}',
-              style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.normal,
-                  color: Colors.black),
-            ));
+          leading: const Icon(
+            Icons.table_view,
+            size: 30,
+            color: Colors.green,
+          ),
+          title: Text(
+            'COP ${numberFormat.format(listVariables[index].valor)}',
+            style: const TextStyle(
+                fontSize: 17, fontWeight: FontWeight.bold, color: Colors.black),
+          ),
+          subtitle: Text(
+            '${listVariables[index].nombre}',
+            style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.normal,
+                color: Colors.black),
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                  onPressed: () {},
+                  icon: const Icon(
+                    Icons.mode_edit_outline_outlined,
+                    color: Colors.green,
+                  )),
+              IconButton(
+                  onPressed: () {},
+                  icon: const Icon(Icons.delete_forever, color: Colors.red)),
+            ],
+          ),
+        );
       },
     );
   }
@@ -77,15 +63,21 @@ class _ConfigurationState extends State<Configuration> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-            title: Row(
+            title: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Column(
-              children: const [
+              children: [
                 Text(
-                  "Listado Variables de\nConfiguración",
+                  "Variables De",
                   textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
                 ),
+                Text(
+                  'Configuración',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                )
               ],
             )
           ],
@@ -103,18 +95,6 @@ class _ConfigurationState extends State<Configuration> {
           icon: const Icon(Icons.playlist_add),
           label: const Text('Agregar Variable'),
         ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat
-
-        //const SizedBox(),
-
-        /*const Padding(padding: EdgeInsets.all(20)),
-        _createVariable('Entrega', 60000, Icons.money_off, Colors.green),
-        _createVariable(
-        'Gasolina', 60000, Icons.oil_barrel_rounded, Colors.red),
-        _createVariable('Lavadero', 11000, Icons.wash, Colors.blue),
-        _createVariable(
-        'Sueldo', 134000, Icons.report_gmailerrorred, Colors.orange),*/
-
-        );
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat);
   }
 }

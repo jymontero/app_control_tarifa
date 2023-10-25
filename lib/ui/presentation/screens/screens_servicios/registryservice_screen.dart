@@ -186,7 +186,7 @@ class _ServiceTaxiState extends State<ServiceTaxi> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(mainAxisAlignment: MainAxisAlignment.center, children: const [
+          const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             Text(
               'Registro De Servicio',
               style: TextStyle(

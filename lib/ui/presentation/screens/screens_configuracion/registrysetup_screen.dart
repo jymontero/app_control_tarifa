@@ -52,8 +52,8 @@ class _RegistryVariableState extends State<RegistryVariable> {
                         color: Colors.lightBlue,
                       ),
                     ),
-                    hintText: 'Ingrese nombre',
-                    hintStyle: TextStyle(color: Colors.black38, fontSize: 14)),
+                    helperText: 'Ingrese Nombre',
+                    helperStyle: TextStyle(color: Colors.black, fontSize: 15)),
               ),
               TextFormField(
                 controller: myControllerValue,
@@ -77,8 +77,8 @@ class _RegistryVariableState extends State<RegistryVariable> {
                         color: Colors.green,
                       ),
                     ),
-                    hintText: 'Ingrese valor',
-                    hintStyle: TextStyle(color: Colors.black38, fontSize: 14)),
+                    helperText: 'Ingrese valor variable',
+                    helperStyle: TextStyle(color: Colors.black, fontSize: 15)),
               ),
             ],
           ),
@@ -133,9 +133,9 @@ class _RegistryVariableState extends State<RegistryVariable> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
+                const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
+                  children: [
                     Text(
                       'Registro De Variable',
                       style: TextStyle(

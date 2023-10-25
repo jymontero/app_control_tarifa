@@ -45,6 +45,8 @@ dependencies:
   flutter_multi_formatter: ^2.11.11
   pattern_formatter: ^3.0.0
 
+  cron: ^0.5.1 
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -81,6 +83,8 @@ flutter:
      - assets/images/fondo4.png
      - assets/images/fondo5.jpg
      - assets/images/perfil.jpg
+     - assets/images/terpel.jpg
+     
      
      
 

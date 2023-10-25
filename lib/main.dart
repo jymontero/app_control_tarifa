@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:taxi_servicios/providers/configuracion_provider.dart';
 import 'package:taxi_servicios/providers/contadorservicio_provider.dart';
+import 'package:taxi_servicios/providers/tanqueo_provider.dart';
 import 'package:taxi_servicios/ui/presentation/screens/home_screen.dart';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -14,8 +15,9 @@ void main() async {
   );
 
   runApp(MultiProvider(providers: [
+    ChangeNotifierProvider(create: (_) => ConfiguracionProvider()),
     ChangeNotifierProvider(create: (_) => ContadorServicioProvider()),
-    ChangeNotifierProvider(create: (_) => ConfiguracionProvider())
+    ChangeNotifierProvider(create: (_) => ServicioTanqueoProvider())
   ], child: const MyApp()));
 }
 

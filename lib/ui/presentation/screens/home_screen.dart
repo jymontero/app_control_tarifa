@@ -1,12 +1,12 @@
-// ignore_for_file: no_leading_underscores_for_local_identifiers, duplicate_ignore, avoid_print
+// ignore_for_file: no_leading_underscores_for_local_identifiers, duplicate_ignore, avoid_print, prefer_const_constructors
 
 import 'package:flutter/material.dart';
-import 'package:taxi_servicios/services/bd_confi.dart';
+import 'package:provider/provider.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_servicios/registryservice_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_configuracion/listvariables_screen.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 
-import 'screens_finturno/finish_screen.dart';
+import '../../../providers/configuracion_provider.dart';
 import 'screens_tanqueo/gas_screen.dart';
 import 'screens_servicios/goaltaxes_screen.dart';
 import 'screens_servicios/listservices.dart';
@@ -27,15 +27,17 @@ class _Home extends State<Home> {
     const ListService(),
     const Gasoline(),
     const Configuration(),
-    const FinishTurn()
   ];
 
   @override
   void initState() {
-    // TODO: implement initState
-    super.initState();
     print('SE INICILIAO CARGANDO DATA DESDE BN');
-    FutureBuilder ;
+
+    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+      context.read<ConfiguracionProvider>().listaVariables;
+    });
+
+    super.initState();
   }
 
   @override
@@ -76,7 +78,7 @@ class _Home extends State<Home> {
           return shouldPop!;
         },
         child: Scaffold(
-          appBar: const AppBarCustomized(),
+          appBar: AppBarCustomized(),
           body: _pages[_paginaActual],
           bottomNavigationBar: BottomNavigationBar(
               onTap: (index) {
@@ -105,11 +107,6 @@ class _Home extends State<Home> {
                   icon: Icon(Icons.settings),
                   label: "Config",
                   backgroundColor: Colors.black,
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.taxi_alert_rounded),
-                  label: "Fin Turno",
-                  backgroundColor: Colors.amber,
                 ),
               ]),
           floatingActionButton: FloatingActionButton(

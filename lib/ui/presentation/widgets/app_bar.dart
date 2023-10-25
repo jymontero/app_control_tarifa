@@ -1,3 +1,6 @@
+// ignore_for_file: avoid_print
+
+import 'package:cron/cron.dart';
 import 'package:flutter/material.dart';
 
 class AppBarCustomized extends StatefulWidget implements PreferredSizeWidget {
@@ -14,24 +17,64 @@ class AppBarCustomized extends StatefulWidget implements PreferredSizeWidget {
 }
 
 class _AppBarCustomizedState extends State<AppBarCustomized> {
+  String saludo = "";
+
+  @override
+  void initState() {
+    super.initState();
+    saludo = setSaludo();
+  }
+
+  Widget getSaludo(String saludo) {
+    return Text(
+      saludo,
+      textAlign: TextAlign.left,
+      style: const TextStyle(fontSize: 25),
+    );
+  }
+
+  String setSaludo() {
+    var timer = DateTime.now();
+    var hour = timer.hour;
+
+    if (hour >= 00 && hour < 12) {
+      saludo = "Buenos dias\n";
+    }
+    if (hour >= 12 && hour < 19) {
+      saludo = "Buenas tardes\n";
+    }
+    if (hour >= 19 && hour <= 23) {
+      saludo = "Buenas noches\n";
+    }
+
+    return saludo;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final cron = Cron();
+
+    cron.schedule(Schedule.parse('0 * * * *'), () async {
+      setSaludo();
+      setState(() {
+        saludo = setSaludo();
+      });
+    });
+
     return AppBar(
       backgroundColor: Colors.amber,
-      //toolbarTextStyle: too
       leading: const Padding(
         padding: EdgeInsets.all(1.0),
         child: CircleAvatar(
           backgroundImage: AssetImage("assets/images/perfil.jpg"),
         ),
       ),
-
-      title: const Padding(
-        padding: EdgeInsets.all(8.0),
+      title: Padding(
+        padding: const EdgeInsets.all(8.0),
         child: Text(
-          'Buenos Dias \n Julian',
+          '${saludo}Julian',
           textAlign: TextAlign.left,
-          style: TextStyle(fontSize: 25),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
       ),
       titleSpacing: 5.0,

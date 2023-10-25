@@ -3,8 +3,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:taxi_servicios/providers/configuracion_provider.dart';
 import 'package:taxi_servicios/providers/contadorservicio_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_finturno/finish_screen.dart';
 
 class GoalDairy extends StatefulWidget {
   const GoalDairy({super.key});
@@ -14,9 +16,6 @@ class GoalDairy extends StatefulWidget {
 }
 
 class _GoalDairyState extends State<GoalDairy> {
-  late int _costService = 0;
-  int _goal = 260000;
-  int _currentGoal = 0;
   final numberFormat =
       NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 0);
 
@@ -68,34 +67,80 @@ class _GoalDairyState extends State<GoalDairy> {
   Widget build(BuildContext context) {
     return Scaffold(
         body: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _buildTextGoal(Colors.red,
-            context.watch<ContadorServicioProvider>().configuracion, 30),
-        _createInfolabels('Meta x Hacer'),
-        Row(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Column(
-              children: [
-                _createLabelRate(265000, 1),
-                _createInfolabels('Meta Registrada'),
-              ],
-            ),
-            const Padding(padding: EdgeInsets.all(15)),
-            Column(
+            _buildTextGoal(Colors.red,
+                context.watch<ContadorServicioProvider>().configuracion, 30),
+            _createInfolabels('Meta x Hacer'),
+            Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _createLabelRate(
-                    context.watch<ContadorServicioProvider>().valorMetaObtenida,
-                    0),
-                _createInfolabels('Meta obtenida'),
+                Column(
+                  children: [
+                    _createLabelRate(
+                        context.watch<ConfiguracionProvider>().metaRegistrada,
+                        1),
+                    _createInfolabels('Meta Registrada'),
+                  ],
+                ),
+                const Padding(padding: EdgeInsets.all(15)),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _createLabelRate(
+                        context
+                            .watch<ContadorServicioProvider>()
+                            .valorMetaObtenida,
+                        0),
+                    _createInfolabels('Meta obtenida'),
+                  ],
+                )
               ],
             )
           ],
-        )
-      ],
-    ));
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          heroTag: 'btnFinalizarTurno',
+          backgroundColor: Colors.red,
+          onPressed: () async {
+            await showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  title: const Text(
+                    'Deseas Finalizar Turno?',
+                  ),
+                  actionsAlignment: MainAxisAlignment.spaceBetween,
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context, true);
+
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                // ignore: prefer_const_constructors
+                                builder: (context) => StepperFinalized()));
+                      },
+                      child: const Text('Si'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context, false);
+                      },
+                      child: const Text('No'),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+          icon: const Icon(
+            Icons.output_outlined,
+          ),
+          label: const Text('Finalizar Turno'),
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat);
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:taxi_servicios/providers/contadorservicio_provider.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_ganancias/listganancia.dart';
 
 class ListService extends StatefulWidget {
   const ListService({super.key});
@@ -27,34 +28,6 @@ class _ListServiceState extends State<ListService> {
     );
   }
 
-  Widget _createListService(int monto, String fecha) {
-    return ListView.builder(
-      itemCount: 15,
-      itemBuilder: (BuildContext context, int index) {
-        return ListTile(
-            leading: const Icon(
-              Icons.money_off,
-              size: 5,
-              color: Colors.green,
-            ),
-            title: Text(
-              'COP ${numberFormat.format(monto)}',
-              style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black),
-            ),
-            subtitle: Text(
-              fecha,
-              style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.normal,
-                  color: Colors.black),
-            ));
-      },
-    );
-  }
-
   Widget _createListServiceP(BuildContext context) {
     final listServices = context
         .watch<ContadorServicioProvider>()
@@ -62,13 +35,15 @@ class _ListServiceState extends State<ListService> {
         .reversed
         .toList();
     return ListView.builder(
+      padding: const EdgeInsets.only(left: 5, top: 0, right: 0, bottom: 70),
+      shrinkWrap: true,
       itemCount: listServices.length,
       itemBuilder: (BuildContext context, int index) {
         return ListTile(
           leading: const Icon(
             Icons.local_taxi_rounded,
             size: 25,
-            color: Colors.green,
+            color: Colors.black,
           ),
           title: Text(
             'COP ${numberFormat.format(listServices[index].valorservicio)}',
@@ -113,15 +88,29 @@ class _ListServiceState extends State<ListService> {
                 const Text(
                   "Listado De Servicios",
                   textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
                 ),
                 Text(
                   '${time.day}/${time.month}/${time.year}',
                   textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 20),
                 ),
               ],
             )
           ],
         )),
-        body: _createListServiceP(context));
+        body: Container(child: _createListServiceP(context)),
+        floatingActionButton: FloatingActionButton.extended(
+          heroTag: 'btnagregar',
+          backgroundColor: Colors.green,
+          onPressed: () {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => const GananciaList()));
+          },
+          icon: const Icon(Icons.playlist_add),
+          label: const Text('Ver Ingresos'),
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat);
   }
 }
