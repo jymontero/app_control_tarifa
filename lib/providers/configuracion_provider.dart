@@ -1,23 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:taxi_servicios/domain/entitis/variables.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
-//import 'package:provider/provider.dart';
 
 class ConfiguracionProvider with ChangeNotifier {
+  FireStoreDataBase db = FireStoreDataBase();
   late int _metaRegistrada = 265000;
   late List<Variable> _listVariables = [];
-  late final _listaAuxVar = listaVariablesConfiguracion;
+  //late final _listaAuxVar = db.listaVariablesConfiguracion;
+  late List _listaVariable = [];
+  late int _metaRegistradaBD = 0;
 
   int get metaRegistrada => _metaRegistrada;
   List get listaVariables => _listVariables;
+  List get listaVariablesBD => _listaVariable;
+  int get metaRegistradaBD => _metaRegistradaBD;
 
   set dataFromBD(List<Variable> listaVariables) {
     _listVariables = listaVariables;
   }
 
+  void setlista(List lista) {
+    _listaVariable = lista;
+    notifyListeners();
+  }
+
+  void setMetaRegistradaBD(int valor) {
+    _metaRegistradaBD = valor;
+    notifyListeners();
+  }
+
   void addVariable(Variable variable) {
     _listVariables.add(variable);
-
     notifyListeners();
   }
 
@@ -28,22 +41,25 @@ class ConfiguracionProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  set sumarAux(int valor) {
-    _metaRegistrada += valor;
+  void sumarListaBd(List<Variable> lista) {
+    _listVariables = lista;
+
+    int sumar = 0;
+    for (var item in _listVariables) {
+      int aux = item.valor;
+      sumar += aux;
+    }
+    _metaRegistradaBD = sumar;
     notifyListeners();
   }
 
-  int sumarMeta1() {
-    int metaRegistrada2 = 0;
-    for (var item in _listaAuxVar) {
-      int valor = item['valor'];
-      metaRegistrada2 += valor;
-    }
-    return metaRegistrada2;
+  void sumarNuevaVariable(int valor) {
+    _metaRegistradaBD += valor;
+    notifyListeners();
   }
 
-  void sumarMeta() {
-    _metaRegistrada = sumarMeta1();
+  void restaVariable(int valor) {
+    _metaRegistradaBD -= valor;
     notifyListeners();
   }
 }

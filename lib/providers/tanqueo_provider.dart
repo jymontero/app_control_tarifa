@@ -1,7 +1,7 @@
 // ignore_for_file: avoid_print, duplicate_ignore
 
 import 'package:flutter/material.dart';
-import 'package:taxi_servicios/providers/contadorservicio_provider.dart';
+import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 
 class ServicioTanqueoProvider with ChangeNotifier {
   late String _valorTanqueo = "";

@@ -41,11 +41,13 @@ dependencies:
   #dependencias firestore
   firebase_core: ^2.15.1
   cloud_firestore: ^4.9.1
-  intl: ^0.18.1
+  intl: any
   flutter_multi_formatter: ^2.11.11
   pattern_formatter: ^3.0.0
 
   cron: ^0.5.1 
+  flutter_localizations:
+    sdk: flutter
 
 dev_dependencies:
   flutter_test:
@@ -84,6 +86,9 @@ flutter:
      - assets/images/fondo5.jpg
      - assets/images/perfil.jpg
      - assets/images/terpel.jpg
+     - assets/images/texaco.jpg
+     - assets/images/primax.jpg
+
      
      
      

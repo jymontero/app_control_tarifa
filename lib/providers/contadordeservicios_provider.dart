@@ -1,19 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:taxi_servicios/domain/entitis/servicio.dart';
-import 'package:taxi_servicios/providers/configuracion_provider.dart';
-//import 'package:provider/provider.dart';
-//import 'package:taxi_servicios/providers/configuracion_provider.dart';
-//import 'package:taxi_servicios/providers/configuracion_provider.dart';
 
 class ContadorServicioProvider with ChangeNotifier {
   //int _valorMetaRegistrada =
   //  Provider.of<ConfiguracionProvider>(listen: true).metaRegistrada;
   late int _valorMetaObtenida = 0;
-  late final int _valorMetaHacer = 265000;
+  late final int _valorMetaHacer = 270000;
   late final List<Servicio> _listServicesDay = [];
 
-  late int _configuracionMetaRegistrada =
-      ConfiguracionProvider().metaRegistrada;
+  int _configuracionMetaRegistrada = 0;
 
   //int get valorMetaRegistrada => _valorMetaRegistrada;
   int get valorMetaObtenida => _valorMetaObtenida;
@@ -38,6 +33,21 @@ class ContadorServicioProvider with ChangeNotifier {
 
   void decrementarGanancia(int valor) {
     _valorMetaObtenida -= valor;
+    notifyListeners();
+  }
+
+  void setMetaBD(int valor) {
+    _configuracionMetaRegistrada = valor;
+    notifyListeners();
+  }
+
+  void setMetaObtenida() {
+    _valorMetaObtenida = 0;
+    notifyListeners();
+  }
+
+  void setMetaHacer(int valor) {
+    _configuracionMetaRegistrada = valor;
     notifyListeners();
   }
 }

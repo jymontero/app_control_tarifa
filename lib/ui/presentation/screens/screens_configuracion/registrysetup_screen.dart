@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:taxi_servicios/domain/entitis/variables.dart';
 import 'package:taxi_servicios/providers/configuracion_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
-import 'package:taxi_servicios/ui/presentation/screens/home_screen.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_configuracion/listvariables_screen.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 
 class RegistryVariable extends StatefulWidget {
@@ -23,6 +23,8 @@ class _RegistryVariableState extends State<RegistryVariable> {
   final TextEditingController myControllerValue =
       TextEditingController(text: "");
   final _formKey = GlobalKey<FormState>();
+
+  FireStoreDataBase db = FireStoreDataBase();
 
   Widget _createForm() {
     return Column(
@@ -87,7 +89,7 @@ class _RegistryVariableState extends State<RegistryVariable> {
     );
   }
 
-  Widget _createRegistryButtom() {
+  Widget _createRegistryButtom(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -104,12 +106,16 @@ class _RegistryVariableState extends State<RegistryVariable> {
                 Variable variable =
                     Variable(valor: valor, nombre: myControllerName.text);
                 context.read<ConfiguracionProvider>().addVariable(variable);
-                await addVariableBD(valor, myControllerName.text).then((_) {
+                context.read<ConfiguracionProvider>().sumarNuevaVariable(valor);
+
+                await db.addVariableBD(valor, myControllerName.text).then((_) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                       content:
                           Text('Configurando variable en el sistema....')));
-                  Navigator.pop(context,
-                      MaterialPageRoute(builder: (context) => const Home()));
+                  Navigator.pop(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const Configuration()));
                 });
               }
 
@@ -148,7 +154,7 @@ class _RegistryVariableState extends State<RegistryVariable> {
                 const Padding(padding: EdgeInsets.all(15)),
                 _createForm(),
                 const Padding(padding: EdgeInsets.all(20)),
-                _createRegistryButtom()
+                _createRegistryButtom(context)
               ]),
         ));
   }

@@ -2,11 +2,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:taxi_servicios/domain/entitis/variables.dart';
+import 'package:taxi_servicios/providers/configuracion_provider.dart';
+import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
+import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_servicios/registryservice_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_configuracion/listvariables_screen.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 
-import '../../../providers/configuracion_provider.dart';
 import 'screens_tanqueo/gas_screen.dart';
 import 'screens_servicios/goaltaxes_screen.dart';
 import 'screens_servicios/listservices.dart';
@@ -20,6 +23,7 @@ class Home extends StatefulWidget {
 }
 
 class _Home extends State<Home> {
+  FireStoreDataBase bd = FireStoreDataBase();
   int _paginaActual = 0;
 
   final List<Widget> _pages = [
@@ -31,11 +35,11 @@ class _Home extends State<Home> {
 
   @override
   void initState() {
-    print('SE INICILIAO CARGANDO DATA DESDE BN');
-
-    WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+    print('SE INICILIAO CARGANDO DATA DESDE BD');
+    getData();
+    /*WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
       context.read<ConfiguracionProvider>().listaVariables;
-    });
+    });*/
 
     super.initState();
   }
@@ -43,6 +47,16 @@ class _Home extends State<Home> {
   @override
   void dispose() {
     super.dispose();
+  }
+
+  void getData() async {
+    List<Variable> listaVaraibles = await bd.getModeloVariables();
+    Future.microtask(() =>
+        context.read<ConfiguracionProvider>().sumarListaBd(listaVaraibles));
+
+    Future.microtask(() => context
+        .read<ContadorServicioProvider>()
+        .setMetaHacer(context.read<ConfiguracionProvider>().metaRegistradaBD));
   }
 
   @override
@@ -122,99 +136,3 @@ class _Home extends State<Home> {
         ));
   }
 }
-    /*Widget _createInputService() {
-      return Column(
-        children: [
-          TextField(
-            autofocus: false,
-            style: const TextStyle(color: Colors.white),
-            controller: myController,
-            keyboardType: TextInputType.number,
-            inputFormatters: <TextInputFormatter>[
-              FilteringTextInputFormatter.digitsOnly,
-            ],
-            decoration: const InputDecoration(
-              hintText: 'Ingrese valor del servicio aqui',
-              hintStyle: TextStyle(color: Colors.white),
-              labelText: 'Valor',
-              labelStyle: TextStyle(color: Colors.white),
-              helperText: 'Ingrese valor del servicio',
-              helperStyle: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      );
-    }
-
-    Widget _createRegistryButtom() {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          ElevatedButton(
-              style: ButtonStyle(
-                foregroundColor: MaterialStateProperty.all(Colors.white),
-              ),
-              onPressed: () {
-                setState(() {
-                  if (myController.text == "") {
-                    showAlert();
-                  } else {
-                    _costService = int.parse(myController.text);
-                    showConfirmDialog();
-                    _goal -= _costService;
-                    _currentGoal += _costService;
-                    // ignore: avoid_print
-                    listServicesDay.add(_costService);
-                  }
-                });
-                // ignore: avoid_print
-                print('Lista de Servicios');
-                for (var i in listServicesDay) {
-                  print(i);
-                }
-                myController.clear();
-              },
-              child: const Text('Registrar',
-                  style: TextStyle(
-                    fontSize: 18,
-                  )))
-        ],
-      );
-    }*/
-
-    
-
-    /*Widget textFuture = Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildTextGoal(Colors.red, _metaPorCumplir),
-      ],
-    );*/
-
-    /**Widget textActual = Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildTextGoal(Colors.lightGreenAccent.shade700, _metaRealizada),
-      ],
-    );**/
-
-    /*Widget _textFuture(int metaCumplir){
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildTextGoal(Colors.red, metaCumplir),
-        ],
-      );
-    }*/
-
-
-/*
- ListView(children: [
-        _createInfolabels("Meta"),
-        _createLabelRate(_goal -= widget._valorServicio, 1),
-        //_createInputService(),
-        //_createRegistryButtom(),
-        _createInfolabels("Meta Obtenida"),
-        _createLabelRate(_currentGoal += widget._valorServicio, 0),
-      ])
-*/

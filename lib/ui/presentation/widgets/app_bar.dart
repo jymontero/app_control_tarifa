@@ -9,11 +9,10 @@ class AppBarCustomized extends StatefulWidget implements PreferredSizeWidget {
   const AppBarCustomized({super.key, this.height = kToolbarHeight + 20});
 
   @override
-  State<AppBarCustomized> createState() => _AppBarCustomizedState();
-
-  @override
   // TODO: implement preferredSize
   Size get preferredSize => Size.fromHeight(height);
+  @override
+  State<AppBarCustomized> createState() => _AppBarCustomizedState();
 }
 
 class _AppBarCustomizedState extends State<AppBarCustomized> {
@@ -36,15 +35,15 @@ class _AppBarCustomizedState extends State<AppBarCustomized> {
   String setSaludo() {
     var timer = DateTime.now();
     var hour = timer.hour;
-
+    print(hour);
     if (hour >= 00 && hour < 12) {
-      saludo = "Buenos dias\n";
+      saludo = "Buenos dias,\n";
     }
     if (hour >= 12 && hour < 19) {
-      saludo = "Buenas tardes\n";
+      saludo = "Buenas tardes,\n";
     }
     if (hour >= 19 && hour <= 23) {
-      saludo = "Buenas noches\n";
+      saludo = "Buenas noches,\n";
     }
 
     return saludo;
@@ -70,11 +69,17 @@ class _AppBarCustomizedState extends State<AppBarCustomized> {
         ),
       ),
       title: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Text(
-          '${saludo}Julian',
-          textAlign: TextAlign.left,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        padding: const EdgeInsets.all(5),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              '${saludo}Julian',
+              textAlign: TextAlign.left,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
       ),
       titleSpacing: 5.0,

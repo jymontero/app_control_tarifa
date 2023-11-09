@@ -6,7 +6,6 @@ import 'package:pattern_formatter/pattern_formatter.dart';
 import 'package:provider/provider.dart';
 import 'package:taxi_servicios/providers/tanqueo_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
-import 'package:taxi_servicios/ui/presentation/screens/home_screen.dart';
 
 class RegistryGas extends StatefulWidget {
   const RegistryGas({super.key});
@@ -28,6 +27,8 @@ class _RegistryGasState extends State<RegistryGas> {
       TextEditingController(text: "");
 
   final _formKeyGas = GlobalKey<FormState>();
+
+  FireStoreDataBase db = FireStoreDataBase();
 
   @override
   void initState() {
@@ -150,7 +151,7 @@ class _RegistryGasState extends State<RegistryGas> {
     );
   }
 
-  Widget _createRegistryButtom() {
+  /*Widget _createRegistryButtom() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -168,7 +169,7 @@ class _RegistryGasState extends State<RegistryGas> {
                 final double galon = double.parse(myControllerGalones.text);
 
                 //context.read<ConfiguracionProvider>().addVariable(variable);
-                await addTanqueoBD(valor, km, galon).then((_) {
+                await db.addTanqueoBD(valor, km, galon).then((_) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                       content: Text('Guardando base de datos....')));
                   Navigator.pop(context,
@@ -185,7 +186,7 @@ class _RegistryGasState extends State<RegistryGas> {
       ],
     );
   }
-
+*/
   /*Widget _dropButton() {
     final List<DropdownMenuEntry<String>> entradaEstacion =
         <DropdownMenuEntry<String>>[];
@@ -203,20 +204,9 @@ class _RegistryGasState extends State<RegistryGas> {
             children: [
               const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  /*Text(
-                    'Registro De Tanqueo',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  )*/
-                ],
+                children: [],
               ),
-              //const Padding(padding: EdgeInsets.all(15)),
               _createForm(),
-              //const Padding(padding: EdgeInsets.all(20)),
-              //_createRegistryButtom()
             ]),
       ),
     );

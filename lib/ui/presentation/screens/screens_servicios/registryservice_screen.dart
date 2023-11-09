@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:taxi_servicios/domain/entitis/servicio.dart';
-import 'package:taxi_servicios/providers/contadorservicio_provider.dart';
+import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/screens/home_screen.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
@@ -21,12 +21,12 @@ class ServiceTaxi extends StatefulWidget {
 }
 
 class _ServiceTaxiState extends State<ServiceTaxi> {
-  var time = DateTime.now();
-
-  //final myController = TextEditingController();
+  var time = DateTime.now().toLocal();
   final TextEditingController myController = TextEditingController(text: "");
   final numberFormat =
       NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 0);
+
+  FireStoreDataBase db = FireStoreDataBase();
 
   void showAlert() {
     QuickAlert.show(
@@ -94,7 +94,7 @@ class _ServiceTaxiState extends State<ServiceTaxi> {
         Container(
           padding: const EdgeInsets.all(20),
           child:
-              Text('Fecha del Viaje \n${time.day}/${time.month}/${time.year}',
+              Text('Fecha del Viaje \n${DateFormat.yMMMEd('es').format(time)}',
                   style: const TextStyle(
                     fontSize: 16,
                   )),
@@ -122,17 +122,29 @@ class _ServiceTaxiState extends State<ServiceTaxi> {
                   context: context,
                   builder: (context) {
                     return AlertDialog(
-                      title: Text(
-                        'Registrar COP ${numberFormat.format(int.parse(valor))}',
+                      title: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Text(
+                            'Registrar ',
+                            textAlign: TextAlign.center,
+                          ),
+                          Text(
+                            'COP ${numberFormat.format(int.parse(valor))}',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ],
                       ),
                       actionsAlignment: MainAxisAlignment.spaceBetween,
                       actions: [
                         TextButton(
                           onPressed: () {
-                            final fechaTemp =
-                                '${time.hour}:${time.minute}:${time.second}';
                             final horaTemp =
-                                '${time.day}/${time.month}/${time.year}';
+                                '${time.hour}:${time.minute}:${time.second}';
+                            final fechaTemp =
+                                '${time.day}-${time.month}-${time.year}';
                             Servicio servicio = Servicio(
                                 valorservicio: int.parse(valor),
                                 hora: horaTemp,
@@ -148,8 +160,11 @@ class _ServiceTaxiState extends State<ServiceTaxi> {
                             context
                                 .read<ContadorServicioProvider>()
                                 .addServicio(servicio);
-                            addServicioBD(
+                            //Base de datos
+                            db.addServicioBD(
                                 fechaTemp, horaTemp, int.parse(valor));
+
+                            ///
                             Navigator.pop(
                                 context,
                                 MaterialPageRoute(

@@ -4,7 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:taxi_servicios/providers/configuracion_provider.dart';
-import 'package:taxi_servicios/providers/contadorservicio_provider.dart';
+import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_finturno/finish_screen.dart';
 
@@ -16,6 +16,11 @@ class GoalDairy extends StatefulWidget {
 }
 
 class _GoalDairyState extends State<GoalDairy> {
+  @override
+  void initState() {
+    super.initState();
+  }
+
   final numberFormat =
       NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 0);
 
@@ -79,7 +84,7 @@ class _GoalDairyState extends State<GoalDairy> {
                 Column(
                   children: [
                     _createLabelRate(
-                        context.watch<ConfiguracionProvider>().metaRegistrada,
+                        context.watch<ConfiguracionProvider>().metaRegistradaBD,
                         1),
                     _createInfolabels('Meta Registrada'),
                   ],

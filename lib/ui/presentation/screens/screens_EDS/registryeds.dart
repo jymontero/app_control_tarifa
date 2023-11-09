@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pattern_formatter/pattern_formatter.dart';
+import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
+
+import '../home_screen.dart';
 
 class RegistryEDS extends StatefulWidget {
   const RegistryEDS({super.key});
@@ -11,10 +14,11 @@ class RegistryEDS extends StatefulWidget {
 }
 
 class _RegistryEDSState extends State<RegistryEDS> {
-  final TextEditingController myControllerBarrio =
+  FireStoreDataBase bd = FireStoreDataBase();
+  final TextEditingController myControllerNombre =
       TextEditingController(text: '');
 
-  final TextEditingController myControllerNombre =
+  final TextEditingController myControllerBarrio =
       TextEditingController(text: '');
 
   final TextEditingController myControllerValorG =
@@ -113,11 +117,46 @@ class _RegistryEDSState extends State<RegistryEDS> {
     );
   }
 
+  Widget _createRegistryButtom() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        ElevatedButton(
+            style: ButtonStyle(
+                backgroundColor: MaterialStateProperty.all(Colors.amber),
+                foregroundColor: MaterialStateProperty.all(Colors.black),
+                shape: MaterialStateProperty.all(RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(5)))),
+            onPressed: () async {
+              if (_formKeyEDS.currentState!.validate()) {
+                final String nombre = myControllerNombre.text;
+                final String barrio = myControllerBarrio.text;
+                final int galon =
+                    int.parse(myControllerValorG.text.replaceAll(',', ''));
+
+                await bd.addEDS(nombre, barrio, galon).then((_) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text('Guardando base de datos....')));
+                  Navigator.pop(context,
+                      MaterialPageRoute(builder: (context) => const Home()));
+                });
+              }
+
+              //Navigator.pop(context, int.parse(myController.text));
+            },
+            child: const Text('Agregar ',
+                style: TextStyle(
+                  fontSize: 18,
+                )))
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: const AppBarCustomized(),
-        body: Padding(
+        body: SingleChildScrollView(
             padding: const EdgeInsets.all(30),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -126,12 +165,16 @@ class _RegistryEDSState extends State<RegistryEDS> {
                 const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    SizedBox(
+                      height: 50,
+                    ),
                     Text('Registro EDS',
                         style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold))
+                            fontSize: 20, fontWeight: FontWeight.bold)),
                   ],
                 ),
-                _createForm()
+                _createForm(),
+                _createRegistryButtom()
               ],
             )));
   }

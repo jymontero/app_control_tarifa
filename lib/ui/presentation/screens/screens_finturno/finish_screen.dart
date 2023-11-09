@@ -1,9 +1,10 @@
 // ignore_for_file: avoid_print, duplicate_ignore
 
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:taxi_servicios/providers/contadorservicio_provider.dart';
+import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:taxi_servicios/providers/tanqueo_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/screens/home_screen.dart';
@@ -22,11 +23,14 @@ class StepperFinalized extends StatefulWidget {
 class _StepperFinalizedState extends State<StepperFinalized> {
   @override
   void initState() {
+    initializeDateFormatting('es');
     super.initState();
   }
 
   List<int> listaControlGanancia = [];
   int currentStep = 0;
+  FireStoreDataBase db = FireStoreDataBase();
+  DateTime selectedDate = DateTime.now().toLocal();
 
   Column _buildTextGoal(Color color, int monto, double sizeLetter) {
     final numberFormat =
@@ -45,6 +49,38 @@ class _StepperFinalizedState extends State<StepperFinalized> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _selectDate(BuildContext context) {
+    return SizedBox(
+      child: TextButton.icon(
+          onPressed: () async {
+            final DateTime? selected = await showDatePicker(
+              context: context,
+              locale: const Locale('es'),
+              initialDate: selectedDate,
+              firstDate: DateTime(2022),
+              lastDate: DateTime(2030),
+              initialEntryMode: DatePickerEntryMode.calendarOnly,
+            );
+            if (selected != null && selected != selectedDate) {
+              setState(() {
+                selectedDate = selected;
+              });
+            }
+          },
+          icon: const Icon(
+            Icons.edit_calendar_outlined,
+            size: 22,
+            color: Colors.black,
+          ),
+          label: Text(
+            DateFormat.yMMMEd('es').format(selectedDate),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+                fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
+          )),
     );
   }
 
@@ -88,7 +124,8 @@ class _StepperFinalizedState extends State<StepperFinalized> {
                       context
                           .watch<ContadorServicioProvider>()
                           .valorMetaObtenida,
-                      20)
+                      20),
+                  _selectDate(context)
                 ],
               )))
     ];
@@ -171,10 +208,18 @@ class _StepperFinalizedState extends State<StepperFinalized> {
                         valorKilometros = int.parse(tanqueo.valorKilometros);
 
                         //enviando base de datos
-                        addGananciaBD(ganancia);
+                        db.addGananciaBD(
+                            ganancia,
+                            selectedDate.day.toString(),
+                            selectedDate.month.toString(),
+                            selectedDate.year.toString());
 
-                        addTanqueoBD(valorTanqueoProvider, valorKilometros,
-                            valorGalones);
+                        db.addTanqueoBD(
+                            valorTanqueoProvider,
+                            valorKilometros,
+                            valorGalones,
+                            '${selectedDate.day}-${selectedDate.month}-${selectedDate.year}',
+                            '${selectedDate.hour}:${selectedDate.minute}:${selectedDate.second}');
 
                         print('Enviando datos a BD');
 
