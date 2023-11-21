@@ -8,7 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:taxi_servicios/domain/entitis/servicio.dart';
 import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
-import 'package:taxi_servicios/ui/presentation/screens/screens_ganancias/homeganancia.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_ganancias/homeganancia_screen.dart';
 
 class ListService extends StatefulWidget {
   const ListService({super.key});
@@ -21,7 +21,6 @@ class _ListServiceState extends State<ListService> {
   late List<Servicio> listaServicios = [];
   var time = DateTime.now();
   DateTime selectedDate = DateTime.now().toLocal();
-
   FireStoreDataBase bd = FireStoreDataBase();
 
   final numberFormat =
@@ -34,16 +33,6 @@ class _ListServiceState extends State<ListService> {
     super.initState();
   }
 
-  int sumarListaBd(List<Servicio> lista) {
-    listaServicios = lista;
-    int sumar = 0;
-    for (var item in listaServicios) {
-      int aux = item.valorservicio;
-      sumar += aux;
-    }
-    return sumar;
-  }
-
   Widget _createInfolabels(String mensaje) {
     return Text(
       mensaje,
@@ -53,12 +42,10 @@ class _ListServiceState extends State<ListService> {
     );
   }
 
-  Widget _createFutureBuilder() {
+  Widget _createFutureBuilderServices() {
     final fechaTemp =
         '${selectedDate.day}-${selectedDate.month}-${selectedDate.year}'
             .toString();
-    /*Future.microtask(
-        () => context.read<ContadorServicioProvider>().setMetaObtenida());*/
 
     return FutureBuilder(
         future: bd.getModeloServicios(fechaTemp),
@@ -68,14 +55,11 @@ class _ListServiceState extends State<ListService> {
           }
           if (snapshot.hasData) {
             listaServicios = snapshot.data!;
-
-            /*Future.microtask(() => context
-                .read<ContadorServicioProvider>()
-                .incrementarMeta(sumarListaBd(listaServicios)));
-
-            Future.microtask(() => context
-                .read<ContadorServicioProvider>()
-                .decrementarMeta((sumarListaBd(listaServicios))));*/
+            Future.microtask(() {
+              context
+                  .read<ContadorServicioProvider>()
+                  .setNumeroServicios(listaServicios.length);
+            });
 
             return _crearListaServiciosBD(context);
           }
@@ -135,13 +119,20 @@ class _ListServiceState extends State<ListService> {
                               actions: [
                                 TextButton(
                                     onPressed: () {
+                                      int valorServicioEliminar =
+                                          listaServicios[index].valorservicio;
                                       bd.eliminarServicio(
                                           listaServicios[index].id);
-                                      /* Navigator.pop(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (context) =>
-                                                  const Home()));*/
+                                      Future.microtask(() => context
+                                          .read<ContadorServicioProvider>()
+                                          .decrementarMetaObtendia(
+                                              valorServicioEliminar));
+
+                                      Future.microtask(() => context
+                                          .read<ContadorServicioProvider>()
+                                          .sumarMetaPorHacer(
+                                              valorServicioEliminar));
+
                                       Navigator.pop(context, true);
                                     },
                                     child: const Text('Si')),
@@ -163,54 +154,6 @@ class _ListServiceState extends State<ListService> {
     }
   }
 
-  Widget _createListServiceP(BuildContext context) {
-    final listServices = context
-        .watch<ContadorServicioProvider>()
-        .listaServicios
-        .reversed
-        .toList();
-    return ListView.builder(
-      padding: const EdgeInsets.only(left: 5, top: 0, right: 0, bottom: 70),
-      shrinkWrap: true,
-      itemCount: listServices.length,
-      itemBuilder: (BuildContext context, int index) {
-        return ListTile(
-          leading: const Icon(
-            Icons.local_taxi_rounded,
-            size: 25,
-            color: Colors.black,
-          ),
-          title: Text(
-            'COP ${numberFormat.format(listServices[index].valorservicio)}',
-            style: const TextStyle(
-                fontSize: 17, fontWeight: FontWeight.bold, color: Colors.black),
-          ),
-          subtitle: Text(
-            '${listServices[index].fecha}\t\t\t${listServices[index].hora}',
-            style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.normal,
-                color: Colors.black),
-          ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.mode_edit_outline_outlined,
-                    color: Colors.green,
-                  )),
-              IconButton(
-                  onPressed: () {},
-                  icon: const Icon(Icons.delete_forever, color: Colors.red)),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   Widget _selectDate(BuildContext context) {
     return SizedBox(
       child: TextButton.icon(
@@ -226,8 +169,6 @@ class _ListServiceState extends State<ListService> {
             if (selected != null && selected != selectedDate) {
               setState(() {
                 selectedDate = selected;
-                Future.microtask(() =>
-                    context.read<ContadorServicioProvider>().setMetaObtenida());
               });
             }
           },
@@ -255,17 +196,18 @@ class _ListServiceState extends State<ListService> {
             Column(
               children: [
                 const SizedBox(height: 15),
-                const Text(
-                  "Listado De Servicios",
+                Text(
+                  "${context.watch<ContadorServicioProvider>().numeroServiciosTotal} Servicios",
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.w700),
                 ),
                 _selectDate(context)
               ],
             )
           ],
         )),
-        body: SizedBox(child: _createFutureBuilder()),
+        body: SizedBox(child: _createFutureBuilderServices()),
         floatingActionButton: FloatingActionButton.extended(
           heroTag: 'btnagregar',
           backgroundColor: Colors.green,

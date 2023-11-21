@@ -37,6 +37,7 @@ class _RegistryEDSState extends State<RegistryEDS> {
             children: [
               TextFormField(
                 controller: myControllerNombre,
+                textCapitalization: TextCapitalization.sentences,
                 keyboardType: TextInputType.text,
                 textInputAction: TextInputAction.next,
                 inputFormatters: const [],
@@ -61,6 +62,7 @@ class _RegistryEDSState extends State<RegistryEDS> {
               ),
               TextFormField(
                 controller: myControllerBarrio,
+                textCapitalization: TextCapitalization.sentences,
                 keyboardType: TextInputType.text,
                 textInputAction: TextInputAction.next,
                 inputFormatters: const [],

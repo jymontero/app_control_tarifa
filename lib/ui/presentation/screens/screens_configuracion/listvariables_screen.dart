@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:taxi_servicios/controllers/variablecontroller.dart';
 import 'package:taxi_servicios/domain/entitis/variables.dart';
 import 'package:taxi_servicios/providers/configuracion_provider.dart';
+import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_configuracion/editsetup_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_configuracion/registrysetup_screen.dart';
 
 class Configuration extends StatefulWidget {
@@ -16,25 +17,20 @@ class Configuration extends StatefulWidget {
 
 class _ConfigurationState extends State<Configuration> {
   FireStoreDataBase bd = FireStoreDataBase();
-  VariableContoller vc = VariableContoller();
-  late List listVariables = [];
-  late List<Variable> variablesList = [];
+
+  late List<Variable> listaVariablesConfig = [];
   final numberFormat =
       NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 0);
 
   @override
   void initState() {
-    //listVariables = bd.getVariables() as List;
-    //context.read<ConfiguracionProvider>().setlista(listVariables);
-    /*Future.microtask(() =>
-        context.read<ConfiguracionProvider>().sumarListaBd(listVariables));*/
     super.initState();
   }
 
   Widget _createListVariable(BuildContext context) {
     return ListView.builder(
       padding: const EdgeInsets.only(left: 5, bottom: 70),
-      itemCount: variablesList.length,
+      itemCount: listaVariablesConfig.length,
       itemBuilder: (BuildContext context, int index) {
         return ListTile(
           leading: const Icon(
@@ -43,12 +39,12 @@ class _ConfigurationState extends State<Configuration> {
             color: Colors.purple,
           ),
           title: Text(
-            'COP ${numberFormat.format(variablesList[index].valor)}',
+            'COP ${numberFormat.format(listaVariablesConfig[index].valor)}',
             style: const TextStyle(
                 fontSize: 17, fontWeight: FontWeight.bold, color: Colors.black),
           ),
           subtitle: Text(
-            variablesList[index].nombre.toUpperCase(),
+            listaVariablesConfig[index].nombre,
             style: const TextStyle(
                 fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black),
           ),
@@ -56,16 +52,26 @@ class _ConfigurationState extends State<Configuration> {
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Variable objVariable = listaVariablesConfig[index];
+
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => EditVariable(objVariable)));
+                  },
                   icon: const Icon(
                     Icons.mode_edit_outline_outlined,
                     color: Colors.green,
                   )),
               IconButton(
                   onPressed: () {
-                    int valor = variablesList[index].valor;
+                    int valor = listaVariablesConfig[index].valor;
                     context.read<ConfiguracionProvider>().restaVariable(valor);
-                    bd.eliminarVariable(variablesList[index].id);
+                    context
+                        .read<ContadorServicioProvider>()
+                        .decrementarMetaPorHacer(valor);
+                    bd.eliminarVariable(listaVariablesConfig[index].id);
                   },
                   icon: const Icon(Icons.delete_forever, color: Colors.red)),
             ],
@@ -108,11 +114,8 @@ class _ConfigurationState extends State<Configuration> {
               return const Text("Algo malo Ocurrio");
             }
             if (snapshot.hasData) {
-              variablesList = snapshot.data!;
-              //vc.sumarListaBd(listVariables);
-              /*Future.microtask(() => context
-                  .read<ConfiguracionProvider>()
-                  .sumarListaBd(variablesList));*/
+              listaVariablesConfig = snapshot.data!;
+
               return _createListVariable(context);
             }
             return const Center(child: CircularProgressIndicator());

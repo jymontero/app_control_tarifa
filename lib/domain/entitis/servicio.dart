@@ -1,17 +1,11 @@
 class Servicio {
-  late final String _id;
+  late final String id;
   final int valorservicio;
   final String hora;
   final String fecha;
 
   Servicio(
       {required this.valorservicio, required this.hora, required this.fecha});
-
-  String get id => _id;
-
-  set id(String valor) {
-    _id = valor;
-  }
 
   factory Servicio.fromJson(Map<String, dynamic> jsonObject) {
     return Servicio(

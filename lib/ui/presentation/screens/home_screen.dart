@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:taxi_servicios/domain/entitis/servicio.dart';
 import 'package:taxi_servicios/domain/entitis/variables.dart';
 import 'package:taxi_servicios/providers/configuracion_provider.dart';
 import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
@@ -12,7 +13,7 @@ import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 
 import 'screens_tanqueo/gas_screen.dart';
 import 'screens_servicios/goaltaxes_screen.dart';
-import 'screens_servicios/listservices.dart';
+import 'screens_servicios/listservices_screen.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -23,7 +24,7 @@ class Home extends StatefulWidget {
 }
 
 class _Home extends State<Home> {
-  FireStoreDataBase bd = FireStoreDataBase();
+  FireStoreDataBase db = FireStoreDataBase();
   int _paginaActual = 0;
 
   final List<Widget> _pages = [
@@ -36,10 +37,8 @@ class _Home extends State<Home> {
   @override
   void initState() {
     print('SE INICILIAO CARGANDO DATA DESDE BD');
-    getData();
-    /*WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      context.read<ConfiguracionProvider>().listaVariables;
-    });*/
+    getDataVariableConfig();
+    getDataServiciosToday();
 
     super.initState();
   }
@@ -49,14 +48,25 @@ class _Home extends State<Home> {
     super.dispose();
   }
 
-  void getData() async {
-    List<Variable> listaVaraibles = await bd.getModeloVariables();
+  void getDataVariableConfig() async {
+    List<Variable> listaVaraibles = await db.getModeloVariables();
     Future.microtask(() =>
         context.read<ConfiguracionProvider>().sumarListaBd(listaVaraibles));
 
     Future.microtask(() => context
         .read<ContadorServicioProvider>()
         .setMetaHacer(context.read<ConfiguracionProvider>().metaRegistradaBD));
+  }
+
+  void getDataServiciosToday() async {
+    DateTime today = DateTime.now().toLocal();
+    final fechaTemp = '${today.day}-${today.month}-${today.year}'.toString();
+    List<Servicio> listaServicio = await db.getModeloServicios(fechaTemp);
+    if (listaServicio.isNotEmpty) {
+      Future.microtask(() => context
+          .read<ContadorServicioProvider>()
+          .sumarListaServiciosBD(listaServicio, 'HOME'));
+    }
   }
 
   @override

@@ -1,23 +1,23 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
+import 'package:taxi_servicios/domain/entitis/estaciongas.dart';
+import 'package:taxi_servicios/domain/entitis/gas.dart';
+import 'package:taxi_servicios/domain/entitis/ingresos.dart';
 import 'package:taxi_servicios/domain/entitis/servicio.dart';
 import 'package:taxi_servicios/domain/entitis/variables.dart';
 
 class FireStoreDataBase {
   FirebaseFirestore db = FirebaseFirestore.instance;
-  final List _listaVariablesBD = [];
-  final int _metaConfigurada = 0;
-
-  List get listaVariablesConfiguracion => _listaVariablesBD;
-  int get metaConfigurada => _metaConfigurada;
 
 /* ignore: slash_for_doc_comments
- CONSULTAS  READ BASE DE DATOS 
+ CONSULTAS  DE LECTURA BASE DE DATOS 
  */
 
   Future<List<Variable>> getModeloVariables() async {
-    final querySnapshot = await db.collection('variables').get();
-    final variables = querySnapshot.docs.map((e) {
+    final queryVariables = await db
+        .collection('variables')
+        .orderBy('valor', descending: true)
+        .get();
+    final variables = queryVariables.docs.map((e) {
       final model = Variable.fromJson(e.data());
       model.id = e.id;
       return model;
@@ -26,64 +26,80 @@ class FireStoreDataBase {
   }
 
   Future<List<Servicio>> getModeloServicios(String fecha) async {
-    final queryGanancias =
+    final queryServicios =
         await db.collection('servicios').where('fecha', isEqualTo: fecha).get();
 
-    final servicios = queryGanancias.docs.map((e) {
+    final servicios = queryServicios.docs.map((e) {
       final modeloServicio = Servicio.fromJson(e.data());
       modeloServicio.id = e.id;
       return modeloServicio;
     }).toList();
+
     return servicios;
   }
 
-  Future<List> getGanancias(String mes) async {
-    late List listaGanancias = [];
+  Future<List<Ingreso>> getModeloIngresos(String mes) async {
+    final queryIngresos =
+        await db.collection('ingresos').where('mes', isEqualTo: mes).get();
 
-    try {
-      Query<Map<String, dynamic>> cfGanancias =
-          db.collection('ingresos').where('mes', isEqualTo: mes);
-      //  .orderBy('dia', descending: false);
+    final ingresos = queryIngresos.docs.map((e) {
+      final modeloIngeso = Ingreso.fromJson(e.data());
+      modeloIngeso.id = e.id;
+      return modeloIngeso;
+    }).toList();
+    // ignore: avoid_print
+    print('*********IIIIII*************');
 
-      QuerySnapshot queryGanancias = await cfGanancias.get();
-
-      /*final gananciaRef = db.collection('ingresos');
-      gananciaRef.where('mes', isEqualTo: mes).orderBy('dia', descending: true);*/
-      print('**********************');
-
-      for (var item in queryGanancias.docs) {
-        listaGanancias.add(item.data());
-      }
-    } catch (e) {
-      debugPrint('Eror -$e');
-    }
-    return listaGanancias;
+    return ingresos;
   }
 
-  Future<List> getVariables() async {
-    late List listaVariables = [];
+  Future<List<EstacionGas>> getModeloEDS() async {
+    final queryEDS =
+        await db.collection('estacion').orderBy('valorgalon').get();
 
-    try {
-      CollectionReference cfVariables = db.collection('variables');
-      DocumentReference documentReference = db.collection('variables').doc();
+    final eds = queryEDS.docs.map((e) {
+      final modeloEDS = EstacionGas.fromJson(e.data());
+      modeloEDS.id = e.id;
+      return modeloEDS;
+    }).toList();
+    // ignore: avoid_print
+    print('*********EDSEDSEDSEDS*************');
 
-      documentReference.get().then((datasnapshot) {
-        datasnapshot.data();
-      });
-
-      QuerySnapshot queryVariables = await cfVariables.get();
-
-      for (var item in queryVariables.docs) {
-        listaVariables.add(item.data());
-      }
-    } catch (e) {
-      debugPrint("Error - $e");
-    }
-
-    return listaVariables;
+    return eds;
   }
 
-//Metodos agregar datos a la base de datos FIREBASE
+  Future<List<EstacionGas>> getMejorEDS() async {
+    final queryEDS =
+        await db.collection('estacion').orderBy('valorgalon').limit(1).get();
+
+    final eds = queryEDS.docs.map((e) {
+      final modeloEDS = EstacionGas.fromJson(e.data());
+      modeloEDS.id = e.id;
+      return modeloEDS;
+    }).toList();
+    // ignore: avoid_print
+    print('*********BESTBNESTBES*************');
+
+    return eds;
+  }
+
+  Future<List<GasolineTank>> getModeloTanqueo() async {
+    final queryGAS = await db.collection('gasolina').orderBy('km').get();
+
+    final gas = queryGAS.docs.map((e) {
+      final modeloGasolineTank = GasolineTank.fromJson(e.data());
+      modeloGasolineTank.id = e.id;
+      return modeloGasolineTank;
+    }).toList();
+    // ignore: avoid_print
+    print('*********GASGASGASGFGAS*************');
+
+    return gas;
+  }
+
+  Future<void> averageValorTanqueo() async {}
+
+//CONSULTAS DE AGREGACION BASE DE DATOS FIREBASE
   Future<void> addVariableBD(int monto, String nombre) async {
     Map<String, dynamic> variable = {"valor": monto, "nombre": nombre};
     await db.collection('variables').doc().set(variable);
@@ -137,11 +153,22 @@ class FireStoreDataBase {
 //Eliminar Servicio
   Future<String> eliminarServicio(String id) async {
     await db.collection('servicios').doc(id).delete();
-    return "Eliminardoo....***";
+    return "Eliminadoo....***";
   }
 
   Future<String> eliminarVariable(String id) async {
     await db.collection('variables').doc(id).delete();
-    return "Eliminardoo....***";
+    return "Eliminandoo....***";
+  }
+
+  Future<String> eliminarEDS(String id) async {
+    await db.collection('estacion').doc(id).delete();
+    return "Eliminandoo....***";
+  }
+
+  /*CONSULTAS ACTUALIZACION FIREBASE APPTAX */
+
+  Future<void> actualizarVariable(Variable variable) async {
+    await db.collection('variables').doc(variable.id).set(variable.toJson());
   }
 }

@@ -4,13 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:taxi_servicios/domain/entitis/servicio.dart';
 import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:taxi_servicios/providers/tanqueo_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/screens/home_screen.dart';
-import 'package:taxi_servicios/ui/presentation/screens/screens_finturno/registrylavada.dart';
-import 'package:taxi_servicios/ui/presentation/screens/screens_finturno/registryentrega.dart';
-import 'package:taxi_servicios/ui/presentation/screens/screens_tanqueo/registrygas.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_finturno/registrylavada_screen.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_finturno/registryentrega_screen.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_tanqueo/registrygas_screen.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 
 class StepperFinalized extends StatefulWidget {
@@ -21,18 +22,34 @@ class StepperFinalized extends StatefulWidget {
 }
 
 class _StepperFinalizedState extends State<StepperFinalized> {
-  @override
-  void initState() {
-    initializeDateFormatting('es');
-    super.initState();
-  }
-
-  List<int> listaControlGanancia = [];
+  List<int> listaControlGananciaStepp = [];
+  List<Servicio> listaServicios = [];
   int currentStep = 0;
   FireStoreDataBase db = FireStoreDataBase();
   DateTime selectedDate = DateTime.now().toLocal();
+  int metaObtenida = 0;
 
-  Column _buildTextGoal(Color color, int monto, double sizeLetter) {
+  @override
+  void initState() {
+    initializeDateFormatting('es');
+    final fechaTemp =
+        '${selectedDate.day}-${selectedDate.month}-${selectedDate.year}'
+            .toString();
+    getDataServiciosToday(fechaTemp);
+
+    super.initState();
+  }
+
+  void getDataServiciosToday(String date) async {
+    List<Servicio> listaServicio = await db.getModeloServicios(date);
+    if (listaServicio.isNotEmpty) {
+      Future.microtask(() => context
+          .read<ContadorServicioProvider>()
+          .sumarListaServiciosBD(listaServicio, 'FINISH'));
+    }
+  }
+
+  Widget _buildTextGoal(Color color, int monto, double sizeLetter) {
     final numberFormat =
         NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 0);
     return Column(
@@ -67,6 +84,10 @@ class _StepperFinalizedState extends State<StepperFinalized> {
             if (selected != null && selected != selectedDate) {
               setState(() {
                 selectedDate = selected;
+                final fechaTemp =
+                    '${selectedDate.day}-${selectedDate.month}-${selectedDate.year}'
+                        .toString();
+                getDataServiciosToday(fechaTemp);
               });
             }
           },
@@ -123,9 +144,8 @@ class _StepperFinalizedState extends State<StepperFinalized> {
                       Colors.green,
                       context
                           .watch<ContadorServicioProvider>()
-                          .valorMetaObtenida,
+                          .metaObtenidaFinish,
                       20),
-                  _selectDate(context)
                 ],
               )))
     ];
@@ -155,9 +175,12 @@ class _StepperFinalizedState extends State<StepperFinalized> {
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
                 ),
+                _selectDate(context),
                 _buildTextGoal(
                     Colors.purple,
-                    context.watch<ContadorServicioProvider>().valorMetaObtenida,
+                    context
+                        .watch<ContadorServicioProvider>()
+                        .metaObtenidaFinish,
                     20),
                 Stepper(
                     type: StepperType.vertical,
@@ -169,27 +192,29 @@ class _StepperFinalizedState extends State<StepperFinalized> {
 
                         context
                             .read<ContadorServicioProvider>()
-                            .decrementarGanancia(valorTanqueoProvider);
+                            .decrementarMetaObtenidaFinish(
+                                valorTanqueoProvider);
 
-                        listaControlGanancia.add(valorTanqueoProvider);
+                        listaControlGananciaStepp.add(valorTanqueoProvider);
                       }
                       if (currentStep == 1) {
                         valorEntregaProvider =
                             int.parse(tanqueo.valorEntrega.replaceAll(',', ''));
                         context
                             .read<ContadorServicioProvider>()
-                            .decrementarGanancia(valorEntregaProvider);
+                            .decrementarMetaObtenidaFinish(
+                                valorEntregaProvider);
 
-                        listaControlGanancia.add(valorEntregaProvider);
+                        listaControlGananciaStepp.add(valorEntregaProvider);
                       }
                       if (currentStep == 2) {
                         valorLavadaProvider =
                             int.parse(tanqueo.valorLavada.replaceAll(',', ''));
                         context
                             .read<ContadorServicioProvider>()
-                            .decrementarGanancia(valorLavadaProvider);
+                            .decrementarMetaObtenidaFinish(valorLavadaProvider);
 
-                        listaControlGanancia.add(valorLavadaProvider);
+                        listaControlGananciaStepp.add(valorLavadaProvider);
                       }
                       if (currentStep == 3) {
                         // ignore: avoid_print
@@ -197,7 +222,7 @@ class _StepperFinalizedState extends State<StepperFinalized> {
                             Provider.of<ContadorServicioProvider>(context,
                                 listen: false);
 
-                        int ganancia = serviciosProvider.valorMetaObtenida;
+                        int ganancia = serviciosProvider.metaObtenidaFinish;
 
                         valorTanqueoProvider =
                             int.parse(tanqueo.valorTanqueo.replaceAll(',', ''));
@@ -221,8 +246,6 @@ class _StepperFinalizedState extends State<StepperFinalized> {
                             '${selectedDate.day}-${selectedDate.month}-${selectedDate.year}',
                             '${selectedDate.hour}:${selectedDate.minute}:${selectedDate.second}');
 
-                        print('Enviando datos a BD');
-
                         Navigator.pop(
                             context,
                             MaterialPageRoute(
@@ -238,13 +261,13 @@ class _StepperFinalizedState extends State<StepperFinalized> {
                       setState(() {
                         currentStep--;
                         int restar =
-                            listaControlGanancia.elementAt(currentStep);
+                            listaControlGananciaStepp.elementAt(currentStep);
 
-                        listaControlGanancia.removeAt(currentStep);
+                        listaControlGananciaStepp.removeAt(currentStep);
 
                         context
                             .read<ContadorServicioProvider>()
-                            .incrementarMeta(restar);
+                            .incrementarMetaObtenidaFinish(restar);
                       });
                     },
                     controlsBuilder: (context, ControlsDetails details) {
@@ -263,7 +286,11 @@ class _StepperFinalizedState extends State<StepperFinalized> {
                                         borderRadius:
                                             BorderRadius.circular(5)))),
                             child: Text(
-                                currentStep == 3 ? 'CONFIRMAR' : 'Continuar'),
+                              currentStep == 3 ? 'CONFIRMAR' : 'Continuar',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  fontSize: 13, fontWeight: FontWeight.bold),
+                            ),
                           )),
                           const SizedBox(width: 10),
                           if (currentStep != 0)

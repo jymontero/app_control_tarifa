@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:quickalert/quickalert.dart';
-import 'package:taxi_servicios/domain/entitis/servicio.dart';
 import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/screens/home_screen.dart';
@@ -145,21 +144,21 @@ class _ServiceTaxiState extends State<ServiceTaxi> {
                                 '${time.hour}:${time.minute}:${time.second}';
                             final fechaTemp =
                                 '${time.day}-${time.month}-${time.year}';
-                            Servicio servicio = Servicio(
+                            /*Servicio servicio = Servicio(
                                 valorservicio: int.parse(valor),
                                 hora: horaTemp,
-                                fecha: fechaTemp);
+                                fecha: fechaTemp);*/
                             context
                                 .read<ContadorServicioProvider>()
-                                .incrementarMeta(int.parse(valor));
+                                .incrementarMetaObtenida(int.parse(valor));
 
                             context
                                 .read<ContadorServicioProvider>()
-                                .decrementarMeta(int.parse(valor));
+                                .decrementarMetaPorHacer(int.parse(valor));
 
-                            context
+                            /*context
                                 .read<ContadorServicioProvider>()
-                                .addServicio(servicio);
+                                .addServicio(servicio);*/
                             //Base de datos
                             db.addServicioBD(
                                 fechaTemp, horaTemp, int.parse(valor));

@@ -11,19 +11,29 @@ import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_configuracion/listvariables_screen.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 
-class RegistryVariable extends StatefulWidget {
-  const RegistryVariable({super.key});
+class EditVariable extends StatefulWidget {
+  Variable objVariable;
+  EditVariable(this.objVariable, {super.key});
 
   @override
-  State<RegistryVariable> createState() => _RegistryVariableState();
+  State<EditVariable> createState() => _EditVariableState();
 }
 
-class _RegistryVariableState extends State<RegistryVariable> {
-  final TextEditingController myControllerName =
+class _EditVariableState extends State<EditVariable> {
+  final TextEditingController myControllerNameEdit =
       TextEditingController(text: "");
-  final TextEditingController myControllerValue =
+  final TextEditingController myControllerValueEdit =
       TextEditingController(text: "");
   final _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    setState(() {
+      myControllerNameEdit.text = widget.objVariable.nombre;
+      myControllerValueEdit.text = widget.objVariable.valor.toString();
+    });
+    super.initState();
+  }
 
   FireStoreDataBase db = FireStoreDataBase();
 
@@ -37,9 +47,10 @@ class _RegistryVariableState extends State<RegistryVariable> {
           child: Column(
             children: [
               TextFormField(
-                controller: myControllerName,
-                textCapitalization: TextCapitalization.sentences,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                controller: myControllerNameEdit,
                 keyboardType: TextInputType.text,
+                textCapitalization: TextCapitalization.sentences,
                 inputFormatters: const [],
                 validator: (controller) {
                   if (controller == null || controller.isEmpty) {
@@ -60,7 +71,8 @@ class _RegistryVariableState extends State<RegistryVariable> {
                     helperStyle: TextStyle(color: Colors.black, fontSize: 15)),
               ),
               TextFormField(
-                controller: myControllerValue,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                controller: myControllerValueEdit,
                 keyboardType: TextInputType.number,
                 inputFormatters: <TextInputFormatter>[
                   FilteringTextInputFormatter.digitsOnly,
@@ -91,7 +103,7 @@ class _RegistryVariableState extends State<RegistryVariable> {
     );
   }
 
-  Widget _createRegistryButtom(BuildContext context) {
+  Widget _createEtidButtom(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -104,16 +116,27 @@ class _RegistryVariableState extends State<RegistryVariable> {
             onPressed: () async {
               if (_formKey.currentState!.validate()) {
                 final int valor =
-                    int.parse(myControllerValue.text.replaceAll(',', ''));
-                //  Variable variable =
-                Variable(valor: valor, nombre: myControllerName.text);
-                // context.read<ConfiguracionProvider>().addVariable(variable);
-                context.read<ConfiguracionProvider>().sumarVariable(valor);
+                    int.parse(myControllerValueEdit.text.replaceAll(',', ''));
+                Variable variable =
+                    Variable(valor: valor, nombre: myControllerNameEdit.text);
+                variable.id = widget.objVariable.id;
 
-                await db.addVariableBD(valor, myControllerName.text).then((_) {
+                await db.actualizarVariable(variable).then((_) {
+                  //context para metaregistrada
+                  context
+                      .read<ConfiguracionProvider>()
+                      .restaVariable(widget.objVariable.valor);
+                  context.read<ConfiguracionProvider>().sumarVariable(valor);
+
+                  //context para meta x hacer
+
+                  context
+                      .read<ContadorServicioProvider>()
+                      .decrementarMetaPorHacer(widget.objVariable.valor);
                   context
                       .read<ContadorServicioProvider>()
                       .sumarMetaPorHacer(valor);
+
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                       content:
                           Text('Configurando variable en el sistema....')));
@@ -126,7 +149,7 @@ class _RegistryVariableState extends State<RegistryVariable> {
 
               //Navigator.pop(context, int.parse(myController.text));
             },
-            child: const Text('Agregar ',
+            child: const Text('Actualizar ',
                 style: TextStyle(
                   fontSize: 18,
                 )))
@@ -148,7 +171,7 @@ class _RegistryVariableState extends State<RegistryVariable> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Registro De Variable',
+                      'Editar Variable',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -159,7 +182,7 @@ class _RegistryVariableState extends State<RegistryVariable> {
                 const Padding(padding: EdgeInsets.all(15)),
                 _createForm(),
                 const Padding(padding: EdgeInsets.all(20)),
-                _createRegistryButtom(context)
+                _createEtidButtom(context)
               ]),
         ));
   }

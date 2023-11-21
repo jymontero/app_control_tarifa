@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:taxi_servicios/domain/entitis/ingresos.dart';
 import 'package:taxi_servicios/providers/ingresos_provider.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
@@ -20,7 +21,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
   FireStoreDataBase bd = FireStoreDataBase();
   //String ingresoMensual = "0";
   DateTime selectedDate = DateTime.now().toLocal();
-  late List listaIngresos = [];
+  late List<Ingreso> listaIngresos = [];
 
   final numberFormat =
       NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 0);
@@ -32,20 +33,20 @@ class _HomeGananciaState extends State<HomeGanancia> {
     super.initState();
   }
 
-  int sumarListaBd(List lista) {
+  int sumarListaBd(List<Ingreso> lista) {
     listaIngresos = lista;
     int sumar = 0;
     for (var item in listaIngresos) {
-      int aux = item["monto"];
+      int aux = item.monto;
       sumar += aux;
     }
 
     return sumar;
   }
 
-  Widget _createFutureBuilder() {
+  Widget _createFutureBuilderIngresos() {
     return FutureBuilder(
-        future: bd.getGanancias(selectedDate.month.toString()),
+        future: bd.getModeloIngresos(selectedDate.month.toString()),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return const Text("AlgoMaloPaso");
@@ -87,14 +88,14 @@ class _HomeGananciaState extends State<HomeGanancia> {
               color: Colors.green,
             ),
             title: Text(
-              'COP ${numberFormat.format(listaIngresos[index]['monto'])}',
+              'COP ${numberFormat.format(listaIngresos[index].monto)}',
               style: const TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
                   color: Colors.black),
             ),
             subtitle: Text(
-              '${listaIngresos[index]['dia'] + '-' + listaIngresos[index]['mes'] + '-' + listaIngresos[index]['anio']}',
+              '${listaIngresos[index].dia}-${listaIngresos[index].mes}-${listaIngresos[index].anio}',
               style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -173,7 +174,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
                   ],
                 ),
               ),
-              _createFutureBuilder()
+              _createFutureBuilderIngresos()
             ],
           ),
         ));

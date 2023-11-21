@@ -71,6 +71,7 @@ class _GoalDairyState extends State<GoalDairy> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        //backgroundColor: const Color(0xffd6d6cd),
         body: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,

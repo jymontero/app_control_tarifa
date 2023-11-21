@@ -6,22 +6,14 @@ class ConfiguracionProvider with ChangeNotifier {
   FireStoreDataBase db = FireStoreDataBase();
   late int _metaRegistrada = 265000;
   late List<Variable> _listVariables = [];
-  //late final _listaAuxVar = db.listaVariablesConfiguracion;
-  late List _listaVariable = [];
   late int _metaRegistradaBD = 0;
 
   int get metaRegistrada => _metaRegistrada;
   List get listaVariables => _listVariables;
-  List get listaVariablesBD => _listaVariable;
   int get metaRegistradaBD => _metaRegistradaBD;
 
   set dataFromBD(List<Variable> listaVariables) {
     _listVariables = listaVariables;
-  }
-
-  void setlista(List lista) {
-    _listaVariable = lista;
-    notifyListeners();
   }
 
   void setMetaRegistradaBD(int valor) {
@@ -41,6 +33,7 @@ class ConfiguracionProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  ///
   void sumarListaBd(List<Variable> lista) {
     _listVariables = lista;
 
@@ -53,11 +46,13 @@ class ConfiguracionProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void sumarNuevaVariable(int valor) {
+//
+  void sumarVariable(int valor) {
     _metaRegistradaBD += valor;
     notifyListeners();
   }
 
+  ///
   void restaVariable(int valor) {
     _metaRegistradaBD -= valor;
     notifyListeners();
