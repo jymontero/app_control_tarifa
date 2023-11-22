@@ -6,11 +6,13 @@ class ContadorServicioProvider with ChangeNotifier {
   int _configuracionMetaRegistrada = 0;
   int _valorMetaObtenidaFinish = 0;
   late int _numeroSerciosTotal = 0;
+  int _valorMetaServiciosLista = 0;
 
   int get valorMetaObtenida => _valorMetaObtenida;
   int get configuracion => _configuracionMetaRegistrada;
   int get metaObtenidaFinish => _valorMetaObtenidaFinish;
   int get numeroServiciosTotal => _numeroSerciosTotal;
+  int get valorMetaObetnidaLista => _valorMetaServiciosLista;
   //late final int _valorMetaHacer = 270000;
 //  late final List<Servicio> _listServicesDay = [];
 
@@ -28,9 +30,13 @@ class ContadorServicioProvider with ChangeNotifier {
       _valorMetaObtenida += sumar;
       _configuracionMetaRegistrada -= sumar;
       notifyListeners();
-    } else {
+    } else if (modo == 'FINISH') {
       _valorMetaObtenidaFinish = 0;
       _valorMetaObtenidaFinish += sumar;
+      notifyListeners();
+    } else if (modo == 'LISTA') {
+      _valorMetaServiciosLista = 0;
+      _valorMetaServiciosLista += sumar;
       notifyListeners();
     }
   }

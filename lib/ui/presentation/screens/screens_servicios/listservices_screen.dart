@@ -9,6 +9,7 @@ import 'package:taxi_servicios/domain/entitis/servicio.dart';
 import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_ganancias/homeganancia_screen.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_servicios/editservicio_screen.dart';
 
 class ListService extends StatefulWidget {
   const ListService({super.key});
@@ -61,6 +62,12 @@ class _ListServiceState extends State<ListService> {
                   .setNumeroServicios(listaServicios.length);
             });
 
+            Future.microtask(() {
+              context
+                  .read<ContadorServicioProvider>()
+                  .sumarListaServiciosBD(listaServicios, 'LISTA');
+            });
+
             return _crearListaServiciosBD(context);
           }
           return const Center(child: CircularProgressIndicator());
@@ -103,7 +110,14 @@ class _ListServiceState extends State<ListService> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Servicio objServicio = listaServicios[index];
+
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => EditService(objServicio)));
+                    },
                     icon: const Icon(
                       Icons.mode_edit_outline_outlined,
                       color: Colors.green,
@@ -197,7 +211,7 @@ class _ListServiceState extends State<ListService> {
               children: [
                 const SizedBox(height: 15),
                 Text(
-                  "${context.watch<ContadorServicioProvider>().numeroServiciosTotal} Servicios",
+                  "${context.watch<ContadorServicioProvider>().numeroServiciosTotal} Servicios  ${numberFormat.format(context.watch<ContadorServicioProvider>().valorMetaObetnidaLista)} COP",
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.w700),

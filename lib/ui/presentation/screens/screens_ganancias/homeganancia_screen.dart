@@ -19,17 +19,14 @@ class HomeGanancia extends StatefulWidget {
 class _HomeGananciaState extends State<HomeGanancia> {
   String date = "";
   FireStoreDataBase bd = FireStoreDataBase();
-  //String ingresoMensual = "0";
   DateTime selectedDate = DateTime.now().toLocal();
   late List<Ingreso> listaIngresos = [];
-
   final numberFormat =
       NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 0);
 
   @override
   void initState() {
     initializeDateFormatting('es');
-
     super.initState();
   }
 
@@ -40,30 +37,26 @@ class _HomeGananciaState extends State<HomeGanancia> {
       int aux = item.monto;
       sumar += aux;
     }
-
     return sumar;
   }
 
-  Widget _createFutureBuilderIngresos() {
+  Widget _createFutureBuilderIngresos(String fecha) {
     return FutureBuilder(
-        future: bd.getModeloIngresos(selectedDate.month.toString()),
+        future: bd.getModeloIngresos(fecha),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return const Text("AlgoMaloPaso");
           }
           if (snapshot.hasData) {
             listaIngresos = snapshot.data!;
-
             int ingresoMensual = sumarListaBd(listaIngresos);
             Future.microtask(() {
               context
                   .read<IngresosProvider>()
                   .setIngresoMensual(ingresoMensual);
             });
-
             return _createListIngresos(context);
           }
-
           return const Center(child: CircularProgressIndicator());
         });
   }
@@ -147,7 +140,6 @@ class _HomeGananciaState extends State<HomeGanancia> {
   }
 
   Widget saldoMes() {
-    setState(() {});
     return Text(
       "Saldo del mes ${DateFormat.MMMM('es').format(selectedDate)}",
       style: const TextStyle(fontSize: 15),
@@ -174,7 +166,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
                   ],
                 ),
               ),
-              _createFutureBuilderIngresos()
+              _createFutureBuilderIngresos(selectedDate.month.toString())
             ],
           ),
         ));

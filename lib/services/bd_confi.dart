@@ -171,4 +171,8 @@ class FireStoreDataBase {
   Future<void> actualizarVariable(Variable variable) async {
     await db.collection('variables').doc(variable.id).set(variable.toJson());
   }
+
+  Future<void> actualizarServicio(Servicio servicio) async {
+    await db.collection('servicios').doc(servicio.id).set(servicio.toJson());
+  }
 }

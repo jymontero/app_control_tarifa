@@ -25,10 +25,7 @@ class _GasolineState extends State<Gasoline> {
     super.initState();
   }
 
-  void getMejorEDS() async {
-    listaEDS = await bd.getModeloEDS();
-    print(listaEDS.first.valorgalon);
-  }
+  void getMejorEDS() async {}
 
   Widget _createFutureBuilderGAS() {
     return SingleChildScrollView(
@@ -46,6 +43,23 @@ class _GasolineState extends State<Gasoline> {
 
               return const Center(child: CircularProgressIndicator());
             }));
+  }
+
+  Widget _createFutureBuilderCARD() {
+    return FutureBuilder(
+        future: bd.getMejorEDS(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const Text("AlgoMaloPaso");
+          }
+          if (snapshot.hasData) {
+            listaEDS = snapshot.data!;
+
+            return _createCard();
+          }
+
+          return const Center(child: CircularProgressIndicator());
+        });
   }
 
   Widget _crearListaEdsBD(BuildContext context) {
@@ -81,43 +95,6 @@ class _GasolineState extends State<Gasoline> {
                   fontWeight: FontWeight.bold,
                   color: Colors.black),
             ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                    onPressed: () {},
-                    icon: const Icon(
-                      Icons.mode_edit_outline_outlined,
-                      color: Colors.green,
-                    )),
-                IconButton(
-                    onPressed: () async {
-                      await showDialog(
-                          context: context,
-                          builder: (context) {
-                            return AlertDialog(
-                              title: const Text('Desesa Eliminar La EDS'),
-                              actionsAlignment: MainAxisAlignment.spaceBetween,
-                              actions: [
-                                TextButton(
-                                    onPressed: () {
-                                      bd.eliminarEDS(listaTanqueo[index].id);
-
-                                      Navigator.pop(context, true);
-                                    },
-                                    child: const Text('Si')),
-                                TextButton(
-                                    onPressed: () {
-                                      Navigator.pop(context, false);
-                                    },
-                                    child: const Text('NO'))
-                              ],
-                            );
-                          });
-                    },
-                    icon: const Icon(Icons.delete_forever, color: Colors.red)),
-              ],
-            ),
           );
         },
       );
@@ -142,20 +119,19 @@ class _GasolineState extends State<Gasoline> {
             ),
             ListTile(
               title: Text(
-                '000',
-                //listaEDS.first.nombre.toUpperCase(),
+                listaEDS.first.nombre.toUpperCase(),
                 style: const TextStyle(
                     color: Colors.white, fontWeight: FontWeight.bold),
               ),
               subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('Barrio ' /*${listaEDS.first.barrio}*/,
+                    Text('Barrio ${listaEDS.first.barrio}',
                         style: const TextStyle(
                             color: Colors.white, fontWeight: FontWeight.bold))
                   ]),
               trailing: Text(
-                'COP ' /*${numberFormat.format(listaEDS.first.valorgalon)}'*/,
+                'COP  ${numberFormat.format(listaEDS.first.valorgalon)}',
                 style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -168,10 +144,6 @@ class _GasolineState extends State<Gasoline> {
 
   @override
   Widget build(BuildContext context) {
-    if (listaEDS.isEmpty) {
-      print('ListaVacia');
-      getMejorEDS();
-    }
     return Scaffold(
         body: LayoutBuilder(
           builder: (BuildContext context, BoxConstraints viewportConstraints) {
@@ -188,7 +160,7 @@ class _GasolineState extends State<Gasoline> {
                         color: const Color(0xffd6d6cd), // Yellow
                         height: 210.0,
                         alignment: Alignment.center,
-                        child: _createCard(),
+                        child: _createFutureBuilderCARD(),
                       ),
                       Expanded(
                         // A flexible child that will grow to fit the viewport but

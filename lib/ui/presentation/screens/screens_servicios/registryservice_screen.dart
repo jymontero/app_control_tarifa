@@ -1,6 +1,3 @@
-// ignore: file_names
-// ignore_for_file: no_leading_underscores_for_local_identifiers, avoid_print, unused_element
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -8,7 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
-import 'package:taxi_servicios/ui/presentation/screens/home_screen.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_servicios/listservices_screen.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 import 'package:pattern_formatter/pattern_formatter.dart';
 
@@ -144,10 +141,7 @@ class _ServiceTaxiState extends State<ServiceTaxi> {
                                 '${time.hour}:${time.minute}:${time.second}';
                             final fechaTemp =
                                 '${time.day}-${time.month}-${time.year}';
-                            /*Servicio servicio = Servicio(
-                                valorservicio: int.parse(valor),
-                                hora: horaTemp,
-                                fecha: fechaTemp);*/
+
                             context
                                 .read<ContadorServicioProvider>()
                                 .incrementarMetaObtenida(int.parse(valor));
@@ -167,7 +161,7 @@ class _ServiceTaxiState extends State<ServiceTaxi> {
                             Navigator.pop(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (context) => const Home()));
+                                    builder: (context) => const ListService()));
                             Navigator.pop(context, true);
                           },
                           child: const Text('Si'),
