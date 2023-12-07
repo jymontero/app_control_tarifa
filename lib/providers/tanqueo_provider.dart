@@ -19,6 +19,8 @@ class ServicioTanqueoProvider with ChangeNotifier {
   int get valorGanancia => _valorGanancia;
 
   void setvalorTanqueo(String valor) {
+    print('Impirmendo desde provider');
+    print(valor);
     _valorTanqueo = valor;
     notifyListeners();
   }

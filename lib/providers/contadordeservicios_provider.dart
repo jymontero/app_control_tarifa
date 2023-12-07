@@ -88,4 +88,9 @@ class ContadorServicioProvider with ChangeNotifier {
     _valorMetaObtenidaFinish += valor;
     notifyListeners();
   }
+
+  void setearMetaObtenidaFinish(int valor) {
+    _valorMetaObtenidaFinish = 0;
+    notifyListeners();
+  }
 }

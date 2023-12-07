@@ -80,7 +80,11 @@ class _Home extends State<Home> {
             context: context,
             builder: (context) {
               return AlertDialog(
-                title: const Text('Quieres salir de la APP?'),
+                title: const Text(
+                  'Salir de la APP?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 actionsAlignment: MainAxisAlignment.spaceBetween,
                 actions: [
                   TextButton(

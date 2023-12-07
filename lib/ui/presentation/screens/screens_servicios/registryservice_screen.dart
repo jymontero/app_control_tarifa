@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:quickalert/quickalert.dart';
@@ -17,12 +18,50 @@ class ServiceTaxi extends StatefulWidget {
 }
 
 class _ServiceTaxiState extends State<ServiceTaxi> {
-  var time = DateTime.now().toLocal();
+  DateTime time = DateTime.now().toLocal();
   final TextEditingController myController = TextEditingController(text: "");
   final numberFormat =
       NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 0);
 
   FireStoreDataBase db = FireStoreDataBase();
+
+  @override
+  void initState() {
+    initializeDateFormatting('es');
+
+    super.initState();
+  }
+
+  Widget _selectDate(BuildContext context) {
+    return SizedBox(
+      child: TextButton.icon(
+          onPressed: () async {
+            final DateTime? selected = await showDatePicker(
+              context: context,
+              locale: const Locale('es'),
+              initialDate: time,
+              firstDate: DateTime(2022),
+              lastDate: DateTime(2030),
+              initialEntryMode: DatePickerEntryMode.calendarOnly,
+            );
+            if (selected != null && selected != time) {
+              setState(() {
+                time = selected;
+              });
+            }
+          },
+          icon: const Icon(
+            Icons.calendar_month,
+            size: 22,
+            color: Colors.black,
+          ),
+          label: Text(
+            DateFormat.yMMMEd('es').format(time),
+            style: const TextStyle(
+                fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
+          )),
+    );
+  }
 
   void showAlert() {
     QuickAlert.show(
@@ -71,30 +110,36 @@ class _ServiceTaxiState extends State<ServiceTaxi> {
   }
 
   Widget _createlabelDate() {
-    return Row(
+    String hora = DateFormat.jm().format(time);
+
+    return Column(
       children: [
+        const Text(
+          'Hora del Viaje',
+          style: TextStyle(fontSize: 16),
+        ),
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(13),
           child: Text(
-            'Hora del Viaje\n${time.hour}:${time.minute}:${time.second}',
-            style: const TextStyle(fontSize: 16),
+            // '${time.hour}:${time.minute}:${time.second}',
+            hora,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
-        )
+        ),
       ],
     );
   }
 
   Widget _createInputDate() {
-    return Row(
+    return Column(
       children: [
-        Container(
-          padding: const EdgeInsets.all(20),
-          child:
-              Text('Fecha del Viaje \n${DateFormat.yMMMEd('es').format(time)}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                  )),
-        )
+        const Text(
+          'Fecha del Viaje',
+          style: TextStyle(fontSize: 16),
+        ),
+        _selectDate(context)
+        /*Container(
+            padding: const EdgeInsets.all(10), child: _selectDate(context))*/
       ],
     );
   }
@@ -137,8 +182,10 @@ class _ServiceTaxiState extends State<ServiceTaxi> {
                       actions: [
                         TextButton(
                           onPressed: () {
-                            final horaTemp =
-                                '${time.hour}:${time.minute}:${time.second}';
+                            String hora = DateFormat.jm().format(time);
+
+                            final horaTemp = hora;
+                            //'${time.hour}:${time.minute}:${time.second}';
                             final fechaTemp =
                                 '${time.day}-${time.month}-${time.year}';
 
@@ -150,19 +197,17 @@ class _ServiceTaxiState extends State<ServiceTaxi> {
                                 .read<ContadorServicioProvider>()
                                 .decrementarMetaPorHacer(int.parse(valor));
 
-                            /*context
-                                .read<ContadorServicioProvider>()
-                                .addServicio(servicio);*/
                             //Base de datos
                             db.addServicioBD(
                                 fechaTemp, horaTemp, int.parse(valor));
 
                             ///
+                            ///
+                            Navigator.pop(context, true);
                             Navigator.pop(
                                 context,
                                 MaterialPageRoute(
                                     builder: (context) => const ListService()));
-                            Navigator.pop(context, true);
                           },
                           child: const Text('Si'),
                         ),
@@ -204,6 +249,7 @@ class _ServiceTaxiState extends State<ServiceTaxi> {
             ),
           ]),
           _createInputService(),
+          const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

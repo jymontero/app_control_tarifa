@@ -21,11 +21,8 @@ class _GasolineState extends State<Gasoline> {
 
   @override
   void initState() {
-    getMejorEDS();
     super.initState();
   }
-
-  void getMejorEDS() async {}
 
   Widget _createFutureBuilderGAS() {
     return SingleChildScrollView(

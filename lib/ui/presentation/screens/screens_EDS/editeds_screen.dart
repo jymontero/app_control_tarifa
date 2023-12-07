@@ -3,22 +3,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pattern_formatter/pattern_formatter.dart';
-import 'package:provider/provider.dart';
-import 'package:taxi_servicios/domain/entitis/servicio.dart';
-import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
+import 'package:taxi_servicios/domain/entitis/estaciongas.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
-import 'package:taxi_servicios/ui/presentation/screens/screens_servicios/listservices_screen.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_EDS/listadoeds_screen.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 
-class EditService extends StatefulWidget {
-  Servicio objServicio;
-  EditService(this.objServicio, {super.key});
+class EditEDS extends StatefulWidget {
+  EstacionGas objEDS;
+  EditEDS(this.objEDS, {super.key});
 
   @override
-  State<EditService> createState() => _EditServiceState();
+  State<EditEDS> createState() => _EditEDSState();
 }
 
-class _EditServiceState extends State<EditService> {
+class _EditEDSState extends State<EditEDS> {
+  final TextEditingController myControllerNameEdit =
+      TextEditingController(text: "");
+  final TextEditingController myControllerBarrioEdit =
+      TextEditingController(text: "");
   final TextEditingController myControllerValueEdit =
       TextEditingController(text: "");
   final _formKey = GlobalKey<FormState>();
@@ -26,14 +28,11 @@ class _EditServiceState extends State<EditService> {
   @override
   void initState() {
     setState(() {
-      myControllerValueEdit.text = widget.objServicio.valorservicio.toString();
+      myControllerNameEdit.text = widget.objEDS.nombre;
+      myControllerBarrioEdit.text = widget.objEDS.barrio;
+      myControllerValueEdit.text = widget.objEDS.valorgalon.toString();
     });
     super.initState();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   FireStoreDataBase db = FireStoreDataBase();
@@ -47,6 +46,54 @@ class _EditServiceState extends State<EditService> {
           key: _formKey,
           child: Column(
             children: [
+              TextFormField(
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                controller: myControllerNameEdit,
+                keyboardType: TextInputType.text,
+                textCapitalization: TextCapitalization.sentences,
+                inputFormatters: const [],
+                validator: (controller) {
+                  if (controller == null || controller.isEmpty) {
+                    return 'Ingresa algun texto';
+                  }
+                  return null;
+                },
+                decoration: const InputDecoration(
+                    prefixIcon: Align(
+                      widthFactor: 1.0,
+                      heightFactor: 1.0,
+                      child: Icon(
+                        Icons.table_chart_rounded,
+                        color: Colors.lightBlue,
+                      ),
+                    ),
+                    helperText: 'Ingrese Nombre',
+                    helperStyle: TextStyle(color: Colors.black, fontSize: 15)),
+              ),
+              TextFormField(
+                style: const TextStyle(fontWeight: FontWeight.bold),
+                controller: myControllerBarrioEdit,
+                keyboardType: TextInputType.text,
+                textCapitalization: TextCapitalization.words,
+                inputFormatters: const [],
+                validator: (controller) {
+                  if (controller == null || controller.isEmpty) {
+                    return 'Ingresa algun texto';
+                  }
+                  return null;
+                },
+                decoration: const InputDecoration(
+                    prefixIcon: Align(
+                      widthFactor: 1.0,
+                      heightFactor: 1.0,
+                      child: Icon(
+                        Icons.location_city,
+                        color: Colors.lightBlue,
+                      ),
+                    ),
+                    helperText: 'Ingrese Barrio',
+                    helperStyle: TextStyle(color: Colors.black, fontSize: 15)),
+              ),
               TextFormField(
                 style: const TextStyle(fontWeight: FontWeight.bold),
                 controller: myControllerValueEdit,
@@ -70,7 +117,7 @@ class _EditServiceState extends State<EditService> {
                         color: Colors.green,
                       ),
                     ),
-                    helperText: 'Ingrese valor servicio',
+                    helperText: 'Ingrese valor EDS',
                     helperStyle: TextStyle(color: Colors.black, fontSize: 15)),
               ),
             ],
@@ -95,41 +142,18 @@ class _EditServiceState extends State<EditService> {
                 final int valor =
                     int.parse(myControllerValueEdit.text.replaceAll(',', ''));
 
-                Servicio servicio = Servicio(
-                    valorservicio: valor,
-                    hora: widget.objServicio.hora,
-                    fecha: widget.objServicio.fecha);
+                EstacionGas eds = EstacionGas(
+                    nombre: myControllerNameEdit.text,
+                    barrio: myControllerBarrioEdit.text,
+                    valorgalon: valor);
 
-                servicio.id = widget.objServicio.id;
+                eds.id = widget.objEDS.id;
 
-                await db.actualizarServicio(servicio).then((_) {
-                  //context para meta x hacer
-                  context
-                      .read<ContadorServicioProvider>()
-                      .decrementarMetaPorHacer(valor);
-                  context
-                      .read<ContadorServicioProvider>()
-                      .sumarMetaPorHacer(widget.objServicio.valorservicio);
-
-                  //context para metaObtenida
-
-                  context
-                      .read<ContadorServicioProvider>()
-                      .decrementarMetaObtendia(
-                          widget.objServicio.valorservicio);
-
-                  context
-                      .read<ContadorServicioProvider>()
-                      .incrementarMetaObtenida(valor);
-
-                  //
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content:
-                          Text('Actualizando valores de los SERVICIOS....')));
-                  Navigator.pop(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const ListService()));
+                await db.actualizarEDS(eds).then((_) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Actualizando EDS....')));
+                  Navigator.pop(context,
+                      MaterialPageRoute(builder: (context) => const ListEDS()));
                 });
               }
 
@@ -157,7 +181,7 @@ class _EditServiceState extends State<EditService> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Editar Servicio',
+                      'Editar EDS',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,

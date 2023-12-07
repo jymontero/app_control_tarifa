@@ -34,9 +34,9 @@ class _ConfigurationState extends State<Configuration> {
       itemBuilder: (BuildContext context, int index) {
         return ListTile(
           leading: const Icon(
-            Icons.table_view,
+            Icons.settings_suggest_rounded,
             size: 30,
-            color: Colors.purple,
+            color: Colors.brown,
           ),
           title: Text(
             'COP ${numberFormat.format(listaVariablesConfig[index].valor)}',

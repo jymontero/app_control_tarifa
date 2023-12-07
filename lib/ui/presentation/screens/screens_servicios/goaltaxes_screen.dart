@@ -71,7 +71,7 @@ class _GoalDairyState extends State<GoalDairy> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        //backgroundColor: const Color(0xffd6d6cd),
+        //backgroundColor: const Color.fromARGB(255, 206, 214, 205),
         body: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -115,7 +115,9 @@ class _GoalDairyState extends State<GoalDairy> {
               builder: (context) {
                 return AlertDialog(
                   title: const Text(
-                    'Deseas Finalizar Turno?',
+                    'Finalizar Turno ?',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   actionsAlignment: MainAxisAlignment.spaceBetween,
                   actions: [

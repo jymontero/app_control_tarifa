@@ -33,7 +33,6 @@ class ConfiguracionProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  ///
   void sumarListaBd(List<Variable> lista) {
     _listVariables = lista;
 

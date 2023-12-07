@@ -30,8 +30,15 @@ class _ListServiceState extends State<ListService> {
   @override
   void initState() {
     initializeDateFormatting('es');
-
+    setState(() {});
     super.initState();
+  }
+
+  List<Servicio> ordenarLista(List<Servicio> lista) {
+    lista.sort((a, b) =>
+        DateFormat.jm().parse(a.hora).compareTo(DateFormat.jm().parse(b.hora)));
+
+    return lista;
   }
 
   Widget _createInfolabels(String mensaje) {
@@ -56,6 +63,8 @@ class _ListServiceState extends State<ListService> {
           }
           if (snapshot.hasData) {
             listaServicios = snapshot.data!;
+            listaServicios = ordenarLista(listaServicios);
+            (ordenarLista(listaServicios));
             Future.microtask(() {
               context
                   .read<ContadorServicioProvider>()
@@ -70,6 +79,7 @@ class _ListServiceState extends State<ListService> {
 
             return _crearListaServiciosBD(context);
           }
+
           return const Center(child: CircularProgressIndicator());
         });
   }
@@ -200,9 +210,115 @@ class _ListServiceState extends State<ListService> {
     );
   }
 
+  Widget _crearBuild(BuildContext context) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints viewportConstraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: viewportConstraints.maxHeight,
+            ),
+            child: IntrinsicHeight(
+              child: Column(
+                children: <Widget>[
+                  Container(
+                    // A fixed-height child.
+                    color: const Color.fromARGB(255, 206, 214, 205),
+                    height: 100.0,
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Column(
+                          children: [
+                            const SizedBox(height: 15),
+                            Text(
+                              "${context.watch<ContadorServicioProvider>().numeroServiciosTotal} Servicios  ${numberFormat.format(context.watch<ContadorServicioProvider>().valorMetaObetnidaLista)} COP",
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.w700),
+                            ),
+                            _selectDate(context)
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    // A flexible child that will grow to fit the viewport but
+                    // still be at least as big as necessary to fit its contents.
+                    child: Container(
+                      color: const Color.fromARGB(255, 206, 214, 205),
+                      height: 120.0,
+                      alignment: Alignment.center,
+                      //child: _createFutureBuilderServices(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _inforSer(BuildContext context, servicios, int totalTurno) {
+    return Text(
+      "$servicios Servicios  ${numberFormat.format(totalTurno)} COP",
+      textAlign: TextAlign.center,
+      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+    );
+  }
+
+  void listar() {
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        appBar: AppBar(
+            title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Column(
+              children: [
+                _selectDate(context),
+                _inforSer(context, 0, 0),
+                const SizedBox(height: 7),
+
+                /*_inforSer(
+                    context
+                        .watch<ContadorServicioProvider>()
+                        .numeroServiciosTotal,
+                    context
+                        .watch<ContadorServicioProvider>()
+                        .valorMetaObetnidaLista),*/
+              ],
+            )
+          ],
+        )),
+        body: _createFutureBuilderServices(),
+        floatingActionButton: FloatingActionButton.extended(
+          heroTag: 'btnagregar',
+          backgroundColor: Colors.green,
+          onPressed: () {
+            Navigator.push(context,
+                MaterialPageRoute(builder: (context) => const HomeGanancia()));
+          },
+          icon: const Icon(Icons.playlist_add),
+          label: const Text('Ver Ingresos'),
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat);
+  }
+}
+
+
+
+/*
+
+ return Scaffold(
         appBar: AppBar(
             title: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -234,4 +350,4 @@ class _ListServiceState extends State<ListService> {
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat);
   }
-}
+*/

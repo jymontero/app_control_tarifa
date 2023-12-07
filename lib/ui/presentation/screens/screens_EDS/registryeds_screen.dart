@@ -143,10 +143,8 @@ class _RegistryEDSState extends State<RegistryEDS> {
                       MaterialPageRoute(builder: (context) => const Home()));
                 });
               }
-
-              //Navigator.pop(context, int.parse(myController.text));
             },
-            child: const Text('Agregar ',
+            child: const Text('Agregar EDS ',
                 style: TextStyle(
                   fontSize: 18,
                 )))
@@ -168,14 +166,18 @@ class _RegistryEDSState extends State<RegistryEDS> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     SizedBox(
-                      height: 50,
+                      height: 130,
                     ),
-                    Text('Registro EDS',
+                    Text('Registro Estación De \nServicio',
+                        textAlign: TextAlign.center,
                         style: TextStyle(
                             fontSize: 20, fontWeight: FontWeight.bold)),
                   ],
                 ),
                 _createForm(),
+                const SizedBox(
+                  height: 30,
+                ),
                 _createRegistryButtom()
               ],
             )));

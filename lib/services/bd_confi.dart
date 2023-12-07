@@ -22,6 +22,8 @@ class FireStoreDataBase {
       model.id = e.id;
       return model;
     }).toList();
+    print('*********VARIABLESVARIABLESVARIABLES*************');
+
     return variables;
   }
 
@@ -34,7 +36,7 @@ class FireStoreDataBase {
       modeloServicio.id = e.id;
       return modeloServicio;
     }).toList();
-
+    print('********SERVICIOSSERVICIOSSERVICIOS**************');
     return servicios;
   }
 
@@ -48,7 +50,7 @@ class FireStoreDataBase {
       return modeloIngeso;
     }).toList();
     // ignore: avoid_print
-    print('*********IIIIII*************');
+    print('*********INGRESOSINGRESOSIMGRESOS*************');
 
     return ingresos;
   }
@@ -78,7 +80,7 @@ class FireStoreDataBase {
       return modeloEDS;
     }).toList();
     // ignore: avoid_print
-    print('*********BESTBNESTBES*************');
+    print('*********BESTEDSBESTEDSBESTEDS*************');
 
     return eds;
   }
@@ -92,7 +94,7 @@ class FireStoreDataBase {
       return modeloGasolineTank;
     }).toList();
     // ignore: avoid_print
-    print('*********GASGASGASGFGAS*************');
+    print('*********TANQUEOTANQUEOTANQUEO*************');
 
     return gas;
   }
@@ -174,5 +176,9 @@ class FireStoreDataBase {
 
   Future<void> actualizarServicio(Servicio servicio) async {
     await db.collection('servicios').doc(servicio.id).set(servicio.toJson());
+  }
+
+  Future<void> actualizarEDS(EstacionGas eds) async {
+    await db.collection('estacion').doc(eds.id).set(eds.toJson());
   }
 }

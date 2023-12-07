@@ -35,6 +35,9 @@ class _StepperFinalizedState extends State<StepperFinalized> {
     final fechaTemp =
         '${selectedDate.day}-${selectedDate.month}-${selectedDate.year}'
             .toString();
+
+    Future.microtask(() =>
+        context.read<ContadorServicioProvider>().setearMetaObtenidaFinish(0));
     getDataServiciosToday(fechaTemp);
 
     super.initState();

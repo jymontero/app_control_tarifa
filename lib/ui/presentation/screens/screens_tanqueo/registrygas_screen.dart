@@ -2,10 +2,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:pattern_formatter/pattern_formatter.dart';
 import 'package:provider/provider.dart';
 import 'package:taxi_servicios/providers/tanqueo_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
+import 'package:taxi_servicios/ui/presentation/widgets/calculadoar.dart';
 
 class RegistryGas extends StatefulWidget {
   const RegistryGas({super.key});
@@ -15,11 +17,11 @@ class RegistryGas extends StatefulWidget {
 }
 
 class _RegistryGasState extends State<RegistryGas> {
-  final TextEditingController myControllerValue =
-      TextEditingController(text: "");
+  var resultado = '0';
+  TextEditingController myControllerValue = TextEditingController(text: "0.0");
 
-  final TextEditingController myControllerGalones =
-      TextEditingController(text: "");
+  TextEditingController myControllerGalones =
+      TextEditingController(text: "# Galones");
 
   final TextEditingController myControllerKm = TextEditingController(text: "");
 
@@ -29,6 +31,8 @@ class _RegistryGasState extends State<RegistryGas> {
   final _formKeyGas = GlobalKey<FormState>();
 
   FireStoreDataBase db = FireStoreDataBase();
+  final numberFormat =
+      NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 0);
 
   @override
   void initState() {
@@ -63,60 +67,61 @@ class _RegistryGasState extends State<RegistryGas> {
   Widget _createForm() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
         Form(
           key: _formKeyGas,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextFormField(
-                controller: myControllerValue,
-                keyboardType: TextInputType.number,
-                textInputAction: TextInputAction.next,
-                inputFormatters: <TextInputFormatter>[
-                  FilteringTextInputFormatter.digitsOnly,
-                  ThousandsFormatter()
-                ],
-                validator: (controller) {
-                  if (controller == null || controller.isEmpty) {
-                    return 'Ingresa valor del tanqueo';
-                  }
-                  return null;
+              TextButton.icon(
+                onPressed: () async {
+                  myControllerValue = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => Calculator(myControllerValue)));
+                  setState(() {
+                    myControllerValue.text;
+                    context.read<ServicioTanqueoProvider>().setvalorTanqueo(
+                        (myControllerValue.text.replaceAll('.0', '')));
+                  });
                 },
-                decoration: const InputDecoration(
-                    prefixIcon: Align(
-                      widthFactor: 1.0,
-                      heightFactor: 1.0,
-                      child: Icon(
-                        Icons.monetization_on,
-                        color: Colors.green,
-                      ),
-                    ),
-                    hintText: 'Valor Tanqueo',
-                    hintStyle: TextStyle(color: Colors.black38, fontSize: 14)),
+                label: Text(
+                  ' ${numberFormat.format(int.parse(myControllerValue.text.replaceAll('.0', '')))}',
+                  style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black),
+                ),
+                icon: const Icon(
+                  Icons.monetization_on_rounded,
+                  size: 24,
+                  color: Colors.green,
+                ),
               ),
-              TextFormField(
-                controller: myControllerGalones,
-                keyboardType: TextInputType.number,
-                textInputAction: TextInputAction.next,
-                inputFormatters: const [],
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Ingrese No de Galones';
-                  }
-                  return null;
+              TextButton.icon(
+                onPressed: () async {
+                  myControllerGalones = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              Calculator(myControllerGalones)));
+                  setState(() {
+                    myControllerGalones.text;
+                  });
                 },
-                decoration: const InputDecoration(
-                    prefixIcon: Align(
-                      widthFactor: 1.0,
-                      heightFactor: 1.0,
-                      child: Icon(
-                        Icons.oil_barrel,
-                        color: Colors.black,
-                      ),
-                    ),
-                    hintText: 'No Galones',
-                    hintStyle: TextStyle(color: Colors.black38, fontSize: 14)),
+                label: Text(
+                  myControllerGalones.text,
+                  style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black),
+                ),
+                icon: const Icon(
+                  Icons.oil_barrel,
+                  size: 24,
+                  color: Colors.black,
+                ),
               ),
               TextFormField(
                 controller: myControllerKm,
@@ -141,8 +146,11 @@ class _RegistryGasState extends State<RegistryGas> {
                         color: Colors.red,
                       ),
                     ),
-                    hintText: 'Ingrese Kilometraje',
-                    hintStyle: TextStyle(color: Colors.black38, fontSize: 14)),
+                    hintText: 'Kilometraje',
+                    hintStyle: TextStyle(
+                      color: Colors.black38,
+                      fontSize: 14,
+                    )),
               ),
             ],
           ),
@@ -202,10 +210,6 @@ class _RegistryGasState extends State<RegistryGas> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [],
-              ),
               _createForm(),
             ]),
       ),

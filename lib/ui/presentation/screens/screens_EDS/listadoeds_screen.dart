@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:taxi_servicios/domain/entitis/estaciongas.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_EDS/editeds_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_EDS/registryeds_screen.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 
@@ -71,7 +72,13 @@ class _ListEDSState extends State<ListEDS> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      EstacionGas objEDS = listaEDS[index];
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => EditEDS(objEDS)));
+                    },
                     icon: const Icon(
                       Icons.mode_edit_outline_outlined,
                       color: Colors.green,
