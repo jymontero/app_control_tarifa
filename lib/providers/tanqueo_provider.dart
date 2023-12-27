@@ -19,8 +19,6 @@ class ServicioTanqueoProvider with ChangeNotifier {
   int get valorGanancia => _valorGanancia;
 
   void setvalorTanqueo(String valor) {
-    print('Impirmendo desde provider');
-    print(valor);
     _valorTanqueo = valor;
     notifyListeners();
   }
@@ -36,6 +34,8 @@ class ServicioTanqueoProvider with ChangeNotifier {
   }
 
   void setvalorGalones(String valor) {
+    print('Provider Galones');
+    print(valor);
     _valorGalones = valor;
     notifyListeners();
   }

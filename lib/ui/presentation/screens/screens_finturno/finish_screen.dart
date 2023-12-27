@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:quickalert/quickalert.dart';
 import 'package:taxi_servicios/domain/entitis/servicio.dart';
 import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:taxi_servicios/providers/tanqueo_provider.dart';
@@ -154,10 +155,19 @@ class _StepperFinalizedState extends State<StepperFinalized> {
     ];
   }
 
+  void showAlert() {
+    QuickAlert.show(
+        context: context,
+        title: "Turno Finalizado",
+        text: "Buen Descanso",
+        autoCloseDuration: const Duration(seconds: 5),
+        confirmBtnText: "OK",
+        type: QuickAlertType.success);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final tanqueo =
-        Provider.of<ServicioTanqueoProvider>(context, listen: false);
+    final tanqueo = Provider.of<ServicioTanqueoProvider>(context, listen: true);
 
     int valorTanqueoProvider = 0;
     int valorEntregaProvider = 0;
@@ -232,6 +242,8 @@ class _StepperFinalizedState extends State<StepperFinalized> {
 
                         valorGalones = double.parse(
                             tanqueo.valorGalones.replaceAll(',', '.'));
+                        print('ValoGalon');
+                        print(valorGalones);
 
                         valorKilometros = int.parse(tanqueo.valorKilometros);
 
@@ -248,6 +260,7 @@ class _StepperFinalizedState extends State<StepperFinalized> {
                             valorGalones,
                             '${selectedDate.day}-${selectedDate.month}-${selectedDate.year}',
                             '${selectedDate.hour}:${selectedDate.minute}:${selectedDate.second}');
+                        showAlert();
 
                         Navigator.pop(
                             context,

@@ -7,7 +7,7 @@ import 'package:pattern_formatter/pattern_formatter.dart';
 import 'package:provider/provider.dart';
 import 'package:taxi_servicios/providers/tanqueo_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
-import 'package:taxi_servicios/ui/presentation/widgets/calculadoar.dart';
+import 'package:taxi_servicios/ui/presentation/widgets/calculadora.dart';
 
 class RegistryGas extends StatefulWidget {
   const RegistryGas({super.key});
@@ -108,6 +108,9 @@ class _RegistryGasState extends State<RegistryGas> {
                               Calculator(myControllerGalones)));
                   setState(() {
                     myControllerGalones.text;
+                    context
+                        .read<ServicioTanqueoProvider>()
+                        .setvalorGalones((myControllerGalones.text));
                   });
                 },
                 label: Text(

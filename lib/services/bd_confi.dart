@@ -22,8 +22,6 @@ class FireStoreDataBase {
       model.id = e.id;
       return model;
     }).toList();
-    print('*********VARIABLESVARIABLESVARIABLES*************');
-
     return variables;
   }
 
@@ -36,7 +34,6 @@ class FireStoreDataBase {
       modeloServicio.id = e.id;
       return modeloServicio;
     }).toList();
-    print('********SERVICIOSSERVICIOSSERVICIOS**************');
     return servicios;
   }
 
@@ -50,7 +47,6 @@ class FireStoreDataBase {
       return modeloIngeso;
     }).toList();
     // ignore: avoid_print
-    print('*********INGRESOSINGRESOSIMGRESOS*************');
 
     return ingresos;
   }
@@ -65,7 +61,6 @@ class FireStoreDataBase {
       return modeloEDS;
     }).toList();
     // ignore: avoid_print
-    print('*********EDSEDSEDSEDS*************');
 
     return eds;
   }
@@ -80,7 +75,6 @@ class FireStoreDataBase {
       return modeloEDS;
     }).toList();
     // ignore: avoid_print
-    print('*********BESTEDSBESTEDSBESTEDS*************');
 
     return eds;
   }
@@ -94,7 +88,6 @@ class FireStoreDataBase {
       return modeloGasolineTank;
     }).toList();
     // ignore: avoid_print
-    print('*********TANQUEOTANQUEOTANQUEO*************');
 
     return gas;
   }

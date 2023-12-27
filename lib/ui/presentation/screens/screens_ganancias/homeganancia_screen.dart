@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:taxi_servicios/domain/entitis/ingresos.dart';
+import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:taxi_servicios/providers/ingresos_provider.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
@@ -26,7 +27,6 @@ class _HomeGananciaState extends State<HomeGanancia> {
   @override
   void initState() {
     initializeDateFormatting('es');
-
     super.initState();
   }
 
@@ -75,6 +75,15 @@ class _HomeGananciaState extends State<HomeGanancia> {
     );
   }
 
+  Widget labelIngrsoProv() {
+    final provider = Provider.of<IngresosProvider>(context, listen: false);
+    return Text(
+      provider.valorIngresoMensual.toString(),
+      style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+      textAlign: TextAlign.center,
+    );
+  }
+
   Widget labelMesCurrent() {
     return Text(
       "Saldo del mes ${DateFormat.MMMM('es').format(selectedDate)}",
@@ -90,6 +99,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
       int aux = item.monto;
       sumar += aux;
     }
+
     return sumar;
   }
 
@@ -112,6 +122,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
 
             return _createListIngresos(context);
           }
+
           return const Center(child: CircularProgressIndicator());
         });
   }
@@ -155,6 +166,8 @@ class _HomeGananciaState extends State<HomeGanancia> {
   }
 
   Widget _crearUI(BuildContext context) {
+    final providerSS = Provider.of<IngresosProvider>(context, listen: false);
+
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints viewportConstraints) {
         return SingleChildScrollView(
@@ -174,9 +187,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
                       children: [
                         _selectDate(context, 'es'),
                         labelMesCurrent(),
-                        labelIngreso(context
-                            .watch<IngresosProvider>()
-                            .valorIngresoMensual),
+                        labelIngreso(providerSS.valorIngresoMensual),
                       ],
                     ),
                   ),

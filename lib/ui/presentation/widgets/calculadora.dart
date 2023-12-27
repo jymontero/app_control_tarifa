@@ -13,7 +13,7 @@ class Calculator extends StatefulWidget {
 
 class _CalculatorState extends State<Calculator> {
   String strInput = "";
-  final txtEntrada = TextEditingController();
+  final txtEntrada = TextEditingController(text: '0');
   final txtResultado = TextEditingController(text: '0');
   @override
   void initState() {
@@ -158,6 +158,7 @@ class _CalculatorState extends State<Calculator> {
                       shape: MaterialStateProperty.all(RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(5)))),
                   onPressed: () {
+                    btnIgual();
                     Navigator.pop(context, txtResultado);
                   },
                   child: const Text('OK',
