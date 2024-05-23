@@ -158,8 +158,11 @@ class _CalculatorState extends State<Calculator> {
                       shape: MaterialStateProperty.all(RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(5)))),
                   onPressed: () {
-                    btnIgual();
-                    Navigator.pop(context, txtResultado);
+                    if (txtResultado.text == '0') {
+                      Navigator.pop(context, txtEntrada);
+                    } else {
+                      Navigator.pop(context, txtResultado);
+                    }
                   },
                   child: const Text('OK',
                       style: TextStyle(

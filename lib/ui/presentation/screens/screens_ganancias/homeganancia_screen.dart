@@ -114,12 +114,6 @@ class _HomeGananciaState extends State<HomeGanancia> {
             listaIngresos = snapshot.data!;
             listaIngresos = ordenarLista(listaIngresos);
 
-            int saldo = sumarListaBd(listaIngresos);
-
-            Future.microtask(() {
-              context.read<IngresosProvider>().setIngresoMensual(saldo);
-            });
-
             return _createListIngresos(context);
           }
 
@@ -128,6 +122,11 @@ class _HomeGananciaState extends State<HomeGanancia> {
   }
 
   Widget _createListIngresos(BuildContext context) {
+    int saldo = sumarListaBd(listaIngresos);
+
+    Future.microtask(() {
+      context.read<IngresosProvider>().setIngresoMensual(saldo);
+    });
     if (listaIngresos.isEmpty) {
       return const Text(
         'No hay datos Registrados  del mes',
@@ -153,7 +152,8 @@ class _HomeGananciaState extends State<HomeGanancia> {
                   color: Colors.black),
             ),
             subtitle: Text(
-              '${listaIngresos[index].dia}-${listaIngresos[index].mes}-${listaIngresos[index].anio}',
+              DateFormat.yMMMEd('es').format(DateFormat('d-M-yyyy').parse(
+                  '${listaIngresos[index].dia}-${listaIngresos[index].mes}-${listaIngresos[index].anio}')),
               style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -177,7 +177,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
             ),
             child: IntrinsicHeight(
               child: Column(
-                children: <Widget>[
+                children: [
                   Container(
                     // A fixed-height child.
                     color: const Color(0xffd6d6cd), // Yellow

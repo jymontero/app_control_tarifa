@@ -34,6 +34,7 @@ class FireStoreDataBase {
       modeloServicio.id = e.id;
       return modeloServicio;
     }).toList();
+    print('*****SERVIOOSSERVIOSSERVIOS');
     return servicios;
   }
 
@@ -100,11 +101,13 @@ class FireStoreDataBase {
     await db.collection('variables').doc().set(variable);
   }
 
-  Future<void> addServicioBD(String fecha, String hora, int valor) async {
+  Future<void> addServicioBD(
+      String fecha, String hora, int valor, bool facturada) async {
     Map<String, dynamic> servicio = {
       "fecha": fecha,
       "hora": hora,
       "valor": valor,
+      "facturada": facturada
     };
     await db.collection('servicios').doc().set(servicio);
   }
@@ -173,5 +176,40 @@ class FireStoreDataBase {
 
   Future<void> actualizarEDS(EstacionGas eds) async {
     await db.collection('estacion').doc(eds.id).set(eds.toJson());
+  }
+
+  Future<void> actualizarEstadoServicio(String fecha) async {
+    await FirebaseFirestore.instance
+        .collection('servicios')
+        .where('fecha', isEqualTo: fecha)
+        .get()
+        .then((value) => value.docs.forEach((element) {
+              var docRef = FirebaseFirestore.instance
+                  .collection('servicios')
+                  .doc(element.id);
+              docRef.update({'facturada': true});
+            }));
+  }
+
+  /*CONSULLTAS DE AGREGACION*/
+
+  Future<String> promedioKM() async {
+    final coll = db.collection('gasolina');
+
+    return 'agregando';
+  }
+
+  //Metodo para agregar una nueva columna a todos los documentos de una coleccion
+
+  Future<void> agregarColumna() async {
+    await FirebaseFirestore.instance
+        .collection('servicios')
+        .get()
+        .then((value) => value.docs.forEach((element) {
+              var docRef = FirebaseFirestore.instance
+                  .collection('servicios')
+                  .doc(element.id);
+              docRef.update({'facturada': true});
+            }));
   }
 }

@@ -98,7 +98,8 @@ class _EditServiceState extends State<EditService> {
                 Servicio servicio = Servicio(
                     valorservicio: valor,
                     hora: widget.objServicio.hora,
-                    fecha: widget.objServicio.fecha);
+                    fecha: widget.objServicio.fecha,
+                    facturada: widget.objServicio.facturada);
 
                 servicio.id = widget.objServicio.id;
 

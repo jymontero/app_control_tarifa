@@ -260,7 +260,9 @@ class _StepperFinalizedState extends State<StepperFinalized> {
                             valorGalones,
                             '${selectedDate.day}-${selectedDate.month}-${selectedDate.year}',
                             '${selectedDate.hour}:${selectedDate.minute}:${selectedDate.second}');
-                        showAlert();
+                        db.actualizarEstadoServicio(
+                            '${selectedDate.day}-${selectedDate.month}-${selectedDate.year}'
+                                .toString());
 
                         Navigator.pop(
                             context,

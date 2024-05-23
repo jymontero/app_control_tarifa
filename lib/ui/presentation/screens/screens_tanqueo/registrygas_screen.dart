@@ -18,7 +18,8 @@ class RegistryGas extends StatefulWidget {
 
 class _RegistryGasState extends State<RegistryGas> {
   var resultado = '0';
-  TextEditingController myControllerValue = TextEditingController(text: "0.0");
+  TextEditingController myControllerValorTanqueo =
+      TextEditingController(text: "0.0");
 
   TextEditingController myControllerGalones =
       TextEditingController(text: "# Galones");
@@ -32,14 +33,14 @@ class _RegistryGasState extends State<RegistryGas> {
 
   FireStoreDataBase db = FireStoreDataBase();
   final numberFormat =
-      NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 0);
+      NumberFormat.currency(locale: 'es_MX', symbol: '', decimalDigits: 0);
 
   @override
   void initState() {
-    myControllerValue.addListener(() {
+    myControllerValorTanqueo.addListener(() {
       context
           .read<ServicioTanqueoProvider>()
-          .setvalorTanqueo((myControllerValue.text));
+          .setvalorTanqueo((myControllerValorTanqueo.text));
     });
     myControllerGalones.addListener(() {
       context
@@ -57,7 +58,7 @@ class _RegistryGasState extends State<RegistryGas> {
 
   @override
   void dispose() {
-    myControllerValue.dispose();
+    myControllerValorTanqueo.dispose();
     myControllerEstacion.dispose();
     myControllerKm.dispose();
     myControllerGalones.dispose();
@@ -76,18 +77,19 @@ class _RegistryGasState extends State<RegistryGas> {
             children: [
               TextButton.icon(
                 onPressed: () async {
-                  myControllerValue = await Navigator.push(
+                  myControllerValorTanqueo = await Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => Calculator(myControllerValue)));
+                          builder: (context) =>
+                              Calculator(myControllerValorTanqueo)));
                   setState(() {
-                    myControllerValue.text;
+                    myControllerValorTanqueo.text;
                     context.read<ServicioTanqueoProvider>().setvalorTanqueo(
-                        (myControllerValue.text.replaceAll('.0', '')));
+                        (myControllerValorTanqueo.text.replaceAll('.0', '')));
                   });
                 },
                 label: Text(
-                  ' ${numberFormat.format(int.parse(myControllerValue.text.replaceAll('.0', '')))}',
+                  ' ${numberFormat.format(int.parse(myControllerValorTanqueo.text.replaceAll('.0', '')))}',
                   style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,

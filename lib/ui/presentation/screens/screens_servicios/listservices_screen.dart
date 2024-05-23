@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:quickalert/models/quickalert_type.dart';
+import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'package:taxi_servicios/domain/entitis/servicio.dart';
 import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
@@ -30,7 +32,9 @@ class _ListServiceState extends State<ListService> {
   @override
   void initState() {
     initializeDateFormatting('es');
-    setState(() {});
+    setState(() {
+      _createFutureBuilderServices();
+    });
     super.initState();
   }
 
@@ -39,6 +43,16 @@ class _ListServiceState extends State<ListService> {
         DateFormat.jm().parse(a.hora).compareTo(DateFormat.jm().parse(b.hora)));
 
     return lista;
+  }
+
+  void showAlert() {
+    QuickAlert.show(
+        context: context,
+        title: "Servicio Facturado",
+        text: "No se puede modificar su valor",
+        autoCloseDuration: const Duration(seconds: 5),
+        confirmBtnText: "OK",
+        type: QuickAlertType.warning);
   }
 
   Widget _createInfolabels(String mensaje) {
@@ -86,9 +100,10 @@ class _ListServiceState extends State<ListService> {
 
   Widget _crearListaServiciosBD(BuildContext context) {
     if (listaServicios.isEmpty) {
-      return const Text(
-        'No hay Servicios Registrados para esta fecha',
-        textAlign: TextAlign.center,
+      return const Center(
+        child: Image(
+          image: AssetImage('assets/images/fondoServicios.jpg'),
+        ),
       );
     } else {
       return ListView.builder(
@@ -122,11 +137,15 @@ class _ListServiceState extends State<ListService> {
                 IconButton(
                     onPressed: () {
                       Servicio objServicio = listaServicios[index];
-
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => EditService(objServicio)));
+                      if (listaServicios[index].facturada == true) {
+                        showAlert();
+                      } else {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    EditService(objServicio)));
+                      }
                     },
                     icon: const Icon(
                       Icons.mode_edit_outline_outlined,
@@ -134,40 +153,46 @@ class _ListServiceState extends State<ListService> {
                     )),
                 IconButton(
                     onPressed: () async {
-                      await showDialog(
-                          context: context,
-                          builder: (context) {
-                            return AlertDialog(
-                              title: const Text('Desesa Eliminar el servicio'),
-                              actionsAlignment: MainAxisAlignment.spaceBetween,
-                              actions: [
-                                TextButton(
-                                    onPressed: () {
-                                      int valorServicioEliminar =
-                                          listaServicios[index].valorservicio;
-                                      bd.eliminarServicio(
-                                          listaServicios[index].id);
-                                      Future.microtask(() => context
-                                          .read<ContadorServicioProvider>()
-                                          .decrementarMetaObtendia(
-                                              valorServicioEliminar));
+                      if (listaServicios[index].facturada == true) {
+                        showAlert();
+                      } else {
+                        await showDialog(
+                            context: context,
+                            builder: (context) {
+                              return AlertDialog(
+                                title:
+                                    const Text('Desesa Eliminar el servicio'),
+                                actionsAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                actions: [
+                                  TextButton(
+                                      onPressed: () {
+                                        int valorServicioEliminar =
+                                            listaServicios[index].valorservicio;
+                                        bd.eliminarServicio(
+                                            listaServicios[index].id);
+                                        Future.microtask(() => context
+                                            .read<ContadorServicioProvider>()
+                                            .decrementarMetaObtendia(
+                                                valorServicioEliminar));
 
-                                      Future.microtask(() => context
-                                          .read<ContadorServicioProvider>()
-                                          .sumarMetaPorHacer(
-                                              valorServicioEliminar));
+                                        Future.microtask(() => context
+                                            .read<ContadorServicioProvider>()
+                                            .sumarMetaPorHacer(
+                                                valorServicioEliminar));
 
-                                      Navigator.pop(context, true);
-                                    },
-                                    child: const Text('Si')),
-                                TextButton(
-                                    onPressed: () {
-                                      Navigator.pop(context, false);
-                                    },
-                                    child: const Text('NO'))
-                              ],
-                            );
-                          });
+                                        Navigator.pop(context, true);
+                                      },
+                                      child: const Text('Si')),
+                                  TextButton(
+                                      onPressed: () {
+                                        Navigator.pop(context, false);
+                                      },
+                                      child: const Text('NO'))
+                                ],
+                              );
+                            });
+                      }
                     },
                     icon: const Icon(Icons.delete_forever, color: Colors.red)),
               ],
@@ -231,7 +256,6 @@ class _ListServiceState extends State<ListService> {
                       children: [
                         Column(
                           children: [
-                            const SizedBox(height: 15),
                             Text(
                               "${context.watch<ContadorServicioProvider>().numeroServiciosTotal} Servicios  ${numberFormat.format(context.watch<ContadorServicioProvider>().valorMetaObetnidaLista)} COP",
                               textAlign: TextAlign.center,
@@ -263,42 +287,29 @@ class _ListServiceState extends State<ListService> {
     );
   }
 
-  Widget _inforSer(BuildContext context, servicios, int totalTurno) {
+  Future<Widget> _inforSer() async {
     return Text(
-      "$servicios Servicios  ${numberFormat.format(totalTurno)} COP",
+      "${context.watch<ContadorServicioProvider>().numeroServiciosTotal} Servicios  ${numberFormat.format(context.watch<ContadorServicioProvider>().valorMetaObetnidaLista)} COP",
       textAlign: TextAlign.center,
       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
     );
-  }
-
-  void listar() {
-    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
+            toolbarHeight: 70,
             title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _selectDate(context),
-                _inforSer(context, 0, 0),
-                const SizedBox(height: 7),
-
-                /*_inforSer(
-                    context
-                        .watch<ContadorServicioProvider>()
-                        .numeroServiciosTotal,
-                    context
-                        .watch<ContadorServicioProvider>()
-                        .valorMetaObetnidaLista),*/
+                Column(
+                  children: [
+                    _selectDate(context),
+                  ],
+                )
               ],
-            )
-          ],
-        )),
+            )),
         body: _createFutureBuilderServices(),
         floatingActionButton: FloatingActionButton.extended(
           heroTag: 'btnagregar',
