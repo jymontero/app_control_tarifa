@@ -24,7 +24,7 @@ class _GoalDairyState extends State<GoalDairy> {
   final numberFormat =
       NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 0);
 
-  Column _buildTextGoal(Color color, int monto, double sizeLetter) {
+  Column _textoMontoMetaPorHacer(Color color, int monto, double sizeLetter) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
@@ -42,64 +42,99 @@ class _GoalDairyState extends State<GoalDairy> {
     );
   }
 
-  Widget _createInfolabels(String mensaje) {
+  Widget _etiquetasTexto(String mensaje) {
     return Text(
       mensaje,
       textAlign: TextAlign.center,
-      style: const TextStyle(color: Colors.black, fontSize: 16),
+      style: const TextStyle(color: Colors.white, fontSize: 16),
     );
   }
 
-  Widget _createLabelRate(int metaActual, int flag) {
+  Widget _textoMetaRegistrada(int metaActual, int flag) {
     if (flag == 0) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildTextGoal(Colors.lightGreenAccent.shade700, metaActual, 22),
+          _textoMontoMetaPorHacer(
+              Colors.lightGreenAccent.shade700, metaActual, 22),
         ],
       );
     } else {
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildTextGoal(Colors.deepPurple, metaActual, 22),
+          _textoMontoMetaPorHacer(Colors.deepPurple, metaActual, 22),
         ],
       );
     }
   }
 
+  Center _card() {
+    return Center(
+        child: Card(
+            margin: const EdgeInsets.all(20),
+            child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+              ListTile(
+                  //leading: Icon(Icons.album),
+                  title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Column(
+                    children: [
+                      Text(
+                        "Hoy sumas",
+                        textAlign: TextAlign.left,
+                      )
+                    ],
+                  ),
+                  Column(
+                    children: [
+                      Text(
+                        numberFormat.format(context
+                            .watch<ContadorServicioProvider>()
+                            .valorMetaObtenida),
+                        textAlign: TextAlign.right,
+                      )
+                    ],
+                  )
+                ],
+              ))
+            ])));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        //backgroundColor: const Color.fromARGB(255, 206, 214, 205),
+        backgroundColor: const Color.fromARGB(255, 39, 45, 51),
         body: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildTextGoal(Colors.red,
+            _card(),
+            _textoMontoMetaPorHacer(Colors.red,
                 context.watch<ContadorServicioProvider>().configuracion, 30),
-            _createInfolabels('Meta x Hacer'),
+            _etiquetasTexto('Meta x Hacer'),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Column(
                   children: [
-                    _createLabelRate(
+                    _textoMetaRegistrada(
                         context.watch<ConfiguracionProvider>().metaRegistradaBD,
                         1),
-                    _createInfolabels('Meta Registrada'),
+                    _etiquetasTexto('Meta Registrada'),
                   ],
                 ),
                 const Padding(padding: EdgeInsets.all(15)),
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _createLabelRate(
+                    _textoMetaRegistrada(
                         context
                             .watch<ContadorServicioProvider>()
                             .valorMetaObtenida,
                         0),
-                    _createInfolabels('Meta obtenida'),
+                    _etiquetasTexto('Meta obtenida'),
                   ],
                 )
               ],

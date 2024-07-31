@@ -64,7 +64,7 @@ class _ListServiceState extends State<ListService> {
     );
   }
 
-  Widget _createFutureBuilderServices() {
+  _createFutureBuilderServices() {
     final fechaTemp =
         '${selectedDate.day}-${selectedDate.month}-${selectedDate.year}'
             .toString();
@@ -306,6 +306,9 @@ class _ListServiceState extends State<ListService> {
                 Column(
                   children: [
                     _selectDate(context),
+                    Text(
+                      "${context.watch<ContadorServicioProvider>().numeroServiciosTotal} Servicios  ${numberFormat.format(context.watch<ContadorServicioProvider>().valorMetaObetnidaLista)} COP",
+                    )
                   ],
                 )
               ],

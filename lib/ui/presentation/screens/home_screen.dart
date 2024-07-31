@@ -122,18 +122,18 @@ class _Home extends State<Home> {
                   backgroundColor: Colors.amber,
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.list),
-                  label: "Lista Servicios",
+                  icon: Icon(Icons.monetization_on_outlined),
+                  label: "Ingresos",
                   backgroundColor: Colors.purple,
                 ),
                 BottomNavigationBarItem(
-                  icon: Icon(Icons.oil_barrel_sharp),
-                  label: "Gasolina",
+                  icon: Icon(Icons.local_gas_station_sharp),
+                  label: "Consumo",
                   backgroundColor: Colors.green,
                 ),
                 BottomNavigationBarItem(
                   icon: Icon(Icons.settings),
-                  label: "Config",
+                  label: "Mas...",
                   backgroundColor: Colors.black,
                 ),
               ]),
@@ -144,7 +144,7 @@ class _Home extends State<Home> {
               Navigator.push(context,
                   MaterialPageRoute(builder: (context) => const ServiceTaxi()));
             },
-            child: const Icon(Icons.add),
+            child: const Icon(Icons.playlist_add_sharp),
           ),
           floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         ));

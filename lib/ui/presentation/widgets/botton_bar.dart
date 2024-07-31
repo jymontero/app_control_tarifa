@@ -27,12 +27,12 @@ class _BottomBarState extends State<BottomBar> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.list),
-            label: "Lista Servicios",
+            label: "Ingresos",
             backgroundColor: Colors.purple,
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.oil_barrel_sharp),
-            label: "Gasolina",
+            label: "Consumos",
             backgroundColor: Colors.green,
           ),
           BottomNavigationBarItem(
