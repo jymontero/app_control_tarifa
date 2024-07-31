@@ -9,7 +9,6 @@ class AppBarCustomized extends StatefulWidget implements PreferredSizeWidget {
   const AppBarCustomized({super.key, this.height = kToolbarHeight + 40});
 
   @override
-  // TODO: implement preferredSize
   Size get preferredSize => Size.fromHeight(height);
   @override
   State<AppBarCustomized> createState() => _AppBarCustomizedState();

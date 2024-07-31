@@ -34,7 +34,7 @@ class FireStoreDataBase {
       modeloServicio.id = e.id;
       return modeloServicio;
     }).toList();
-    print('*****SERVIOOSSERVIOSSERVIOS');
+    //print('*****SERVIOOSSERVIOSSERVIOS');
     return servicios;
   }
 
@@ -178,22 +178,38 @@ class FireStoreDataBase {
     await db.collection('estacion').doc(eds.id).set(eds.toJson());
   }
 
+  // Future<void> actualizarEstadoServicio(String fecha) async {
+  //   await FirebaseFirestore.instance
+  //       .collection('servicios')
+  //       .where('fecha', isEqualTo: fecha)
+  //       .get()
+  //       .then((value) => value.docs.forEach((element) {
+  //             var docRef = FirebaseFirestore.instance
+  //                 .collection('servicios')
+  //                 .doc(element.id);
+  //             docRef.update({'facturada': true});
+  //           }));
+  // }
+
   Future<void> actualizarEstadoServicio(String fecha) async {
-    await FirebaseFirestore.instance
+    // Obtener todos los documentos de la colección 'servicios' donde el campo 'fecha' es igual al valor proporcionado
+    var querySnapshot = await FirebaseFirestore.instance
         .collection('servicios')
         .where('fecha', isEqualTo: fecha)
-        .get()
-        .then((value) => value.docs.forEach((element) {
-              var docRef = FirebaseFirestore.instance
-                  .collection('servicios')
-                  .doc(element.id);
-              docRef.update({'facturada': true});
-            }));
+        .get();
+
+    // Iterar sobre cada documento y actualizar el campo 'facturada' a true
+    for (var doc in querySnapshot.docs) {
+      var docRef =
+          FirebaseFirestore.instance.collection('servicios').doc(doc.id);
+      await docRef.update({'facturada': true});
+    }
   }
 
   /*CONSULLTAS DE AGREGACION*/
 
   Future<String> promedioKM() async {
+    // ignore: unused_local_variable
     final coll = db.collection('gasolina');
 
     return 'agregando';
@@ -201,15 +217,29 @@ class FireStoreDataBase {
 
   //Metodo para agregar una nueva columna a todos los documentos de una coleccion
 
+  // Future<void> agregarColumna() async {
+  //   await FirebaseFirestore.instance
+  //       .collection('servicios')
+  //       .get()
+  //       .then((value) => value.docs.forEach((element) {
+  //             var docRef = FirebaseFirestore.instance
+  //                 .collection('servicios')
+  //                 .doc(element.id);
+  //             docRef.update({'facturada': true});
+  //           }));
+  // }
+
   Future<void> agregarColumna() async {
-    await FirebaseFirestore.instance
-        .collection('servicios')
-        .get()
-        .then((value) => value.docs.forEach((element) {
-              var docRef = FirebaseFirestore.instance
-                  .collection('servicios')
-                  .doc(element.id);
-              docRef.update({'facturada': true});
-            }));
+    // Obtener todos los documentos de la colección 'servicios'
+    var querySnapshot =
+        await FirebaseFirestore.instance.collection('servicios').get();
+
+    // Iterar sobre cada documento y actualizar el campo 'facturada' a true
+    for (var i = 0; i < querySnapshot.docs.length; i++) {
+      var doc = querySnapshot.docs[i];
+      var docRef =
+          FirebaseFirestore.instance.collection('servicios').doc(doc.id);
+      await docRef.update({'facturada': true});
+    }
   }
 }

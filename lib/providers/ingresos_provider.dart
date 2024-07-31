@@ -6,8 +6,8 @@ class IngresosProvider with ChangeNotifier {
   int get valorIngresoMensual => _valorIngersoMensual;
 
   void setIngresoMensual(int ingreso) {
-    print('Dsde ingreso provider');
-    print(ingreso);
+    //print('Dsde ingreso provider');
+    //print(ingreso);
     _valorIngersoMensual = ingreso;
     notifyListeners();
   }

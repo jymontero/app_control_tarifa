@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:taxi_servicios/domain/entitis/ingresos.dart';
-import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:taxi_servicios/providers/ingresos_provider.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';

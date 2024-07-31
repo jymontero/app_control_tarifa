@@ -36,7 +36,7 @@ class _Home extends State<Home> {
 
   @override
   void initState() {
-    print('SE INICILIAO CARGANDO DATA DESDE BD');
+    //print('SE INICILIAO CARGANDO DATA DESDE BD');
     getDataVariableConfig();
     getDataServiciosToday();
 
@@ -74,9 +74,10 @@ class _Home extends State<Home> {
     // ignore: no_leading_underscores_for_local_identifiers
     print('SE CONSTRUYO EN EL BUILDER');
 
-    return WillPopScope(
-        onWillPop: () async {
-          final shouldPop = await showDialog<bool>(
+    return PopScope(
+        canPop: false,
+        onPopInvoked: (bool didPop) async {
+          showDialog<bool>(
             context: context,
             builder: (context) {
               return AlertDialog(
@@ -103,7 +104,6 @@ class _Home extends State<Home> {
               );
             },
           );
-          return shouldPop!;
         },
         child: Scaffold(
           appBar: AppBarCustomized(),
