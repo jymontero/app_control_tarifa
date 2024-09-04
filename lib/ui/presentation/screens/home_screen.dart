@@ -7,7 +7,7 @@ import 'package:taxi_servicios/domain/entitis/variables.dart';
 import 'package:taxi_servicios/providers/configuracion_provider.dart';
 import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
-import 'package:taxi_servicios/ui/presentation/screens/screens_servicios/registryservice_screen.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_servicios/registroservicio_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_configuracion/listvariables_screen.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 
@@ -39,6 +39,7 @@ class _Home extends State<Home> {
     //print('SE INICILIAO CARGANDO DATA DESDE BD');
     getDataVariableConfig();
     getDataServiciosToday();
+    //db.actualizarFormatoFechas();
 
     super.initState();
   }
@@ -141,8 +142,10 @@ class _Home extends State<Home> {
             heroTag: 'btnaddService',
             backgroundColor: Colors.amber.shade600,
             onPressed: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => const ServiceTaxi()));
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const RegistroServicio()));
             },
             child: const Icon(Icons.playlist_add_sharp),
           ),

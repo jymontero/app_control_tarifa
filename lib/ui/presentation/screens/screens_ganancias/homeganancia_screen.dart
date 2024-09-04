@@ -137,27 +137,32 @@ class _HomeGananciaState extends State<HomeGanancia> {
         shrinkWrap: true,
         itemCount: listaIngresos.length,
         itemBuilder: (BuildContext context, int index) {
-          return ListTile(
-            leading: const Icon(
-              Icons.monetization_on_outlined,
-              size: 30,
-              color: Colors.green,
-            ),
-            title: Text(
-              'COP ${numberFormat.format(listaIngresos[index].monto)}',
-              style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black),
-            ),
-            subtitle: Text(
-              DateFormat.yMMMEd('es').format(DateFormat('d-M-yyyy').parse(
-                  '${listaIngresos[index].dia}-${listaIngresos[index].mes}-${listaIngresos[index].anio}')),
-              style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black),
-            ),
+          return Card(
+            //margin: const EdgeInsets.all(5),
+            child: Column(children: <Widget>[
+              ListTile(
+                leading: const Icon(
+                  Icons.monetization_on,
+                  size: 30,
+                  color: Colors.green,
+                ),
+                title: Text(
+                  'COP ${numberFormat.format(listaIngresos[index].monto)}',
+                  style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black),
+                ),
+                subtitle: Text(
+                  DateFormat.yMMMEd('es').format(DateFormat('d-M-yyyy').parse(
+                      '${listaIngresos[index].dia}-${listaIngresos[index].mes}-${listaIngresos[index].anio}')),
+                  style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black),
+                ),
+              )
+            ]),
           );
         },
       );

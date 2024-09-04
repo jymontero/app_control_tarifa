@@ -12,7 +12,7 @@ import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/screens/home_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_finturno/registrylavada_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_finturno/registryentrega_screen.dart';
-import 'package:taxi_servicios/ui/presentation/screens/screens_tanqueo/registrygas_screen.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_tanqueo/registrocombustible_screen.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 
 class StepperFinalized extends StatefulWidget {
@@ -118,7 +118,7 @@ class _StepperFinalizedState extends State<StepperFinalized> {
           content: const SizedBox(
             width: 300,
             height: 200,
-            child: RegistryGas(),
+            child: RegistroCombustible(),
           )),
       Step(
           isActive: currentStep >= 1,

@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:math_expressions/math_expressions.dart';
 
 // ignore: must_be_immutable
-class Calculator extends StatefulWidget {
+class Calculadora extends StatefulWidget {
   TextEditingController txtInicial;
-  Calculator(this.txtInicial, {super.key});
+  Calculadora(this.txtInicial, {super.key});
 
   @override
   // ignore: library_private_types_in_public_api
-  _CalculatorState createState() => _CalculatorState();
+  _CalculadoraState createState() => _CalculadoraState();
 }
 
-class _CalculatorState extends State<Calculator> {
+class _CalculadoraState extends State<Calculadora> {
   String strInput = "";
   final txtEntrada = TextEditingController(text: '0');
   final txtResultado = TextEditingController(text: '0');
@@ -23,7 +23,7 @@ class _CalculatorState extends State<Calculator> {
     setState(() {
       if (widget.txtInicial.text == '0.0' ||
           widget.txtInicial.text == '# Galones') {
-        txtEntrada.text = "";
+        txtEntrada.text = "0";
       } else {
         txtEntrada.text = widget.txtInicial.text;
       }

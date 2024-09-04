@@ -111,90 +111,100 @@ class _ListServiceState extends State<ListService> {
         shrinkWrap: true,
         itemCount: listaServicios.length,
         itemBuilder: (BuildContext context, int index) {
-          return ListTile(
-            leading: const Icon(
-              Icons.local_taxi_rounded,
-              size: 25,
-              color: Colors.black,
-            ),
-            title: Text(
-              'COP ${numberFormat.format(listaServicios[index].valorservicio)}',
-              style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black),
-            ),
-            subtitle: Text(
-              '${listaServicios[index].fecha}\t\t\t${listaServicios[index].hora}',
-              style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.normal,
-                  color: Colors.black),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
+          return Card(
+            child: Column(
               children: [
-                IconButton(
-                    onPressed: () {
-                      Servicio objServicio = listaServicios[index];
-                      if (listaServicios[index].facturada == true) {
-                        showAlert();
-                      } else {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    EditService(objServicio)));
-                      }
-                    },
-                    icon: const Icon(
-                      Icons.mode_edit_outline_outlined,
-                      color: Colors.green,
-                    )),
-                IconButton(
-                    onPressed: () async {
-                      if (listaServicios[index].facturada == true) {
-                        showAlert();
-                      } else {
-                        await showDialog(
-                            context: context,
-                            builder: (context) {
-                              return AlertDialog(
-                                title:
-                                    const Text('Desesa Eliminar el servicio'),
-                                actionsAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                actions: [
-                                  TextButton(
-                                      onPressed: () {
-                                        int valorServicioEliminar =
-                                            listaServicios[index].valorservicio;
-                                        bd.eliminarServicio(
-                                            listaServicios[index].id);
-                                        Future.microtask(() => context
-                                            .read<ContadorServicioProvider>()
-                                            .decrementarMetaObtendia(
-                                                valorServicioEliminar));
+                ListTile(
+                  leading: const Icon(
+                    Icons.local_taxi_rounded,
+                    size: 25,
+                    color: Colors.amber,
+                  ),
+                  title: Text(
+                    'COP ${numberFormat.format(listaServicios[index].valorservicio)}',
+                    style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black),
+                  ),
+                  subtitle: Text(
+                    '${listaServicios[index].fecha}\t\t\t${listaServicios[index].hora}',
+                    style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.normal,
+                        color: Colors.black),
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                          onPressed: () {
+                            Servicio objServicio = listaServicios[index];
+                            if (listaServicios[index].facturada == true) {
+                              showAlert();
+                            } else {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          EditService(objServicio)));
+                            }
+                          },
+                          icon: const Icon(
+                            Icons.mode_edit_outline_outlined,
+                            color: Colors.green,
+                          )),
+                      IconButton(
+                          onPressed: () async {
+                            if (listaServicios[index].facturada == true) {
+                              showAlert();
+                            } else {
+                              await showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return AlertDialog(
+                                      title: const Text(
+                                          'Desesa Eliminar el servicio'),
+                                      actionsAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      actions: [
+                                        TextButton(
+                                            onPressed: () {
+                                              int valorServicioEliminar =
+                                                  listaServicios[index]
+                                                      .valorservicio;
+                                              bd.eliminarServicio(
+                                                  listaServicios[index].id);
+                                              Future.microtask(() => context
+                                                  .read<
+                                                      ContadorServicioProvider>()
+                                                  .decrementarMetaObtendia(
+                                                      valorServicioEliminar));
 
-                                        Future.microtask(() => context
-                                            .read<ContadorServicioProvider>()
-                                            .sumarMetaPorHacer(
-                                                valorServicioEliminar));
+                                              Future.microtask(() => context
+                                                  .read<
+                                                      ContadorServicioProvider>()
+                                                  .sumarMetaPorHacer(
+                                                      valorServicioEliminar));
 
-                                        Navigator.pop(context, true);
-                                      },
-                                      child: const Text('Si')),
-                                  TextButton(
-                                      onPressed: () {
-                                        Navigator.pop(context, false);
-                                      },
-                                      child: const Text('NO'))
-                                ],
-                              );
-                            });
-                      }
-                    },
-                    icon: const Icon(Icons.delete_forever, color: Colors.red)),
+                                              Navigator.pop(context, true);
+                                            },
+                                            child: const Text('Si')),
+                                        TextButton(
+                                            onPressed: () {
+                                              Navigator.pop(context, false);
+                                            },
+                                            child: const Text('NO'))
+                                      ],
+                                    );
+                                  });
+                            }
+                          },
+                          icon: const Icon(Icons.delete_forever,
+                              color: Colors.red)),
+                    ],
+                  ),
+                )
               ],
             ),
           );

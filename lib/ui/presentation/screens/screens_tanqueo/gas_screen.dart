@@ -59,6 +59,41 @@ class _GasolineState extends State<Gasoline> {
         });
   }
 
+  void _showBottonSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(16.0),
+          height: 300.0,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Detalles',
+                style: TextStyle(
+                  fontSize: 24.0,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16.0),
+              const Text(
+                'Aquí puedes agregar más información o cualquier contenido que desees mostrar en la ventana emergente.',
+              ),
+              const SizedBox(height: 16.0),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('Cerrar'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _crearListaEdsBD(BuildContext context) {
     if (listaTanqueo.isEmpty) {
       return const Text(
@@ -66,35 +101,44 @@ class _GasolineState extends State<Gasoline> {
         textAlign: TextAlign.center,
       );
     } else {
-      return ListView.builder(
-        padding: const EdgeInsets.only(left: 5, top: 0, right: 0, bottom: 70),
-        physics: const NeverScrollableScrollPhysics(),
-        shrinkWrap: true,
-        itemCount: listaTanqueo.length,
-        itemBuilder: (BuildContext context, int index) {
-          return ListTile(
-            leading: const Icon(
-              Icons.local_gas_station_rounded,
-              size: 25,
-              color: Colors.black,
-            ),
-            title: Text(
-              '${listaTanqueo[index].kilometraje} Km \t\t\t${listaTanqueo[index].galon} Gal',
-              style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.normal,
-                  color: Colors.black),
-            ),
-            subtitle: Text(
-              'COP ${numberFormat.format(listaTanqueo[index].valor)}',
-              style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black),
-            ),
-          );
-        },
-      );
+      return InkWell(
+          onTap: () => _showBottonSheet(context),
+          child: ListView.builder(
+            padding:
+                const EdgeInsets.only(left: 5, top: 0, right: 0, bottom: 70),
+            physics: const NeverScrollableScrollPhysics(),
+            shrinkWrap: true,
+            itemCount: listaTanqueo.length,
+            itemBuilder: (BuildContext context, int index) {
+              return Card(
+                child: Column(
+                  children: <Widget>[
+                    ListTile(
+                      leading: const Icon(
+                        Icons.local_gas_station_rounded,
+                        size: 25,
+                        color: Color.fromARGB(255, 244, 67, 54),
+                      ),
+                      title: Text(
+                        '${listaTanqueo[index].kilometraje} Km \t\t\t${listaTanqueo[index].fecha} Gal',
+                        style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.normal,
+                            color: Colors.black),
+                      ),
+                      subtitle: Text(
+                        'COP ${numberFormat.format(listaTanqueo[index].valor)}',
+                        style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black),
+                      ),
+                    )
+                  ],
+                ),
+              );
+            },
+          ));
     }
   }
 

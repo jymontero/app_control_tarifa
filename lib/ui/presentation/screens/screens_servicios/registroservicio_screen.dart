@@ -10,14 +10,14 @@ import 'package:taxi_servicios/ui/presentation/screens/screens_tanqueo/gas_scree
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 import 'package:pattern_formatter/pattern_formatter.dart';
 
-class ServiceTaxi extends StatefulWidget {
-  const ServiceTaxi({super.key});
+class RegistroServicio extends StatefulWidget {
+  const RegistroServicio({super.key});
 
   @override
-  State<ServiceTaxi> createState() => _ServiceTaxiState();
+  State<RegistroServicio> createState() => _RegistroServicioState();
 }
 
-class _ServiceTaxiState extends State<ServiceTaxi> {
+class _RegistroServicioState extends State<RegistroServicio> {
   DateTime time = DateTime.now().toLocal();
   final TextEditingController myController = TextEditingController(text: "");
   final numberFormat =
@@ -233,6 +233,7 @@ class _ServiceTaxiState extends State<ServiceTaxi> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const AppBarCustomized(),
+      backgroundColor: const Color(0xffd6d6cd),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,

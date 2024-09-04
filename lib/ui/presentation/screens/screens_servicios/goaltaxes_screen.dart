@@ -46,7 +46,7 @@ class _GoalDairyState extends State<GoalDairy> {
     return Text(
       mensaje,
       textAlign: TextAlign.center,
-      style: const TextStyle(color: Colors.white, fontSize: 16),
+      style: const TextStyle(color: Colors.black, fontSize: 16),
     );
   }
 
@@ -76,24 +76,75 @@ class _GoalDairyState extends State<GoalDairy> {
             child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
               ListTile(
                   //leading: Icon(Icons.album),
-                  title: Row(
+                  title: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Column(
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        "Hoy sumas",
-                        textAlign: TextAlign.left,
+                      const Column(
+                        children: [
+                          Text(
+                            "Meta Registrada",
+                            textAlign: TextAlign.left,
+                          )
+                        ],
+                      ),
+                      Column(
+                        children: [
+                          Text(
+                            numberFormat.format(context
+                                .watch<ConfiguracionProvider>()
+                                .metaRegistradaBD),
+                            textAlign: TextAlign.right,
+                          )
+                        ],
                       )
                     ],
                   ),
-                  Column(
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        numberFormat.format(context
-                            .watch<ContadorServicioProvider>()
-                            .valorMetaObtenida),
-                        textAlign: TextAlign.right,
+                      const Column(
+                        children: [
+                          Text(
+                            "Meta por Hacer",
+                            textAlign: TextAlign.left,
+                          )
+                        ],
+                      ),
+                      Column(
+                        children: [
+                          Text(
+                            numberFormat.format(context
+                                .watch<ContadorServicioProvider>()
+                                .configuracion),
+                            textAlign: TextAlign.right,
+                          )
+                        ],
+                      )
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Column(
+                        children: [
+                          Text(
+                            "Meta Obtenida",
+                            textAlign: TextAlign.left,
+                          )
+                        ],
+                      ),
+                      Column(
+                        children: [
+                          Text(
+                            numberFormat.format(context
+                                .watch<ContadorServicioProvider>()
+                                .valorMetaObtenida),
+                            textAlign: TextAlign.right,
+                          )
+                        ],
                       )
                     ],
                   )
@@ -105,7 +156,8 @@ class _GoalDairyState extends State<GoalDairy> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: const Color.fromARGB(255, 39, 45, 51),
+        backgroundColor: const Color(0xffd6d6cd),
+        //backgroundColor: const Color.fromARGB(255, 206, 214, 205),
         body: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.stretch,

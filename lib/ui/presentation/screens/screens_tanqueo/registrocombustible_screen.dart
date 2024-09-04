@@ -9,14 +9,14 @@ import 'package:taxi_servicios/providers/tanqueo_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/calculadora.dart';
 
-class RegistryGas extends StatefulWidget {
-  const RegistryGas({super.key});
+class RegistroCombustible extends StatefulWidget {
+  const RegistroCombustible({super.key});
 
   @override
-  State<RegistryGas> createState() => _RegistryGasState();
+  State<RegistroCombustible> createState() => _RegistroCombustibleState();
 }
 
-class _RegistryGasState extends State<RegistryGas> {
+class _RegistroCombustibleState extends State<RegistroCombustible> {
   var resultado = '0';
   TextEditingController myControllerValorTanqueo =
       TextEditingController(text: "0.0");
@@ -81,7 +81,7 @@ class _RegistryGasState extends State<RegistryGas> {
                       context,
                       MaterialPageRoute(
                           builder: (context) =>
-                              Calculator(myControllerValorTanqueo)));
+                              Calculadora(myControllerValorTanqueo)));
                   setState(() {
                     myControllerValorTanqueo.text;
                     context.read<ServicioTanqueoProvider>().setvalorTanqueo(
@@ -107,7 +107,7 @@ class _RegistryGasState extends State<RegistryGas> {
                       context,
                       MaterialPageRoute(
                           builder: (context) =>
-                              Calculator(myControllerGalones)));
+                              Calculadora(myControllerGalones)));
                   setState(() {
                     myControllerGalones.text;
                     context

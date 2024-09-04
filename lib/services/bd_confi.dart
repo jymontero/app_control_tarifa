@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import 'package:taxi_servicios/domain/entitis/estaciongas.dart';
 import 'package:taxi_servicios/domain/entitis/gas.dart';
 import 'package:taxi_servicios/domain/entitis/ingresos.dart';
@@ -81,7 +82,11 @@ class FireStoreDataBase {
   }
 
   Future<List<GasolineTank>> getModeloTanqueo() async {
-    final queryGAS = await db.collection('gasolina').orderBy('km').get();
+    final queryGAS = await db
+        .collection('gasolina')
+        .orderBy('fecha', descending: true)
+        .limit(30)
+        .get();
 
     final gas = queryGAS.docs.map((e) {
       final modeloGasolineTank = GasolineTank.fromJson(e.data());
@@ -229,6 +234,8 @@ class FireStoreDataBase {
   //           }));
   // }
 
+  //Metodo para agregar una nueva columna a todos los documentos de una coleccion
+
   Future<void> agregarColumna() async {
     // Obtener todos los documentos de la colección 'servicios'
     var querySnapshot =
@@ -240,6 +247,21 @@ class FireStoreDataBase {
       var docRef =
           FirebaseFirestore.instance.collection('servicios').doc(doc.id);
       await docRef.update({'facturada': true});
+    }
+  }
+
+  // metodo para actulizar la fecha en una coleccion
+
+  Future<void> actualizarFormatoFechas() async {
+    QuerySnapshot querySnapshot =
+        await FirebaseFirestore.instance.collection('gasolina').get();
+
+    for (var doc in querySnapshot.docs) {
+      String fechaAntigua = doc['fecha']; // Suponiendo formato DD-MM-YYYY
+      DateTime fecha = DateFormat('dd-MM-yyyy').parse(fechaAntigua);
+      String fechaNueva = DateFormat('yyyy-MM-dd').format(fecha);
+
+      await doc.reference.update({'fecha': fechaNueva});
     }
   }
 }
