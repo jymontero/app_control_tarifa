@@ -69,63 +69,100 @@ class _GoalDairyState extends State<GoalDairy> {
     }
   }
 
-  Center _card() {
+  Widget _card() {
     return Center(
         child: Card(
-            margin: const EdgeInsets.all(20),
-            child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-              ListTile(
-                  //leading: Icon(Icons.album),
-                  title: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Column(
-                        children: [
-                          Text(
-                            "Meta Registrada",
-                            textAlign: TextAlign.left,
-                          )
-                        ],
-                      ),
-                      Column(
-                        children: [
-                          Text(
-                            numberFormat.format(context
-                                .watch<ConfiguracionProvider>()
-                                .metaRegistradaBD),
-                            textAlign: TextAlign.right,
-                          )
-                        ],
-                      )
-                    ],
+            elevation: 4.0,
+            margin: const EdgeInsets.all(10),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const SizedBox(
+                  height: 50,
+                  child: ListTile(
+                    title: Text(
+                      "Detalles",
+                      textAlign: TextAlign.center,
+                      style:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Column(
-                        children: [
-                          Text(
-                            "Meta por Hacer",
-                            textAlign: TextAlign.left,
-                          )
-                        ],
-                      ),
-                      Column(
-                        children: [
-                          Text(
-                            numberFormat.format(context
-                                .watch<ContadorServicioProvider>()
-                                .configuracion),
-                            textAlign: TextAlign.right,
-                          )
-                        ],
-                      )
-                    ],
+                ),
+                SizedBox(
+                  height: 45,
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 15.0, vertical: -55),
+                    leading: const Icon(
+                      Icons.flag_circle,
+                      size: 30,
+                      color: Color.fromARGB(255, 231, 45, 31),
+                    ),
+                    title: const Text(
+                      "Meta Registrada",
+                      textAlign: TextAlign.left,
+                    ),
+                    trailing: Text(
+                      numberFormat.format(context
+                          .watch<ConfiguracionProvider>()
+                          .metaRegistradaBD),
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                          fontSize: 17, fontWeight: FontWeight.bold),
+                    ),
                   ),
-                  Row(
+                ),
+
+                //Divider(height: 1), // Línea divisoria entre ListTiles
+
+                SizedBox(
+                  //height: 45,
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 15.0, vertical: 0),
+                    leading: const Icon(
+                      Icons.flag_circle,
+                      size: 30,
+                      color: Color.fromARGB(255, 119, 15, 138),
+                    ),
+                    title: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Column(
+                          children: [
+                            Text(
+                              "Meta por Hacer",
+                              textAlign: TextAlign.left,
+                            )
+                          ],
+                        ),
+                        Column(
+                          children: [
+                            Text(
+                              numberFormat.format(context
+                                  .watch<ContadorServicioProvider>()
+                                  .configuracion),
+                              textAlign: TextAlign.right,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold),
+                            )
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+                const Divider(height: 1), // Línea divisoria entre ListTiles
+
+                ListTile(
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 15.0, vertical: 0),
+                  leading: const Icon(
+                    Icons.flag_circle,
+                    size: 30,
+                    color: Colors.green,
+                  ),
+                  title: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Column(
@@ -143,14 +180,15 @@ class _GoalDairyState extends State<GoalDairy> {
                                 .watch<ContadorServicioProvider>()
                                 .valorMetaObtenida),
                             textAlign: TextAlign.right,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           )
                         ],
                       )
                     ],
-                  )
-                ],
-              ))
-            ])));
+                  ),
+                )
+              ],
+            )));
   }
 
   @override
@@ -159,38 +197,14 @@ class _GoalDairyState extends State<GoalDairy> {
         backgroundColor: const Color(0xffd6d6cd),
         //backgroundColor: const Color.fromARGB(255, 206, 214, 205),
         body: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _card(),
-            _textoMontoMetaPorHacer(Colors.red,
-                context.watch<ContadorServicioProvider>().configuracion, 30),
-            _etiquetasTexto('Meta x Hacer'),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Column(
-                  children: [
-                    _textoMetaRegistrada(
-                        context.watch<ConfiguracionProvider>().metaRegistradaBD,
-                        1),
-                    _etiquetasTexto('Meta Registrada'),
-                  ],
-                ),
-                const Padding(padding: EdgeInsets.all(15)),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _textoMetaRegistrada(
-                        context
-                            .watch<ContadorServicioProvider>()
-                            .valorMetaObtenida,
-                        0),
-                    _etiquetasTexto('Meta obtenida'),
-                  ],
-                )
-              ],
-            )
+            const Row(
+              children: [Text('Historial')],
+            ),
+//            const ListService(),
           ],
         ),
         floatingActionButton: FloatingActionButton.extended(
@@ -239,3 +253,138 @@ class _GoalDairyState extends State<GoalDairy> {
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat);
   }
 }
+
+
+
+
+
+/**
+ * 
+ *  _textoMontoMetaPorHacer(Colors.red,
+                context.watch<ContadorServicioProvider>().configuracion, 30),
+            _etiquetasTexto('Meta x Hacer'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Column(
+                  children: [
+                    _textoMetaRegistrada(
+                        context.watch<ConfiguracionProvider>().metaRegistradaBD,
+                        1),
+                    _etiquetasTexto('Meta Registrada'),
+                  ],
+                ),
+                const Padding(padding: EdgeInsets.all(15)),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _textoMetaRegistrada(
+                        context
+                            .watch<ContadorServicioProvider>()
+                            .valorMetaObtenida,
+                        0),
+                    _etiquetasTexto('Meta obtenida'),
+                  ],
+                )
+              ],
+            )
+ */
+
+
+
+/**
+ * 
+ * 
+ * Row(
+                children: [
+
+                        ListTile(
+                  //leading: Icon(Icons.album),
+                  title: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Detalles",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
+                      )
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Column(
+                        children: [
+                          Text(
+                            "Meta Registrada",
+                            textAlign: TextAlign.left,
+                          )
+                        ],
+                      ),
+                      Column(
+                        children: [
+                          Text(
+                            numberFormat.format(context
+                                .watch<ConfiguracionProvider>()
+                                .metaRegistradaBD),
+                            textAlign: TextAlign.right,
+                          )
+                        ],
+                      )
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Column(
+                        children: [
+                          Text(
+                            "Meta por Hacer",
+                            textAlign: TextAlign.left,
+                          )
+                        ],
+                      ),
+                      Column(
+                        children: [
+                          Text(
+                            numberFormat.format(context
+                                .watch<ContadorServicioProvider>()
+                                .configuracion),
+                            textAlign: TextAlign.right,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          )
+                        ],
+                      )
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Column(
+                        children: [
+                          Text(
+                            "Meta Obtenida",
+                            textAlign: TextAlign.left,
+                          )
+                        ],
+                      ),
+                      Column(
+                        children: [
+                          Text(
+                            numberFormat.format(context
+                                .watch<ContadorServicioProvider>()
+                                .valorMetaObtenida),
+                            textAlign: TextAlign.right,
+                          )
+                        ],
+                      )
+                    ],
+                  )
+                ],
+              ))),
+
+ */
