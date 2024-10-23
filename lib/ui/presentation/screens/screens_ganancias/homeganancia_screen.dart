@@ -102,9 +102,9 @@ class _HomeGananciaState extends State<HomeGanancia> {
     return sumar;
   }
 
-  Widget _createFutureBuilderIngresos(String fecha) {
+  Widget _createFutureBuilderIngresos(String mes, String anio) {
     return FutureBuilder(
-        future: bd.getModeloIngresos(fecha),
+        future: bd.getModeloIngresos(mes, anio),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return const Text("AlgoMaloPaso");
@@ -203,7 +203,8 @@ class _HomeGananciaState extends State<HomeGanancia> {
                         height: 200.0,
                         alignment: Alignment.center,
                         child: _createFutureBuilderIngresos(
-                            selectedDate.month.toString())),
+                            selectedDate.month.toString(),
+                            selectedDate.year.toString())),
                   ),
                 ],
               ),

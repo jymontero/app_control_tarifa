@@ -258,7 +258,7 @@ class _StepperFinalizedState extends State<StepperFinalized> {
                             valorTanqueoProvider,
                             valorKilometros,
                             valorGalones,
-                            '${selectedDate.day}-${selectedDate.month}-${selectedDate.year}',
+                            '${selectedDate.year}-${(selectedDate.month).toString().padLeft(2, '0')}-${(selectedDate.day).toString().padLeft(2, '0')}',
                             '${selectedDate.hour}:${selectedDate.minute}:${selectedDate.second}');
                         db.actualizarEstadoServicio(
                             '${selectedDate.day}-${selectedDate.month}-${selectedDate.year}'

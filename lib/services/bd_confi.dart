@@ -39,9 +39,12 @@ class FireStoreDataBase {
     return servicios;
   }
 
-  Future<List<Ingreso>> getModeloIngresos(String mes) async {
-    final queryIngresos =
-        await db.collection('ingresos').where('mes', isEqualTo: mes).get();
+  Future<List<Ingreso>> getModeloIngresos(String mes, String anio) async {
+    final queryIngresos = await db
+        .collection('ingresos')
+        .where('mes', isEqualTo: mes)
+        .where('anio', isEqualTo: anio)
+        .get();
 
     final ingresos = queryIngresos.docs.map((e) {
       final modeloIngeso = Ingreso.fromJson(e.data());
