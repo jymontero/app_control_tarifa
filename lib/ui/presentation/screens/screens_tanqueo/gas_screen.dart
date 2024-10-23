@@ -120,7 +120,7 @@ class _GasolineState extends State<Gasoline> {
                         color: Color.fromARGB(255, 244, 67, 54),
                       ),
                       title: Text(
-                        '${listaTanqueo[index].kilometraje} Km \t\t\t${listaTanqueo[index].fecha} Gal',
+                        '${listaTanqueo[index].fecha} \t\t\t ${listaTanqueo[index].kilometraje} Km',
                         style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.normal,

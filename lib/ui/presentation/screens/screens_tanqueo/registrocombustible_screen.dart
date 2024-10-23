@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:pattern_formatter/pattern_formatter.dart';
 import 'package:provider/provider.dart';
+import 'package:taxi_servicios/domain/entitis/estaciongas.dart';
 import 'package:taxi_servicios/providers/tanqueo_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/calculadora.dart';
@@ -17,6 +18,9 @@ class RegistroCombustible extends StatefulWidget {
 }
 
 class _RegistroCombustibleState extends State<RegistroCombustible> {
+  late List<EstacionGas> listaEDS = [];
+  FireStoreDataBase bd = FireStoreDataBase();
+
   var resultado = '0';
   TextEditingController myControllerValorTanqueo =
       TextEditingController(text: "0.0");
@@ -37,6 +41,9 @@ class _RegistroCombustibleState extends State<RegistroCombustible> {
 
   @override
   void initState() {
+    //listaEDS = bd.getModeloEDS();
+
+    //getDataEDS();
     myControllerValorTanqueo.addListener(() {
       context
           .read<ServicioTanqueoProvider>()
@@ -63,6 +70,14 @@ class _RegistroCombustibleState extends State<RegistroCombustible> {
     myControllerKm.dispose();
     myControllerGalones.dispose();
     super.dispose();
+  }
+
+  Future<Center> getDataEDS() async {
+    listaEDS = db.getModeloEDS as List<EstacionGas>;
+    if (listaEDS.isNotEmpty) {
+      print(listaEDS[0].barrio);
+    }
+    return const Center(child: CircularProgressIndicator());
   }
 
   Widget _createForm() {
