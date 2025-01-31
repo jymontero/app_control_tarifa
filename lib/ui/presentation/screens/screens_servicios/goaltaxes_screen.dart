@@ -202,7 +202,13 @@ class _GoalDairyState extends State<GoalDairy> {
           children: [
             _card(),
             const Row(
-              children: [Text('Historial')],
+              children: [
+                Text('Historial',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ))
+              ],
             ),
 //            const ListService(),
           ],
