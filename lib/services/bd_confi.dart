@@ -13,26 +13,26 @@ class FireStoreDataBase {
  CONSULTAS  DE LECTURA BASE DE DATOS 
  */
 
-  // Future<List<Variable>> getModeloVariables() async {
-  //   final queryVariables = await db
-  //       .collection('variables')
-  //       .orderBy('valor', descending: true)
-  //       .get();
-  //   final variables = queryVariables.docs.map((e) {
-  //     final model = Variable.fromJson(e.data());
-  //     model.id = e.id;
-  //     return model;
-  //   }).toList();
-  //   return variables;
-  // }
   Future<List<Variable>> getModeloVariables() async {
-    final querySnapshot = await db
+    final queryVariables = await db
         .collection('variables')
         .orderBy('valor', descending: true)
         .get();
-
-    return querySnapshot.docs.map((e) => Variable.fromJson(e.data())).toList();
+    final variables = queryVariables.docs.map((e) {
+      final model = Variable.fromJson(e.data());
+      model.id = e.id;
+      return model;
+    }).toList();
+    return variables;
   }
+  // Future<List<Variable>> getModeloVariables() async {
+  //   final querySnapshot = await db
+  //       .collection('variables')
+  //       .orderBy('valor', descending: true)
+  //       .get();
+
+  //   return querySnapshot.docs.map((e) => Variable.fromJson(e.data())).toList();
+  // }
 
   Future<List<Servicio>> getModeloServicios(String fecha) async {
     final queryServicios =
