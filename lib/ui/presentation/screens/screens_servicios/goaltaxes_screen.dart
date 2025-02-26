@@ -108,7 +108,7 @@ class _GoalDairyState extends State<GoalDairy> {
                           .metaRegistradaBD),
                       textAlign: TextAlign.right,
                       style: const TextStyle(
-                          fontSize: 17, fontWeight: FontWeight.bold),
+                          fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -143,8 +143,8 @@ class _GoalDairyState extends State<GoalDairy> {
                                   .watch<ContadorServicioProvider>()
                                   .configuracion),
                               textAlign: TextAlign.right,
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold),
                             )
                           ],
                         )
@@ -152,7 +152,10 @@ class _GoalDairyState extends State<GoalDairy> {
                     ),
                   ),
                 ),
-                const Divider(height: 1), // Línea divisoria entre ListTiles
+                const Divider(
+                  height: 1,
+                  color: Colors.black,
+                ), // Línea divisoria entre ListTiles
 
                 ListTile(
                   contentPadding:
@@ -170,6 +173,8 @@ class _GoalDairyState extends State<GoalDairy> {
                           Text(
                             "Meta Obtenida",
                             textAlign: TextAlign.left,
+                            style: TextStyle(
+                                fontSize: 17, fontWeight: FontWeight.w600),
                           )
                         ],
                       ),
@@ -180,7 +185,8 @@ class _GoalDairyState extends State<GoalDairy> {
                                 .watch<ContadorServicioProvider>()
                                 .valorMetaObtenida),
                             textAlign: TextAlign.right,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold),
                           )
                         ],
                       )
@@ -202,7 +208,26 @@ class _GoalDairyState extends State<GoalDairy> {
           children: [
             _card(),
             const Row(
-              children: [Text('Historial')],
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(12.0),
+                  child: Text(
+                    'Historial',
+                    textAlign: TextAlign.start,
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.all(1.0),
+                  child: Icon(
+                    Icons.history,
+                    color: Colors.black,
+                  ),
+                )
+              ],
             ),
 //            const ListService(),
           ],
