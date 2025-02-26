@@ -1,15 +1,16 @@
 // ignore_for_file: avoid_print
 
-import 'package:cron/cron.dart';
 import 'package:flutter/material.dart';
+import 'package:cron/cron.dart';
 
 class AppBarCustomized extends StatefulWidget implements PreferredSizeWidget {
   final double height;
 
-  const AppBarCustomized({super.key, this.height = kToolbarHeight + 30});
+  const AppBarCustomized({super.key, this.height = kToolbarHeight + 20});
 
   @override
   Size get preferredSize => Size.fromHeight(height);
+
   @override
   State<AppBarCustomized> createState() => _AppBarCustomizedState();
 }
@@ -21,67 +22,56 @@ class _AppBarCustomizedState extends State<AppBarCustomized> {
   void initState() {
     super.initState();
     saludo = setSaludo();
+    actualizarSaludoCadaHora();
   }
 
-  Widget getSaludo(String saludo) {
-    return Text(
-      saludo,
-      textAlign: TextAlign.left,
-      style: const TextStyle(fontSize: 25),
-    );
-  }
-
-  String setSaludo() {
-    var timer = DateTime.now();
-    var hour = timer.hour;
-    print(hour);
-    if (hour >= 00 && hour < 12) {
-      saludo = "Buenos dias,\n";
-    }
-    if (hour >= 12 && hour < 19) {
-      saludo = "Buenas tardes,\n";
-    }
-    if (hour >= 19 && hour <= 23) {
-      saludo = "Buenas noches,\n";
-    }
-
-    return saludo;
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  void actualizarSaludoCadaHora() {
     final cron = Cron();
-
     cron.schedule(Schedule.parse('0 * * * *'), () async {
-      setSaludo();
       setState(() {
         saludo = setSaludo();
       });
     });
+  }
 
+  String setSaludo() {
+    int hour = DateTime.now().hour;
+    if (hour >= 0 && hour < 12) return "Buenos días,\n";
+    if (hour >= 12 && hour < 19) return "Buenas tardes,\n";
+    return "Buenas noches,\n";
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return AppBar(
-      backgroundColor: Colors.amber,
-      leading: const Padding(
-        padding: EdgeInsets.all(1.0),
-        child: CircleAvatar(
-          backgroundImage: AssetImage("assets/images/perfil.jpg"),
+      toolbarHeight: widget.height,
+      backgroundColor: Colors.amber.shade600,
+      leading: const SizedBox(
+        height: kToolbarHeight,
+        child: Center(
+          child: CircleAvatar(
+            radius: kToolbarHeight,
+            backgroundImage: AssetImage("assets/images/perfil.jpg"),
+          ),
         ),
       ),
-      title: Padding(
-        padding: const EdgeInsets.all(5),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              '${saludo}Julian',
-              textAlign: TextAlign.left,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            saludo,
+            style: const TextStyle(
+                fontSize: 18, fontWeight: FontWeight.w500, height: 0.5),
+          ),
+          const Text(
+            "Julian",
+            style:
+                TextStyle(fontSize: 22, fontWeight: FontWeight.bold, height: 1),
+          ),
+        ],
       ),
-      titleSpacing: 5.0,
+      titleSpacing: 0.8,
     );
   }
 }
