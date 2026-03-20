@@ -19,14 +19,20 @@ class HomeGanancia extends StatefulWidget {
 class _HomeGananciaState extends State<HomeGanancia> {
   FireStoreDataBase bd = FireStoreDataBase();
   DateTime selectedDate = DateTime.now().toLocal();
-  late List<Ingreso> listaIngresos = [];
+  late Future<List<Ingreso>> _ingresosFuture;
   final numberFormat =
       NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 0);
 
   @override
   void initState() {
-    initializeDateFormatting('es');
     super.initState();
+    initializeDateFormatting('es');
+    _cargarIngresos();
+  }
+
+  void _cargarIngresos() {
+    _ingresosFuture = bd.getModeloIngresos(
+        selectedDate.month.toString(), selectedDate.year.toString());
   }
 
   List<Ingreso> ordenarLista(List<Ingreso> lista) {
@@ -34,7 +40,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
     return lista;
   }
 
-  Widget _selectDate(BuildContext context, String locale) {
+  Widget _selectDate(BuildContext context) {
     return SizedBox(
       child: TextButton.icon(
           onPressed: () async {
@@ -48,6 +54,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
             if (selected != null && selected != selectedDate) {
               setState(() {
                 selectedDate = selected;
+                _cargarIngresos();
               });
             }
           },
@@ -64,20 +71,11 @@ class _HomeGananciaState extends State<HomeGanancia> {
     );
   }
 
-  Widget labelIngreso(int ingresoMes) {
+  Widget labelIngreso() {
+    final saldo = context.watch<IngresosProvider>().valorIngresoMensual;
     return Text(
       //context.watch<IngresosProvider>().valorIngresoMensual
-      "COP ${numberFormat.format(ingresoMes)}",
-
-      style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-      textAlign: TextAlign.center,
-    );
-  }
-
-  Widget labelIngrsoProv() {
-    final provider = Provider.of<IngresosProvider>(context, listen: false);
-    return Text(
-      provider.valorIngresoMensual.toString(),
+      "COP ${numberFormat.format(saldo)}",
       style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
       textAlign: TextAlign.center,
     );
@@ -85,132 +83,123 @@ class _HomeGananciaState extends State<HomeGanancia> {
 
   Widget labelMesCurrent() {
     return Text(
-      "Saldo del mes ${DateFormat.MMMM('es').format(selectedDate)}",
+      "Saldo de ${DateFormat.MMMM('es').format(selectedDate)} ${DateFormat.y('es').format(selectedDate)}",
       style: const TextStyle(fontSize: 15),
       textAlign: TextAlign.center,
     );
   }
 
+  Widget labelDiasLaborados() {
+    final dias = context.watch<IngresosProvider>().diasLaborados;
+    return Text(
+      "Dias laborados: $dias",
+      style: const TextStyle(
+        fontSize: 15,
+      ),
+      textAlign: TextAlign.center,
+    );
+  }
+
   int sumarListaBd(List<Ingreso> lista) {
-    listaIngresos = lista;
-    int sumar = 0;
-    for (var item in listaIngresos) {
-      int aux = item.monto;
-      sumar += aux;
-    }
-
-    return sumar;
+    return lista.fold(0, (sum, item) => sum + item.monto);
   }
 
-  Widget _createFutureBuilderIngresos(String mes, String anio) {
-    return FutureBuilder(
-        future: bd.getModeloIngresos(mes, anio),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return const Text("AlgoMaloPaso");
-          }
-          if (snapshot.hasData) {
-            listaIngresos = snapshot.data!;
-            listaIngresos = ordenarLista(listaIngresos);
+  Widget _createFutureBuilderIngresos() {
+    return FutureBuilder<List<Ingreso>>(
+      future: _ingresosFuture,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 40),
+              const SizedBox(height: 8),
+              Text('Error: ${snapshot.error}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.red)),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                  onPressed: () => setState(() => _cargarIngresos()),
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Reintentar'))
+            ],
+          );
+        }
+        if (snapshot.hasData) {
+          final lista = ordenarLista(snapshot.data!);
+          final saldo = sumarListaBd(lista);
+          final diasLaborados = lista.length;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              context.read<IngresosProvider>().setIngresoMensual(saldo);
+              context.read<IngresosProvider>().setDiasLaborados(diasLaborados);
+            }
+          });
 
-            return _createListIngresos(context);
-          }
-
-          return const Center(child: CircularProgressIndicator());
-        });
-  }
-
-  Widget _createListIngresos(BuildContext context) {
-    int saldo = sumarListaBd(listaIngresos);
-
-    Future.microtask(() {
-      context.read<IngresosProvider>().setIngresoMensual(saldo);
-    });
-    if (listaIngresos.isEmpty) {
-      return const Text(
-        'No hay datos Registrados  del mes',
-        textAlign: TextAlign.center,
-      );
-    } else {
-      return ListView.builder(
-        padding: const EdgeInsets.only(left: 5, bottom: 70),
-        shrinkWrap: true,
-        itemCount: listaIngresos.length,
-        itemBuilder: (BuildContext context, int index) {
-          return Card(
-            //margin: const EdgeInsets.all(5),
-            child: Column(children: <Widget>[
-              ListTile(
-                leading: const Icon(
-                  Icons.monetization_on,
-                  size: 30,
-                  color: Colors.green,
+          if (lista.isEmpty) {
+            return SizedBox.expand(
+              child: Container(
+                color: const Color(0xffd6d6cd), // mismo color de fondo
+                child: const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.calendar_today_outlined,
+                      size: 36,
+                      color: Colors.black45,
+                    ),
+                    SizedBox(height: 12),
+                    Text(
+                      'No hay datos registrados del mes',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black54),
+                    ),
+                  ],
                 ),
-                title: Text(
-                  'COP ${numberFormat.format(listaIngresos[index].monto)}',
-                  style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black),
-                ),
-                subtitle: Text(
-                  DateFormat.yMMMEd('es').format(DateFormat('d-M-yyyy').parse(
-                      '${listaIngresos[index].dia}-${listaIngresos[index].mes}-${listaIngresos[index].anio}')),
-                  style: const TextStyle(
+              ),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.only(left: 5, bottom: 70),
+            shrinkWrap: true,
+            itemCount: lista.length,
+            itemBuilder: (context, int index) {
+              final ingreso = lista[index];
+              return Card(
+                child: ListTile(
+                  leading: const Icon(
+                    Icons.monetization_on,
+                    size: 30,
+                    color: Colors.green,
+                  ),
+                  title: Text(
+                    'COP ${numberFormat.format(ingreso.monto)}',
+                    style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black),
+                  ),
+                  subtitle: Text(
+                    DateFormat.yMMMEd('es').format(
+                      DateFormat('d-M-yyyy').parse(
+                          '${ingreso.dia}-${ingreso.mes}-${ingreso.anio}'),
+                    ),
+                    style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: Colors.black),
-                ),
-              )
-            ]),
-          );
-        },
-      );
-    }
-  }
-
-  Widget _crearUI(BuildContext context) {
-    final providerSS = Provider.of<IngresosProvider>(context, listen: false);
-
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints viewportConstraints) {
-        return SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: viewportConstraints.maxHeight,
-            ),
-            child: IntrinsicHeight(
-              child: Column(
-                children: [
-                  Container(
-                    // A fixed-height child.
-                    color: const Color(0xffd6d6cd), // Yellow
-                    height: 120.0,
-                    alignment: Alignment.center,
-                    child: Column(
-                      children: [
-                        _selectDate(context, 'es'),
-                        labelMesCurrent(),
-                        labelIngreso(providerSS.valorIngresoMensual),
-                      ],
+                      color: Colors.black,
                     ),
                   ),
-                  Expanded(
-                    // A flexible child that will grow to fit the viewport but
-                    // still be at least as big as necessary to fit its contents.
-                    child: Container(
-                        color: const Color.fromARGB(255, 206, 214, 205),
-                        height: 200.0,
-                        alignment: Alignment.center,
-                        child: _createFutureBuilderIngresos(
-                            selectedDate.month.toString(),
-                            selectedDate.year.toString())),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
+                ),
+              );
+            },
+          );
+        }
+        return const Center(child: CircularProgressIndicator());
       },
     );
   }
@@ -218,34 +207,41 @@ class _HomeGananciaState extends State<HomeGanancia> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const AppBarCustomized(),
-      body: _crearUI(context),
-    );
-  }
-}
-
-
-/**
- * 
- * Scaffold(
         appBar: const AppBarCustomized(),
-        body: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              SizedBox(
+        body: LayoutBuilder(builder: (context, viewportConstraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints:
+                  BoxConstraints(minHeight: viewportConstraints.maxHeight),
+              child: IntrinsicHeight(
                 child: Column(
                   children: [
-                    _selectDate(context),
-                    saldoMes(),
-                    labelIngreso(
-                        context.watch<IngresosProvider>().valorIngresoMensual),
+                    Container(
+                      color: const Color(0xffd6d6cd),
+                      width: double.infinity, // ocupa todo el ancho
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      alignment: Alignment.center,
+                      child: Column(
+                        children: [
+                          _selectDate(context),
+                          labelMesCurrent(),
+                          labelIngreso(),
+                          labelDiasLaborados(),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Container(
+                        color: const Color(0xffd6d6cd),
+                        height: 200.0,
+                        child: _createFutureBuilderIngresos(),
+                      ),
+                    ),
                   ],
                 ),
               ),
-              _createFutureBuilderIngresos(selectedDate.month.toString())
-            ],
-          ),
-        ));
- */
+            ),
+          );
+        }));
+  }
+}
