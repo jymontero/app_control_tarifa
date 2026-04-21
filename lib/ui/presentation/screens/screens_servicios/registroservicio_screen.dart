@@ -2,13 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
+import 'package:pattern_formatter/pattern_formatter.dart';
 import 'package:provider/provider.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
-import 'package:taxi_servicios/ui/presentation/screens/screens_tanqueo/gas_screen.dart';
-import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
-import 'package:pattern_formatter/pattern_formatter.dart';
+
+// ── Paleta Dark Premium ───────────────────────────────────────────────────────
+class _C {
+  static const bg = Color(0xFF0F1923);
+  static const headerBg = Color(0xFF0D1F2D);
+  static const cardBg = Color(0xFF1A2535);
+  static const cardBorder = Color(0xFF1E2D3D);
+  static const accent = Color(0xFFF5C518);
+  static const primary = Color(0xFFF1F5F9);
+  static const secondary = Color(0xFF64748B);
+  static const muted = Color(0xFF3D5166);
+  static const green = Color(0xFF4ADE80);
+  static const red = Color(0xFFF87171);
+  static const heroBorder = Color(0xFF1E3A55);
+}
 
 class RegistroServicio extends StatefulWidget {
   const RegistroServicio({super.key});
@@ -18,256 +31,611 @@ class RegistroServicio extends StatefulWidget {
 }
 
 class _RegistroServicioState extends State<RegistroServicio> {
-  DateTime time = DateTime.now().toLocal();
-  final TextEditingController myController = TextEditingController(text: "");
-  final numberFormat =
+  // ── Estado ──────────────────────────────────────────────────────────────────
+  final _controller = TextEditingController();
+  final _db = FireStoreDataBase();
+
+  DateTime _time = DateTime.now().toLocal();
+  String _tipoServicio = 'taxi'; // 'taxi' | 'plataforma'
+  String _metodoPago = 'efectivo'; // 'efectivo' | 'transferencia'
+
+  // Fecha del turno: 0=ayer, 1=hoy
+  int _fechaSeleccionada = 1;
+
+  final _fmt =
       NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 0);
 
-  FireStoreDataBase db = FireStoreDataBase();
+  // ── Lifecycle ────────────────────────────────────────────────────────────────
 
   @override
   void initState() {
-    initializeDateFormatting('es');
-
     super.initState();
+    initializeDateFormatting('es');
   }
 
-  Widget _selectDate(BuildContext context) {
-    return SizedBox(
-      child: TextButton.icon(
-          onPressed: () async {
-            final DateTime? selected = await showDatePicker(
-              context: context,
-              locale: const Locale('es'),
-              initialDate: time,
-              firstDate: DateTime(2022),
-              lastDate: DateTime(2030),
-              initialEntryMode: DatePickerEntryMode.calendarOnly,
-            );
-            if (selected != null && selected != time) {
-              setState(() {
-                time = selected;
-              });
-            }
-          },
-          icon: const Icon(
-            Icons.calendar_month,
-            size: 22,
-            color: Colors.black,
-          ),
-          label: Text(
-            DateFormat.yMMMEd('es').format(time),
-            style: const TextStyle(
-                fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
-          )),
-    );
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
-  void showAlert() {
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+
+  DateTime get _fechaTurno {
+    if (_fechaSeleccionada == 0) {
+      return _time.subtract(const Duration(days: 1));
+    }
+    return _time;
+  }
+
+  String get _fechaFormateada {
+    final f = _fechaTurno;
+    return '${f.day}-${f.month}-${f.year}';
+  }
+
+  String get _horaFormateada => DateFormat.jm().format(_time);
+
+  int get _numeroServicio =>
+      (_controller.text.isEmpty) ? 0 : 1; // referencial para el chip
+
+  void _showAlertValor() {
     QuickAlert.show(
-        context: context,
-        title: "Valor del servicio",
-        text: "Ingrese un valor mayor a \nCOP ${0.0}",
-        autoCloseDuration: const Duration(seconds: 3),
-        confirmBtnText: "OK",
-        type: QuickAlertType.error);
+      context: context,
+      title: 'Valor del servicio',
+      text: 'Ingrese un valor mayor a \nCOP \$0',
+      autoCloseDuration: const Duration(seconds: 3),
+      confirmBtnText: 'OK',
+      type: QuickAlertType.error,
+    );
   }
 
-  void showConfirmDialog() {
-    QuickAlert.show(context: context, type: QuickAlertType.confirm);
-  }
+  // ── Guardar ──────────────────────────────────────────────────────────────────
 
-  Widget _createInputService() {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(20),
-          child: TextFormField(
-            autofocus: false,
-            style: const TextStyle(color: Colors.black),
-            controller: myController,
-            keyboardType: TextInputType.number,
-            inputFormatters: <TextInputFormatter>[
-              FilteringTextInputFormatter.digitsOnly,
-              ThousandsFormatter()
-            ],
-            decoration: const InputDecoration(
-              prefixIcon: Align(
-                widthFactor: 1.0,
-                heightFactor: 1.0,
-                child: Icon(
-                  Icons.monetization_on,
-                  color: Colors.green,
-                ),
-              ),
-              helperText: 'Ingrese valor del servicio',
-              helperStyle: TextStyle(color: Colors.black, fontSize: 16),
+  Future<void> _guardarServicio() async {
+    final raw = _controller.text.replaceAll(',', '');
+    if (raw.isEmpty || int.parse(raw) <= 0) {
+      _showAlertValor();
+      return;
+    }
+
+    final valor = int.parse(raw);
+
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _C.cardBg,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: _C.cardBorder),
+        ),
+        title: Column(
+          children: [
+            const Text(
+              '¿Registrar servicio?',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: _C.primary, fontSize: 15, fontWeight: FontWeight.w500),
             ),
+            const SizedBox(height: 6),
+            Text(
+              _fmt.format(valor),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  color: _C.accent, fontSize: 20, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+        actionsAlignment: MainAxisAlignment.spaceEvenly,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sí', style: TextStyle(color: _C.accent)),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _createlabelDate() {
-    String hora = DateFormat.jm().format(time);
-
-    return Column(
-      children: [
-        const Text(
-          'Hora del Viaje',
-          style: TextStyle(fontSize: 16),
-        ),
-        Container(
-          padding: const EdgeInsets.all(13),
-          child: Text(
-            // '${time.hour}:${time.minute}:${time.second}',
-            hora,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('No', style: TextStyle(color: _C.secondary)),
           ),
-        ),
-      ],
+        ],
+      ),
     );
+
+    if (confirmar == true && mounted) {
+      // Actualizar providers
+      context.read<ContadorServicioProvider>().incrementarMetaObtenida(valor);
+      context.read<ContadorServicioProvider>().decrementarMetaPorHacer(valor);
+
+      // Guardar en Firebase con nuevos campos
+      await _db.addServicioBD(
+        _fechaFormateada,
+        _horaFormateada,
+        valor,
+        false,
+        _tipoServicio,
+        _metodoPago,
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context);
+    }
   }
 
-  Widget _createInputDate() {
-    return Column(
-      children: [
-        const Text(
-          'Fecha del Viaje',
-          style: TextStyle(fontSize: 16),
-        ),
-        _selectDate(context)
-        /*Container(
-            padding: const EdgeInsets.all(10), child: _selectDate(context))*/
-      ],
-    );
-  }
-
-  Widget _createRegistryButtom() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        ElevatedButton(
-            style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.all(Colors.amber),
-                foregroundColor: MaterialStateProperty.all(Colors.black),
-                shape: MaterialStateProperty.all(RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5)))),
-            onPressed: () async {
-              final valor = myController.text.replaceAll(',', '');
-              if (myController.text.isEmpty) {
-                showAlert();
-              } else {
-                await showDialog(
-                  context: context,
-                  builder: (context) {
-                    return AlertDialog(
-                      title: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const Text(
-                            'Registrar ',
-                            textAlign: TextAlign.center,
-                          ),
-                          Text(
-                            'COP ${numberFormat.format(int.parse(valor))}',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                      actionsAlignment: MainAxisAlignment.spaceBetween,
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            String hora = DateFormat.jm().format(time);
-
-                            final horaTemp = hora;
-                            //'${time.hour}:${time.minute}:${time.second}';
-                            final fechaTemp =
-                                '${time.day}-${time.month}-${time.year}';
-
-                            context
-                                .read<ContadorServicioProvider>()
-                                .incrementarMetaObtenida(int.parse(valor));
-
-                            context
-                                .read<ContadorServicioProvider>()
-                                .decrementarMetaPorHacer(int.parse(valor));
-
-                            //Base de datos
-                            db.addServicioBD(
-                                fechaTemp, horaTemp, int.parse(valor), false);
-
-                            ///
-                            ///
-                            Navigator.pop(context, true);
-                            Navigator.of(context).pop(MaterialPageRoute(
-                                builder: (context) => const Gasoline()));
-                          },
-                          child: const Text('Si'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context, false);
-                          },
-                          child: const Text('No'),
-                        ),
-                      ],
-                    );
-                  },
-                );
-              }
-            },
-            child: const Text('Agregar Viaje',
-                style: TextStyle(
-                  fontSize: 18,
-                )))
-      ],
-    );
-  }
+  // ── Build ────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const AppBarCustomized(),
-      backgroundColor: const Color(0xffd6d6cd),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Text(
-              'Registro De Servicio',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ]),
-          _createInputService(),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+      backgroundColor: _C.bg,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Column(
-                children: [
-                  _createlabelDate(),
-                ],
-              ),
-              Column(
-                children: [
-                  _createInputDate(),
-                ],
-              )
+              const SizedBox(height: 16),
+              _buildTitulo(),
+              const SizedBox(height: 16),
+              _buildToggleTipoServicio(),
+              const SizedBox(height: 10),
+              _buildToggleMetodoPago(),
+              const SizedBox(height: 10),
+              _buildCampoValor(),
+              const SizedBox(height: 10),
+              _buildHoraAutomatica(),
+              const SizedBox(height: 10),
+              _buildSelectorFecha(),
+              const SizedBox(height: 14),
+              _buildChipResumen(),
+              const SizedBox(height: 14),
+              _buildBotonGuardar(),
+              const SizedBox(height: 8),
+              _buildBotonCancelar(),
+              const SizedBox(height: 16),
             ],
           ),
-          const Padding(padding: EdgeInsets.all(20)),
-          _createRegistryButtom()
+        ),
+      ),
+    );
+  }
+
+  // ── Widgets ──────────────────────────────────────────────────────────────────
+
+  Widget _buildTitulo() {
+    return Row(
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: _C.accent.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child:
+              const Icon(Icons.local_taxi_rounded, color: _C.accent, size: 16),
+        ),
+        const SizedBox(width: 10),
+        const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Registro de servicio',
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: _C.primary)),
+            Text('Completa los datos del viaje',
+                style: TextStyle(fontSize: 10, color: _C.muted)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ── Toggle genérico ──────────────────────────────────────────────────────────
+
+  Widget _buildToggle({
+    required String label,
+    required List<String> opciones,
+    required List<String> etiquetas,
+    required List<IconData> iconos,
+    required String seleccionado,
+    required ValueChanged<String> onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 10, color: _C.muted)),
+        const SizedBox(height: 5),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.03),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _C.cardBorder),
+          ),
+          padding: const EdgeInsets.all(5),
+          child: Row(
+            children: List.generate(opciones.length, (i) {
+              final isActive = seleccionado == opciones[i];
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => onChanged(opciones[i]),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: isActive ? _C.accent : Colors.transparent,
+                      borderRadius: BorderRadius.circular(9),
+                      border:
+                          isActive ? null : Border.all(color: _C.cardBorder),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(iconos[i],
+                            size: 13,
+                            color:
+                                isActive ? const Color(0xFF0F1923) : _C.muted),
+                        const SizedBox(width: 5),
+                        Text(
+                          etiquetas[i],
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color:
+                                isActive ? const Color(0xFF0F1923) : _C.muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildToggleTipoServicio() {
+    return _buildToggle(
+      label: 'Tipo de servicio',
+      opciones: ['taxi', 'plataforma'],
+      etiquetas: ['Taxi', 'Plataforma'],
+      iconos: [Icons.local_taxi_rounded, Icons.phone_android_outlined],
+      seleccionado: _tipoServicio,
+      onChanged: (v) => setState(() => _tipoServicio = v),
+    );
+  }
+
+  Widget _buildToggleMetodoPago() {
+    return _buildToggle(
+      label: 'Método de pago',
+      opciones: ['efectivo', 'transferencia'],
+      etiquetas: ['Efectivo', 'Transferencia'],
+      iconos: [Icons.payments_outlined, Icons.swap_horiz_rounded],
+      seleccionado: _metodoPago,
+      onChanged: (v) => setState(() => _metodoPago = v),
+    );
+  }
+
+  Widget _buildCampoValor() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Valor del servicio',
+            style: TextStyle(fontSize: 10, color: _C.muted)),
+        const SizedBox(height: 5),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.04),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: _C.accent.withOpacity(0.4)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          child: Row(
+            children: [
+              const Icon(Icons.monetization_on_outlined,
+                  color: _C.accent, size: 16),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextFormField(
+                  controller: _controller,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(
+                      color: _C.primary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    ThousandsFormatter(),
+                  ],
+                  decoration: const InputDecoration(
+                    hintText: 'Ingrese el valor COP',
+                    hintStyle: TextStyle(color: _C.muted, fontSize: 11),
+                    border: InputBorder.none,
+                    isDense: true,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHoraAutomatica() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Hora del viaje',
+            style: TextStyle(fontSize: 10, color: _C.muted)),
+        const SizedBox(height: 5),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.04),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: _C.cardBorder),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          child: Row(
+            children: [
+              const Icon(Icons.access_time_rounded, color: _C.accent, size: 14),
+              const SizedBox(width: 8),
+              Text(
+                _horaFormateada,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: _C.primary,
+                ),
+              ),
+              const Spacer(),
+              const Text('Automática',
+                  style: TextStyle(fontSize: 9, color: _C.muted)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSelectorFecha() {
+    final ayer = _time.subtract(const Duration(days: 1));
+    final hoy = _time;
+
+    final opciones = [
+      {
+        'label': 'Ayer',
+        'fecha': '${ayer.day} ${_mesCorto(ayer.month)}',
+        'idx': 0
+      },
+      {'label': 'Hoy', 'fecha': '${hoy.day} ${_mesCorto(hoy.month)}', 'idx': 1},
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Fecha del turno',
+            style: TextStyle(fontSize: 10, color: _C.muted)),
+        const SizedBox(height: 5),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.03),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _C.cardBorder),
+          ),
+          padding: const EdgeInsets.all(5),
+          child: Row(
+            children: [
+              ...opciones.map((o) {
+                final idx = o['idx'] as int;
+                final isActive = _fechaSeleccionada == idx;
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _fechaSeleccionada = idx),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isActive ? _C.accent : Colors.transparent,
+                        borderRadius: BorderRadius.circular(9),
+                        border:
+                            isActive ? null : Border.all(color: _C.cardBorder),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            o['label'] as String,
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w500,
+                              color:
+                                  isActive ? const Color(0xFF0F1923) : _C.muted,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            o['fecha'] as String,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                              color: isActive
+                                  ? const Color(0xFF0F1923)
+                                  : _C.secondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+              // Mañana — deshabilitado
+              Expanded(
+                child: Opacity(
+                  opacity: 0.25,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(9),
+                      border: Border.all(color: _C.cardBorder),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text('Mañana',
+                            style: TextStyle(fontSize: 9, color: _C.muted)),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${hoy.add(const Duration(days: 1)).day} ${_mesCorto(hoy.add(const Duration(days: 1)).month)}',
+                          style: const TextStyle(fontSize: 10, color: _C.muted),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 5),
+        Row(
+          children: [
+            const Icon(Icons.info_outline, color: _C.accent, size: 11),
+            const SizedBox(width: 4),
+            RichText(
+              text: const TextSpan(
+                style: TextStyle(fontSize: 9, color: _C.secondary),
+                children: [
+                  TextSpan(text: 'Si tu turno pasó de medianoche selecciona '),
+                  TextSpan(
+                    text: 'Ayer',
+                    style: TextStyle(color: _C.accent),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChipResumen() {
+    final raw = _controller.text.replaceAll(',', '');
+    final tieneValor = raw.isNotEmpty && int.tryParse(raw) != null;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: _C.accent.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _C.accent.withOpacity(0.15)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            tieneValor
+                ? '${_fechaSeleccionada == 0 ? "Ayer" : "Hoy"} · $_horaFormateada'
+                : 'Completa los campos',
+            style: const TextStyle(fontSize: 9, color: _C.secondary),
+          ),
+          Row(
+            children: [
+              _chipBadge(
+                _tipoServicio == 'taxi' ? 'Taxi' : 'Plataforma',
+                _C.accent,
+              ),
+              const SizedBox(width: 6),
+              _chipBadge(
+                _metodoPago == 'efectivo' ? 'Efectivo' : 'Transf.',
+                _C.green,
+              ),
+            ],
+          ),
         ],
       ),
     );
+  }
+
+  Widget _chipBadge(String texto, Color color) {
+    return Row(
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(
+              color: color, borderRadius: BorderRadius.circular(3)),
+        ),
+        const SizedBox(width: 3),
+        Text(texto, style: TextStyle(fontSize: 9, color: color)),
+      ],
+    );
+  }
+
+  Widget _buildBotonGuardar() {
+    return GestureDetector(
+      onTap: _guardarServicio,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 13),
+        decoration: BoxDecoration(
+          color: _C.accent,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.check_rounded, color: Color(0xFF0F1923), size: 16),
+            SizedBox(width: 8),
+            Text(
+              'Agregar viaje',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF0F1923),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBotonCancelar() {
+    return GestureDetector(
+      onTap: () => Navigator.pop(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 11),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.03),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: _C.cardBorder),
+        ),
+        child: const Center(
+          child:
+              Text('Cancelar', style: TextStyle(fontSize: 12, color: _C.muted)),
+        ),
+      ),
+    );
+  }
+
+  // ── Utilidades ───────────────────────────────────────────────────────────────
+
+  String _mesCorto(int mes) {
+    const meses = [
+      'ene',
+      'feb',
+      'mar',
+      'abr',
+      'may',
+      'jun',
+      'jul',
+      'ago',
+      'sep',
+      'oct',
+      'nov',
+      'dic'
+    ];
+    return meses[mes - 1];
   }
 }

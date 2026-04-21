@@ -118,12 +118,20 @@ class FireStoreDataBase {
   }
 
   Future<void> addServicioBD(
-      String fecha, String hora, int valor, bool facturada) async {
+    String fecha,
+    String hora,
+    int valor,
+    bool facturada,
+    String tipoServicio,
+    String metodoPago,
+  ) async {
     Map<String, dynamic> servicio = {
       "fecha": fecha,
       "hora": hora,
       "valor": valor,
-      "facturada": facturada
+      "facturada": facturada,
+      "tipoServicio": tipoServicio,
+      "metodoPago": metodoPago,
     };
     await db.collection('servicios').doc().set(servicio);
   }

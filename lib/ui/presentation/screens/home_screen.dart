@@ -24,7 +24,7 @@ class Home extends StatefulWidget {
 }
 
 class _Home extends State<Home> {
-  FireStoreDataBase db = FireStoreDataBase();
+  final FireStoreDataBase db = FireStoreDataBase();
   int _paginaActual = 0;
 
   final List<Widget> _pages = [
@@ -37,16 +37,49 @@ class _Home extends State<Home> {
   @override
   void initState() {
     //print('SE INICILIAO CARGANDO DATA DESDE BD');
-    getDataVariableConfig();
+    //getDataVariableConfig();
     getDataServiciosToday();
     //db.actualizarFormatoFechas();
 
     super.initState();
+    _inicializarDatos();
   }
 
   @override
   void dispose() {
     super.dispose();
+  }
+  // ── Inicialización secuencial ───────────────────────────────────────────────
+  // FIX: antes eran 2 funciones async en paralelo sin orden garantizado.
+  // Ahora es 1 función secuencial que garantiza:
+  // 1. Variables cargadas → metaRegistradaBD tiene valor correcto
+  // 2. setMetaHacer recibe el valor real → _metaTotalOriginal queda bien
+  // 3. Servicios se suman contra la meta ya inicializada
+
+  Future<void> _inicializarDatos() async {
+    // PASO 1 — Cargar variables de configuración
+    final List<Variable> listaVariables = await db.getModeloVariables();
+    if (!mounted) return;
+
+    // PASO 2 — Setear variables en ConfiguracionProvider
+    context.read<ConfiguracionProvider>().sumarListaBd(listaVariables);
+
+    // PASO 3 — Ahora metaRegistradaBD tiene el valor correcto
+    final int meta = context.read<ConfiguracionProvider>().metaRegistradaBD;
+    context.read<ContadorServicioProvider>().setMetaHacer(meta);
+
+    // PASO 4 — Cargar servicios del día
+    final DateTime today = DateTime.now().toLocal();
+    final String fecha = '${today.day}-${today.month}-${today.year}';
+    final List<Servicio> listaServicios = await db.getModeloServicios(fecha);
+    if (!mounted) return;
+
+    // PASO 5 — Sumar servicios contra meta ya inicializada
+    if (listaServicios.isNotEmpty) {
+      context
+          .read<ContadorServicioProvider>()
+          .sumarListaServiciosBD(listaServicios, 'HOME');
+    }
   }
 
   void getDataVariableConfig() async {
