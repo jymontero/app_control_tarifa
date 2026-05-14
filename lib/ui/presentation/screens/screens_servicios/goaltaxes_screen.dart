@@ -1,6 +1,6 @@
 // ignore: file_names
 // ignore_for_file: unused_element, prefer_final_fields, unused_field
-
+import 'package:slide_action/slide_action.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -25,7 +25,7 @@ class _C {
   static const metricBg = Color(0xFF131F2B);
   static const accent = Color(0xFFF5C518);
   static const primary = Color(0xFFF1F5F9);
-  static const secondary = Color(0xFF64748B);
+  static const secondary = Color(0xFF94A3B8);
   static const muted = Color(0xFF3D5166);
   static const green = Color(0xFF4ADE80);
   static const red = Color(0xFFF87171);
@@ -162,7 +162,7 @@ class _GoalDairyState extends State<GoalDairy> {
             _buildHeroCard(),
             _buildMetricsRow(),
             const SizedBox(height: 12),
-            _buildBotonRegistrar(),
+            // _buildBotonRegistrar(),
             const SizedBox(height: 12),
             _buildHistorialHeader(),
             Expanded(
@@ -173,7 +173,7 @@ class _GoalDairyState extends State<GoalDairy> {
                       ? _buildEstadoVacio()
                       : _buildListaServicios(),
             ),
-            _buildFinalizarTurno(),
+            _buildBotonesInferiores(),
           ],
         ),
       ),
@@ -311,7 +311,8 @@ class _GoalDairyState extends State<GoalDairy> {
                 style: TextStyle(
                     fontSize: 14, fontWeight: FontWeight.w500, color: color)),
             const SizedBox(height: 2),
-            Text(label, style: const TextStyle(fontSize: 9, color: _C.muted)),
+            Text(label,
+                style: const TextStyle(fontSize: 9, color: _C.secondary)),
           ],
         ),
       ),
@@ -329,7 +330,10 @@ class _GoalDairyState extends State<GoalDairy> {
             context,
             MaterialPageRoute(builder: (_) => const RegistroServicio()),
           );
-          _cargarServiciosHoy();
+          if (mounted) {
+            setState(() => _cargando = true); // ← muestra loading brevemente
+            await _cargarServiciosHoy();
+          }
         },
         child: Container(
           width: double.infinity,
@@ -390,16 +394,16 @@ class _GoalDairyState extends State<GoalDairy> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.local_taxi_outlined, color: _C.muted, size: 48),
+          Icon(Icons.local_taxi_outlined, color: _C.primary, size: 48),
           SizedBox(height: 12),
           Text(
             'Sin servicios registrados hoy',
-            style: TextStyle(color: _C.muted, fontSize: 13),
+            style: TextStyle(color: _C.secondary, fontSize: 13),
           ),
           SizedBox(height: 4),
           Text(
             'Toca el botón amarillo para agregar',
-            style: TextStyle(color: _C.cardBorder, fontSize: 11),
+            style: TextStyle(color: _C.secondary, fontSize: 11),
           ),
         ],
       ),
@@ -466,7 +470,7 @@ class _GoalDairyState extends State<GoalDairy> {
                   children: [
                     Text(
                       s.hora,
-                      style: const TextStyle(fontSize: 9, color: _C.muted),
+                      style: const TextStyle(fontSize: 9, color: _C.secondary),
                     ),
                     const SizedBox(width: 6),
                     // Badge tipo servicio
@@ -573,74 +577,230 @@ class _GoalDairyState extends State<GoalDairy> {
 
   // ── Finalizar turno ──────────────────────────────────────────────────────────
 
-  Widget _buildFinalizarTurno() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
-      child: GestureDetector(
-        onTap: () async {
-          final confirmar = await showDialog<bool>(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              backgroundColor: _C.cardBg,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: _C.cardBorder),
-              ),
-              title: const Text(
-                '¿Finalizar turno?',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: _C.primary,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              actionsAlignment: MainAxisAlignment.spaceEvenly,
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, true),
-                  child: const Text('Sí', style: TextStyle(color: _C.accent)),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child:
-                      const Text('No', style: TextStyle(color: _C.secondary)),
-                ),
-              ],
-            ),
-          );
+  // Widget _buildFinalizarTurno() {
+  //   return Padding(
+  //     padding: const EdgeInsets.fromLTRB(12, 6, 80, 18),
+  //     child: GestureDetector(
+  //       onTap: () async {
+  //         final confirmar = await showDialog<bool>(
+  //           context: context,
+  //           builder: (ctx) => AlertDialog(
+  //             backgroundColor: _C.cardBg,
+  //             shape: RoundedRectangleBorder(
+  //               borderRadius: BorderRadius.circular(16),
+  //               side: const BorderSide(color: _C.cardBorder),
+  //             ),
+  //             title: const Text(
+  //               '¿Finalizar turno?',
+  //               textAlign: TextAlign.center,
+  //               style: TextStyle(
+  //                 color: _C.primary,
+  //                 fontSize: 15,
+  //                 fontWeight: FontWeight.w500,
+  //               ),
+  //             ),
+  //             actionsAlignment: MainAxisAlignment.spaceEvenly,
+  //             actions: [
+  //               TextButton(
+  //                 onPressed: () => Navigator.pop(ctx, true),
+  //                 child: const Text('Sí', style: TextStyle(color: _C.accent)),
+  //               ),
+  //               TextButton(
+  //                 onPressed: () => Navigator.pop(ctx, false),
+  //                 child:
+  //                     const Text('No', style: TextStyle(color: _C.secondary)),
+  //               ),
+  //             ],
+  //           ),
+  //         );
 
-          if (confirmar == true && mounted) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => StepperFinalized()),
-            );
-          }
-        },
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: _C.red.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: _C.red.withOpacity(0.2)),
-          ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.output_outlined, color: _C.red, size: 16),
-              SizedBox(width: 8),
-              Text(
-                'Finalizar turno',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: _C.red,
-                ),
+  //         if (confirmar == true && mounted) {
+  //           Navigator.push(
+  //             context,
+  //             MaterialPageRoute(builder: (_) => StepperFinalized()),
+  //           );
+  //         }
+  //       },
+  //       child: Container(
+  //         width: double.infinity,
+  //         padding: const EdgeInsets.symmetric(vertical: 12),
+  //         decoration: BoxDecoration(
+  //           color: _C.red.withOpacity(0.25),
+  //           borderRadius: BorderRadius.circular(14),
+  //           border: Border.all(color: _C.red.withOpacity(0.2)),
+  //         ),
+  //         child: const Row(
+  //           mainAxisAlignment: MainAxisAlignment.center,
+  //           children: [
+  //             Icon(Icons.output_outlined, color: _C.red, size: 16),
+  //             SizedBox(width: 8),
+  //             Text(
+  //               'Finalizar turno',
+  //               style: TextStyle(
+  //                 fontSize: 13,
+  //                 fontWeight: FontWeight.w500,
+  //                 color: _C.red,
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //       ),
+  //     ),
+  //   );
+  // }
+  Widget _buildBotonesInferiores() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+      decoration: const BoxDecoration(
+        color: _C.bg,
+        border: Border(top: BorderSide(color: _C.cardBorder)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Registrar servicio — acción principal
+          GestureDetector(
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const RegistroServicio()),
+              );
+              if (mounted) {
+                setState(() => _cargando = true);
+                await _cargarServiciosHoy();
+              }
+            },
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              decoration: BoxDecoration(
+                color: _C.accent,
+                borderRadius: BorderRadius.circular(14),
               ),
-            ],
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add, color: Color(0xFF0F1923), size: 16),
+                  SizedBox(width: 8),
+                  Text(
+                    'Registrar nuevo servicio',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF0F1923),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
+          const SizedBox(height: 7),
+
+          SlideAction(
+            trackHeight: 50,
+            trackBuilder: (context, state) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: _C.red.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: _C.red.withOpacity(0.2)),
+                ),
+                child: Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        size: 11,
+                        color: _C.red.withOpacity(
+                          1.0 - state.thumbFractionalPosition,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        'Desliza para finalizar turno',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: _C.red.withOpacity(
+                            1.0 - state.thumbFractionalPosition,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+            thumbBuilder: (context, state) {
+              return Container(
+                margin: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: _C.red.withOpacity(0.25),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: _C.red.withOpacity(0.4)),
+                ),
+                child: state.isPerformingAction
+                    ? const Center(
+                        child: SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            color: _C.red,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      )
+                    : const Icon(
+                        Icons.output_outlined,
+                        color: _C.red,
+                        size: 18,
+                      ),
+              );
+            },
+            action: () async {
+              if (!mounted) return;
+              final confirmar = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  backgroundColor: _C.cardBg,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: const BorderSide(color: _C.cardBorder),
+                  ),
+                  title: const Text(
+                    '¿Finalizar turno?',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: _C.primary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  actionsAlignment: MainAxisAlignment.spaceEvenly,
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child:
+                          const Text('Sí', style: TextStyle(color: _C.accent)),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('No',
+                          style: TextStyle(color: _C.secondary)),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmar == true && mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => StepperFinalized()),
+                );
+              }
+            },
+          ),
+        ],
       ),
     );
   }

@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
+import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 
 // ── Paleta Dark Premium ───────────────────────────────────────────────────────
 class _C {
@@ -16,7 +17,7 @@ class _C {
   static const cardBorder = Color(0xFF1E2D3D);
   static const accent = Color(0xFFF5C518);
   static const primary = Color(0xFFF1F5F9);
-  static const secondary = Color(0xFF64748B);
+  static const secondary = Color(0xFF94A3B8);
   static const muted = Color(0xFF3D5166);
   static const green = Color(0xFF4ADE80);
   static const red = Color(0xFFF87171);
@@ -164,6 +165,7 @@ class _RegistroServicioState extends State<RegistroServicio> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: const AppBarCustomized(),
       backgroundColor: _C.bg,
       body: SafeArea(
         child: SingleChildScrollView(
@@ -222,7 +224,7 @@ class _RegistroServicioState extends State<RegistroServicio> {
                     fontWeight: FontWeight.w500,
                     color: _C.primary)),
             Text('Completa los datos del viaje',
-                style: TextStyle(fontSize: 10, color: _C.muted)),
+                style: TextStyle(fontSize: 10, color: _C.secondary)),
           ],
         ),
       ],
@@ -242,7 +244,7 @@ class _RegistroServicioState extends State<RegistroServicio> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 10, color: _C.muted)),
+        Text(label, style: const TextStyle(fontSize: 10, color: _C.secondary)),
         const SizedBox(height: 5),
         Container(
           decoration: BoxDecoration(
@@ -271,16 +273,18 @@ class _RegistroServicioState extends State<RegistroServicio> {
                       children: [
                         Icon(iconos[i],
                             size: 13,
-                            color:
-                                isActive ? const Color(0xFF0F1923) : _C.muted),
+                            color: isActive
+                                ? const Color(0xFF0F1923)
+                                : _C.secondary),
                         const SizedBox(width: 5),
                         Text(
                           etiquetas[i],
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
-                            color:
-                                isActive ? const Color(0xFF0F1923) : _C.muted,
+                            color: isActive
+                                ? const Color(0xFF0F1923)
+                                : _C.secondary,
                           ),
                         ),
                       ],
@@ -322,7 +326,7 @@ class _RegistroServicioState extends State<RegistroServicio> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Valor del servicio',
-            style: TextStyle(fontSize: 10, color: _C.muted)),
+            style: TextStyle(fontSize: 10, color: _C.secondary)),
         const SizedBox(height: 5),
         Container(
           decoration: BoxDecoration(
@@ -350,7 +354,7 @@ class _RegistroServicioState extends State<RegistroServicio> {
                   ],
                   decoration: const InputDecoration(
                     hintText: 'Ingrese el valor COP',
-                    hintStyle: TextStyle(color: _C.muted, fontSize: 11),
+                    hintStyle: TextStyle(color: _C.secondary, fontSize: 11),
                     border: InputBorder.none,
                     isDense: true,
                   ),
@@ -368,7 +372,7 @@ class _RegistroServicioState extends State<RegistroServicio> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Hora del viaje',
-            style: TextStyle(fontSize: 10, color: _C.muted)),
+            style: TextStyle(fontSize: 10, color: _C.secondary)),
         const SizedBox(height: 5),
         Container(
           decoration: BoxDecoration(
@@ -391,7 +395,7 @@ class _RegistroServicioState extends State<RegistroServicio> {
               ),
               const Spacer(),
               const Text('Automática',
-                  style: TextStyle(fontSize: 9, color: _C.muted)),
+                  style: TextStyle(fontSize: 9, color: _C.secondary)),
             ],
           ),
         ),
@@ -416,7 +420,7 @@ class _RegistroServicioState extends State<RegistroServicio> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('Fecha del turno',
-            style: TextStyle(fontSize: 10, color: _C.muted)),
+            style: TextStyle(fontSize: 10, color: _C.secondary)),
         const SizedBox(height: 5),
         Container(
           decoration: BoxDecoration(
@@ -449,8 +453,9 @@ class _RegistroServicioState extends State<RegistroServicio> {
                             style: TextStyle(
                               fontSize: 9,
                               fontWeight: FontWeight.w500,
-                              color:
-                                  isActive ? const Color(0xFF0F1923) : _C.muted,
+                              color: isActive
+                                  ? const Color(0xFF0F1923)
+                                  : _C.secondary,
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -483,11 +488,12 @@ class _RegistroServicioState extends State<RegistroServicio> {
                     child: Column(
                       children: [
                         const Text('Mañana',
-                            style: TextStyle(fontSize: 9, color: _C.muted)),
+                            style: TextStyle(fontSize: 9, color: _C.secondary)),
                         const SizedBox(height: 2),
                         Text(
                           '${hoy.add(const Duration(days: 1)).day} ${_mesCorto(hoy.add(const Duration(days: 1)).month)}',
-                          style: const TextStyle(fontSize: 10, color: _C.muted),
+                          style: const TextStyle(
+                              fontSize: 10, color: _C.secondary),
                         ),
                       ],
                     ),
@@ -612,8 +618,8 @@ class _RegistroServicioState extends State<RegistroServicio> {
           border: Border.all(color: _C.cardBorder),
         ),
         child: const Center(
-          child:
-              Text('Cancelar', style: TextStyle(fontSize: 12, color: _C.muted)),
+          child: Text('Cancelar',
+              style: TextStyle(fontSize: 12, color: _C.secondary)),
         ),
       ),
     );

@@ -4,7 +4,7 @@ import 'package:taxi_servicios/services/bd_confi.dart';
 
 class ConfiguracionProvider with ChangeNotifier {
   FireStoreDataBase db = FireStoreDataBase();
-  late int _metaRegistrada = 265000;
+  late int _metaRegistrada = 0;
   late List<Variable> _listVariables = [];
   late int _metaRegistradaBD = 0;
 

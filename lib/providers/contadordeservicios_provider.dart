@@ -41,6 +41,7 @@ class ContadorServicioProvider with ChangeNotifier {
       sumar += aux;
     }
     if (modo == 'HOME') {
+      _valorMetaObtenida = 0;
       _valorMetaObtenida += sumar;
       _configuracionMetaRegistrada -= sumar;
       notifyListeners();

@@ -1,6 +1,7 @@
 // ignore_for_file: no_leading_underscores_for_local_identifiers, duplicate_ignore, avoid_print, prefer_const_constructors
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:taxi_servicios/domain/entitis/servicio.dart';
 import 'package:taxi_servicios/domain/entitis/variables.dart';
@@ -111,12 +112,14 @@ class _Home extends State<Home> {
     return PopScope(
         canPop: false,
         onPopInvoked: (bool didPop) async {
-          showDialog<bool>(
+          if (didPop) return;
+
+          final bool? salir = await showDialog<bool>(
             context: context,
             builder: (context) {
               return AlertDialog(
                 title: const Text(
-                  'Salir de la APP?',
+                  '¿Salir de la APP?',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
@@ -124,13 +127,13 @@ class _Home extends State<Home> {
                 actions: [
                   TextButton(
                     onPressed: () {
-                      Navigator.pop(context, true);
+                      Navigator.of(context).pop(true);
                     },
-                    child: const Text('Si'),
+                    child: const Text('Sí'),
                   ),
                   TextButton(
                     onPressed: () {
-                      Navigator.pop(context, false);
+                      Navigator.of(context).pop(false);
                     },
                     child: const Text('No'),
                   ),
@@ -138,6 +141,10 @@ class _Home extends State<Home> {
               );
             },
           );
+
+          if (salir == true) {
+            SystemNavigator.pop();
+          }
         },
         child: Scaffold(
           appBar: AppBarCustomized(),
@@ -171,17 +178,19 @@ class _Home extends State<Home> {
                   backgroundColor: Colors.black,
                 ),
               ]),
-          floatingActionButton: FloatingActionButton(
-            heroTag: 'btnaddService',
-            backgroundColor: Colors.amber.shade600,
-            onPressed: () {
-              Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const RegistroServicio()));
-            },
-            child: const Icon(Icons.playlist_add_sharp),
-          ),
+          floatingActionButton: (_paginaActual == 0)
+              ? null
+              : FloatingActionButton(
+                  heroTag: 'btnaddService',
+                  backgroundColor: Colors.amber.shade600,
+                  onPressed: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const RegistroServicio()));
+                  },
+                  child: const Icon(Icons.playlist_add_sharp),
+                ),
           floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         ));
   }
