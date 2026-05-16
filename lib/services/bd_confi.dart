@@ -96,7 +96,7 @@ class FireStoreDataBase {
     final queryGAS = await db
         .collection('gasolina')
         .orderBy('fecha', descending: true)
-        .limit(30)
+        .limit(17)
         .get();
 
     final gas = queryGAS.docs.map((e) {
