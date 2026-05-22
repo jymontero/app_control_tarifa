@@ -2,8 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pattern_formatter/pattern_formatter.dart';
 import 'package:provider/provider.dart';
+import 'package:taxi_servicios/providers/tanqueo_provider.dart';
 
-import '../../../../providers/tanqueo_provider.dart';
+// ── Paleta Dark Premium ───────────────────────────────────────────────────────
+class _C {
+  static const cardBorder = Color(0xFF1E2D3D);
+  static const accent = Color(0xFFF5C518);
+  static const primary = Color(0xFFF1F5F9);
+  static const secondary = Color(0xFF94A3B8);
+  static const muted = Color(0xFF3D5166);
+}
 
 class RegistryLavada extends StatefulWidget {
   const RegistryLavada({super.key});
@@ -13,69 +21,66 @@ class RegistryLavada extends StatefulWidget {
 }
 
 class _RegistryLavadaState extends State<RegistryLavada> {
-  final TextEditingController controllerLavada =
-      TextEditingController(text: "");
+  final TextEditingController _ctrl = TextEditingController(text: '');
 
   @override
   void initState() {
-    controllerLavada.addListener(() {
-      context
-          .read<ServicioTanqueoProvider>()
-          .setvalorLavada(controllerLavada.text);
-    });
     super.initState();
+    _ctrl.addListener(() {
+      context.read<ServicioTanqueoProvider>().setvalorLavada(_ctrl.text);
+    });
   }
 
   @override
   void dispose() {
-    controllerLavada.dispose();
+    _ctrl.dispose();
     super.dispose();
-  }
-
-  Widget _createFormLavada() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        TextFormField(
-          controller: controllerLavada,
-          keyboardType: TextInputType.number,
-          textInputAction: TextInputAction.next,
-          inputFormatters: <TextInputFormatter>[
-            FilteringTextInputFormatter.digitsOnly,
-            ThousandsFormatter()
-          ],
-          decoration: const InputDecoration(
-              prefixIcon: Align(
-                widthFactor: 1.0,
-                heightFactor: 1.0,
-                child: Icon(
-                  Icons.monetization_on,
-                  color: Colors.green,
-                ),
-              ),
-              hintText: 'Valor Lavada',
-              hintStyle: TextStyle(color: Colors.black38, fontSize: 14)),
-        ),
-      ],
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [],
-              ),
-              _createFormLavada(),
-            ]),
+    return Container(
+      color: Colors.transparent,
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Valor de lavada',
+              style: TextStyle(fontSize: 10, color: _C.secondary)),
+          const SizedBox(height: 5),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.04),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: _C.accent.withOpacity(0.35)),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: Row(
+              children: [
+                const Icon(Icons.local_car_wash_outlined,
+                    color: _C.accent, size: 15),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: TextFormField(
+                    controller: _ctrl,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: _C.primary, fontSize: 13),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      ThousandsFormatter(),
+                    ],
+                    decoration: const InputDecoration(
+                      hintText: 'Ingresa el valor de lavada',
+                      hintStyle: TextStyle(color: _C.muted, fontSize: 11),
+                      border: InputBorder.none,
+                      isDense: true,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

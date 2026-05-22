@@ -149,14 +149,23 @@ class FireStoreDataBase {
   }
 
   Future<void> addGananciaBD(
-      int valor, String dia, String mes, String anio) async {
+    int valor,
+    String dia,
+    String mes,
+    String anio, {
+    int totalBruto = 0,
+    int deducciones = 0,
+    int numServicios = 0,
+  }) async {
     Map<String, dynamic> ganancia = {
-      "dia": dia,
-      "mes": mes,
-      "anio": anio,
-      "monto": valor
+      'dia': dia,
+      'mes': mes,
+      'anio': anio,
+      'monto': valor,
+      'totalBruto': totalBruto,
+      'deducciones': deducciones,
+      'numServicios': numServicios,
     };
-
     await db.collection('ingresos').doc().set(ganancia);
   }
 

@@ -1,14 +1,22 @@
-// ignore_for_file: unused_element
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:pattern_formatter/pattern_formatter.dart';
 import 'package:provider/provider.dart';
-import 'package:taxi_servicios/domain/entitis/estaciongas.dart';
 import 'package:taxi_servicios/providers/tanqueo_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/calculadora.dart';
+
+// ── Paleta Dark Premium ───────────────────────────────────────────────────────
+class _C {
+  static const bg = Color(0xFF0F1923);
+  static const cardBg = Color(0xFF1A2535);
+  static const cardBorder = Color(0xFF1E2D3D);
+  static const accent = Color(0xFFF5C518);
+  static const primary = Color(0xFFF1F5F9);
+  static const secondary = Color(0xFF94A3B8);
+  static const muted = Color(0xFF3D5166);
+}
 
 class RegistroCombustible extends StatefulWidget {
   const RegistroCombustible({super.key});
@@ -18,221 +26,189 @@ class RegistroCombustible extends StatefulWidget {
 }
 
 class _RegistroCombustibleState extends State<RegistroCombustible> {
-  late List<EstacionGas> listaEDS = [];
-  FireStoreDataBase bd = FireStoreDataBase();
+  final FireStoreDataBase _db = FireStoreDataBase();
 
-  var resultado = '0';
-  TextEditingController myControllerValorTanqueo =
-      TextEditingController(text: "0.0");
+  TextEditingController _ctrlValorTanqueo = TextEditingController(text: '0.0');
+  TextEditingController _ctrlGalones = TextEditingController(text: '# Galones');
+  final TextEditingController _ctrlKm = TextEditingController(text: '');
 
-  TextEditingController myControllerGalones =
-      TextEditingController(text: "# Galones");
-
-  final TextEditingController myControllerKm = TextEditingController(text: "");
-
-  final TextEditingController myControllerEstacion =
-      TextEditingController(text: "");
-
-  final _formKeyGas = GlobalKey<FormState>();
-
-  FireStoreDataBase db = FireStoreDataBase();
-  final numberFormat =
+  final _fmt =
       NumberFormat.currency(locale: 'es_MX', symbol: '', decimalDigits: 0);
 
   @override
   void initState() {
-    //listaEDS = bd.getModeloEDS();
-
-    //getDataEDS();
-    myControllerValorTanqueo.addListener(() {
-      context
-          .read<ServicioTanqueoProvider>()
-          .setvalorTanqueo((myControllerValorTanqueo.text));
-    });
-    myControllerGalones.addListener(() {
-      context
-          .read<ServicioTanqueoProvider>()
-          .setvalorGalones(myControllerGalones.text);
-    });
-
-    myControllerKm.addListener(() {
-      context
-          .read<ServicioTanqueoProvider>()
-          .setvalorKilometraje(myControllerKm.text);
-    });
     super.initState();
+    _ctrlValorTanqueo.addListener(() {
+      context
+          .read<ServicioTanqueoProvider>()
+          .setvalorTanqueo(_ctrlValorTanqueo.text);
+    });
+    _ctrlGalones.addListener(() {
+      context
+          .read<ServicioTanqueoProvider>()
+          .setvalorGalones(_ctrlGalones.text);
+    });
+    _ctrlKm.addListener(() {
+      context.read<ServicioTanqueoProvider>().setvalorKilometraje(_ctrlKm.text);
+    });
   }
 
   @override
   void dispose() {
-    myControllerValorTanqueo.dispose();
-    myControllerEstacion.dispose();
-    myControllerKm.dispose();
-    myControllerGalones.dispose();
+    _ctrlValorTanqueo.dispose();
+    _ctrlGalones.dispose();
+    _ctrlKm.dispose();
     super.dispose();
   }
 
-  Future<Center> getDataEDS() async {
-    listaEDS = db.getModeloEDS as List<EstacionGas>;
-    if (listaEDS.isNotEmpty) {
-      print(listaEDS[0].barrio);
-    }
-    return const Center(child: CircularProgressIndicator());
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.transparent,
+      padding: const EdgeInsets.only(top: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Valor del tanqueo
+          _buildCampoTap(
+            label: 'Valor del tanqueo',
+            icono: Icons.monetization_on_outlined,
+            valor:
+                '\$${_fmt.format(int.tryParse(_ctrlValorTanqueo.text.replaceAll('.0', '')) ?? 0)}',
+            onTap: () async {
+              final ctrl = await Navigator.push<TextEditingController>(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => Calculadora(_ctrlValorTanqueo)),
+              );
+              if (ctrl != null && mounted) {
+                setState(() {
+                  _ctrlValorTanqueo = ctrl;
+                  context
+                      .read<ServicioTanqueoProvider>()
+                      .setvalorTanqueo(ctrl.text.replaceAll('.0', ''));
+                });
+              }
+            },
+          ),
+          const SizedBox(height: 6),
+
+          // Galones
+          _buildCampoTap(
+            label: 'Galones',
+            icono: Icons.local_gas_station_outlined,
+            valor: _ctrlGalones.text == '# Galones'
+                ? '# Galones'
+                : _ctrlGalones.text,
+            onTap: () async {
+              final ctrl = await Navigator.push<TextEditingController>(
+                context,
+                MaterialPageRoute(builder: (_) => Calculadora(_ctrlGalones)),
+              );
+              if (ctrl != null && mounted) {
+                setState(() {
+                  _ctrlGalones = ctrl;
+                  context
+                      .read<ServicioTanqueoProvider>()
+                      .setvalorGalones(ctrl.text);
+                });
+              }
+            },
+          ),
+          const SizedBox(height: 6),
+
+          // Kilometraje
+          _buildCampoKm(),
+        ],
+      ),
+    );
   }
 
-  Widget _createForm() {
+  // ── Campo tap (abre calculadora) ──────────────────────────────────────────────
+
+  Widget _buildCampoTap({
+    required String label,
+    required IconData icono,
+    required String valor,
+    required VoidCallback onTap,
+  }) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisAlignment: MainAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Form(
-          key: _formKeyGas,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextButton.icon(
-                onPressed: () async {
-                  myControllerValorTanqueo = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) =>
-                              Calculadora(myControllerValorTanqueo)));
-                  setState(() {
-                    myControllerValorTanqueo.text;
-                    context.read<ServicioTanqueoProvider>().setvalorTanqueo(
-                        (myControllerValorTanqueo.text.replaceAll('.0', '')));
-                  });
-                },
-                label: Text(
-                  ' ${numberFormat.format(int.parse(myControllerValorTanqueo.text.replaceAll('.0', '')))}',
+        Text(label, style: const TextStyle(fontSize: 10, color: _C.secondary)),
+        const SizedBox(height: 2),
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.04),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: _C.accent.withOpacity(0.35)),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+            child: Row(
+              children: [
+                Icon(icono, color: _C.accent, size: 15),
+                const SizedBox(width: 6),
+                Text(
+                  valor,
                   style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: _C.primary,
+                  ),
                 ),
-                icon: const Icon(
-                  Icons.monetization_on_rounded,
-                  size: 24,
-                  color: Colors.green,
-                ),
-              ),
-              TextButton.icon(
-                onPressed: () async {
-                  myControllerGalones = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) =>
-                              Calculadora(myControllerGalones)));
-                  setState(() {
-                    myControllerGalones.text;
-                    context
-                        .read<ServicioTanqueoProvider>()
-                        .setvalorGalones((myControllerGalones.text));
-                  });
-                },
-                label: Text(
-                  myControllerGalones.text,
-                  style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black),
-                ),
-                icon: const Icon(
-                  Icons.oil_barrel,
-                  size: 24,
-                  color: Colors.black,
-                ),
-              ),
-              TextFormField(
-                controller: myControllerKm,
-                keyboardType: TextInputType.number,
-                textInputAction: TextInputAction.done,
-                inputFormatters: <TextInputFormatter>[
-                  FilteringTextInputFormatter.digitsOnly,
-                  ThousandsFormatter()
-                ],
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Kilometraje';
-                  }
-                  return null;
-                },
-                decoration: const InputDecoration(
-                    prefixIcon: Align(
-                      widthFactor: 1.0,
-                      heightFactor: 1.0,
-                      child: Icon(
-                        Icons.insert_chart_rounded,
-                        color: Colors.red,
-                      ),
-                    ),
-                    hintText: 'Kilometraje',
-                    hintStyle: TextStyle(
-                      color: Colors.black38,
-                      fontSize: 14,
-                    )),
-              ),
-            ],
+                const Spacer(),
+                const Icon(Icons.edit_outlined, color: _C.muted, size: 13),
+              ],
+            ),
           ),
         ),
       ],
     );
   }
 
-  /*Widget _createRegistryButtom() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+  // ── Campo kilometraje ─────────────────────────────────────────────────────────
+
+  Widget _buildCampoKm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ElevatedButton(
-            style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.all(Colors.amber),
-                foregroundColor: MaterialStateProperty.all(Colors.black),
-                shape: MaterialStateProperty.all(RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5)))),
-            onPressed: () async {
-              if (_formKeyGas.currentState!.validate()) {
-                final int valor =
-                    int.parse(myControllerValue.text.replaceAll(',', ''));
-                final int km = int.parse(myControllerKm.text);
-                final double galon = double.parse(myControllerGalones.text);
-
-                //context.read<ConfiguracionProvider>().addVariable(variable);
-                await db.addTanqueoBD(valor, km, galon).then((_) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('Guardando base de datos....')));
-                  Navigator.pop(context,
-                      MaterialPageRoute(builder: (context) => const Home()));
-                });
-              }
-
-              //Navigator.pop(context, int.parse(myController.text));
-            },
-            child: const Text('Agregar ',
-                style: TextStyle(
-                  fontSize: 18,
-                )))
-      ],
-    );
-  }
-*/
-  /*Widget _dropButton() {
-    final List<DropdownMenuEntry<String>> entradaEstacion =
-        <DropdownMenuEntry<String>>[];
-    return const DropdownMenu(dropdownMenuEntries: entradaEstacion);
-  }*/
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        const Text('Kilometraje',
+            style: TextStyle(fontSize: 10, color: _C.secondary)),
+        const SizedBox(height: 6),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.04),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: _C.cardBorder),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          child: Row(
             children: [
-              _createForm(),
-            ]),
-      ),
+              const Icon(Icons.speed_outlined, color: _C.accent, size: 15),
+              const SizedBox(width: 6),
+              Expanded(
+                child: TextFormField(
+                  controller: _ctrlKm,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: _C.primary, fontSize: 13),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    ThousandsFormatter(),
+                  ],
+                  decoration: const InputDecoration(
+                    hintText: 'Ingresa el kilometraje',
+                    hintStyle: TextStyle(color: _C.muted, fontSize: 11),
+                    border: InputBorder.none,
+                    isDense: true,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

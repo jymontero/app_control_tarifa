@@ -8,13 +8,13 @@ import 'package:taxi_servicios/domain/entitis/variables.dart';
 import 'package:taxi_servicios/providers/configuracion_provider.dart';
 import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_ganancias/homeganancia_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_servicios/registroservicio_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_configuracion/listvariables_screen.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 
 import 'screens_tanqueo/gas_screen.dart';
 import 'screens_servicios/goaltaxes_screen.dart';
-import 'screens_servicios/listservices_screen.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -30,7 +30,7 @@ class _Home extends State<Home> {
 
   final List<Widget> _pages = [
     const GoalDairy(),
-    const ListService(),
+    const HomeGanancia(),
     const Gasoline(),
     const Configuration(),
   ];
