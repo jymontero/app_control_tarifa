@@ -58,7 +58,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
   }
 
   List<Ingreso> _ordenarLista(List<Ingreso> lista) {
-    lista.sort((a, b) => int.parse(a.dia).compareTo(int.parse(b.dia)));
+    lista.sort((a, b) => int.parse(b.dia).compareTo(int.parse(a.dia)));
     return lista;
   }
 
@@ -278,7 +278,10 @@ class _HomeGananciaState extends State<HomeGanancia> {
     final mejor = _listaIngresos.isEmpty
         ? 0
         : _listaIngresos.map((e) => e.monto).reduce((a, b) => a > b ? a : b);
-    final pctMeta = _pctVsMeta(saldo, meta * diasLaborados);
+    final deduccionesC = _listaIngresos.isEmpty
+        ? 0
+        : _listaIngresos.fold(0, (sum, item) => sum + item.deducciones);
+    final pctMeta = _pctVsMeta(saldo, deduccionesC * diasLaborados);
 
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -368,7 +371,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: _listaIngresos.map((ingreso) {
-              final pct = _pctVsMeta(ingreso.monto, meta);
+              final pct = _pctVsMeta(ingreso.monto, ingreso.deducciones);
               final color = _colorBadge(pct);
               final altura = maxMonto > 0
                   ? (ingreso.monto / maxMonto * 40).clamp(4.0, 40.0)
@@ -490,7 +493,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
   }
 
   Widget _buildIngresoItem(Ingreso ingreso, int meta) {
-    final pct = _pctVsMeta(ingreso.monto, meta);
+    final pct = _pctVsMeta(ingreso.monto, ingreso.deducciones);
     final color = _colorBadge(pct);
     final fecha = _fechaIngreso(ingreso);
 

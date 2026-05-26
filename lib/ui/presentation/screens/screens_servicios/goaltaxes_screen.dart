@@ -66,7 +66,7 @@ class _GoalDairyState extends State<GoalDairy> {
 
     // Ordenar por hora
     lista.sort((a, b) =>
-        DateFormat.jm().parse(a.hora).compareTo(DateFormat.jm().parse(b.hora)));
+        DateFormat.jm().parse(b.hora).compareTo(DateFormat.jm().parse(a.hora)));
 
     if (!mounted) return;
     setState(() {
@@ -419,7 +419,7 @@ class _GoalDairyState extends State<GoalDairy> {
       separatorBuilder: (_, __) => const SizedBox(height: 6),
       itemBuilder: (context, index) {
         final s = _listaServicios[index];
-        return _buildServicioItem(s, index + 1);
+        return _buildServicioItem(s, _listaServicios.length - index);
       },
     );
   }
@@ -795,7 +795,7 @@ class _GoalDairyState extends State<GoalDairy> {
               if (confirmar == true && mounted) {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => StepperFinalized()),
+                  MaterialPageRoute(builder: (_) => const StepperFinalized()),
                 );
               }
             },
