@@ -3,10 +3,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:taxi_servicios/domain/entitis/servicio.dart';
 import 'package:taxi_servicios/domain/entitis/variables.dart';
 import 'package:taxi_servicios/providers/configuracion_provider.dart';
 import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
+import 'package:taxi_servicios/providers/theme_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_ganancias/homeganancia_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_servicios/registroservicio_screen.dart';
@@ -16,16 +20,25 @@ import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 import 'screens_tanqueo/gas_screen.dart';
 import 'screens_servicios/goaltaxes_screen.dart';
 
+// ── Paleta Dark Premium ───────────────────────────────────────────────────────
+class _C {
+  static const bg = Color(0xFF0F1923);
+  static const navBg = Color(0xFF0D1620);
+  static const cardBorder = Color(0xFF1E2D3D);
+  static const accent = Color(0xFFF5C518);
+  static const primary = Color(0xFFF1F5F9);
+  static const muted = Color(0xFF2A3D52);
+}
+
 class Home extends StatefulWidget {
   const Home({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
   _Home createState() => _Home();
 }
 
 class _Home extends State<Home> {
-  final FireStoreDataBase db = FireStoreDataBase();
+  final FireStoreDataBase _db = FireStoreDataBase();
   int _paginaActual = 0;
 
   final List<Widget> _pages = [
@@ -35,13 +48,10 @@ class _Home extends State<Home> {
     const Configuration(),
   ];
 
+  // ── Lifecycle ────────────────────────────────────────────────────────────────
+
   @override
   void initState() {
-    //print('SE INICILIAO CARGANDO DATA DESDE BD');
-    //getDataVariableConfig();
-    getDataServiciosToday();
-    //db.actualizarFormatoFechas();
-
     super.initState();
     _inicializarDatos();
   }
@@ -50,29 +60,25 @@ class _Home extends State<Home> {
   void dispose() {
     super.dispose();
   }
-  // ── Inicialización secuencial ───────────────────────────────────────────────
-  // FIX: antes eran 2 funciones async en paralelo sin orden garantizado.
-  // Ahora es 1 función secuencial que garantiza:
-  // 1. Variables cargadas → metaRegistradaBD tiene valor correcto
-  // 2. setMetaHacer recibe el valor real → _metaTotalOriginal queda bien
-  // 3. Servicios se suman contra la meta ya inicializada
+
+  // ── Inicialización secuencial ─────────────────────────────────────────────────
 
   Future<void> _inicializarDatos() async {
     // PASO 1 — Cargar variables de configuración
-    final List<Variable> listaVariables = await db.getModeloVariables();
+    final List<Variable> listaVariables = await _db.getModeloVariables();
     if (!mounted) return;
 
     // PASO 2 — Setear variables en ConfiguracionProvider
     context.read<ConfiguracionProvider>().sumarListaBd(listaVariables);
 
-    // PASO 3 — Ahora metaRegistradaBD tiene el valor correcto
+    // PASO 3 — metaRegistradaBD ya tiene el valor correcto
     final int meta = context.read<ConfiguracionProvider>().metaRegistradaBD;
     context.read<ContadorServicioProvider>().setMetaHacer(meta);
 
     // PASO 4 — Cargar servicios del día
     final DateTime today = DateTime.now().toLocal();
     final String fecha = '${today.day}-${today.month}-${today.year}';
-    final List<Servicio> listaServicios = await db.getModeloServicios(fecha);
+    final List<Servicio> listaServicios = await _db.getModeloServicios(fecha);
     if (!mounted) return;
 
     // PASO 5 — Sumar servicios contra meta ya inicializada
@@ -83,115 +89,118 @@ class _Home extends State<Home> {
     }
   }
 
-  void getDataVariableConfig() async {
-    List<Variable> listaVaraibles = await db.getModeloVariables();
-    Future.microtask(() =>
-        context.read<ConfiguracionProvider>().sumarListaBd(listaVaraibles));
-
-    Future.microtask(() => context
-        .read<ContadorServicioProvider>()
-        .setMetaHacer(context.read<ConfiguracionProvider>().metaRegistradaBD));
-  }
-
-  void getDataServiciosToday() async {
-    DateTime today = DateTime.now().toLocal();
-    final fechaTemp = '${today.day}-${today.month}-${today.year}'.toString();
-    List<Servicio> listaServicio = await db.getModeloServicios(fechaTemp);
-    if (listaServicio.isNotEmpty) {
-      Future.microtask(() => context
-          .read<ContadorServicioProvider>()
-          .sumarListaServiciosBD(listaServicio, 'HOME'));
-    }
-  }
+  // ── Build ─────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    // ignore: no_leading_underscores_for_local_identifiers
-    print('SE CONSTRUYO EN EL BUILDER');
+    final isDark = context.watch<ThemeProvider>().isDark;
 
     return PopScope(
-        canPop: false,
-        onPopInvoked: (bool didPop) async {
-          if (didPop) return;
+      canPop: false,
+      onPopInvoked: (bool didPop) async {
+        if (didPop) return;
+        final bool? salir = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: const Color(0xFF1A2535),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: const BorderSide(color: _C.cardBorder),
+            ),
+            title: const Text(
+              '¿Salir de la app?',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: _C.primary,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            actionsAlignment: MainAxisAlignment.spaceEvenly,
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Sí', style: TextStyle(color: _C.accent)),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('No',
+                    style: TextStyle(color: Color(0xFF94A3B8))),
+              ),
+            ],
+          ),
+        );
+        if (salir == true) SystemNavigator.pop();
+      },
+      child: Scaffold(
+        backgroundColor: isDark ? _C.bg : null,
+        appBar: AppBarCustomized(),
 
-          final bool? salir = await showDialog<bool>(
-            context: context,
-            builder: (context) {
-              return AlertDialog(
-                title: const Text(
-                  '¿Salir de la APP?',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                actionsAlignment: MainAxisAlignment.spaceBetween,
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop(true);
-                    },
-                    child: const Text('Sí'),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop(false);
-                    },
-                    child: const Text('No'),
-                  ),
-                ],
-              );
-            },
-          );
+        body: _pages[_paginaActual],
 
-          if (salir == true) {
-            SystemNavigator.pop();
-          }
-        },
-        child: Scaffold(
-          appBar: AppBarCustomized(),
-          body: _pages[_paginaActual],
-          bottomNavigationBar: BottomNavigationBar(
-              onTap: (index) {
-                setState(() {
-                  _paginaActual = index;
-                });
-              },
-              currentIndex: _paginaActual,
-              items: const [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.home),
-                  label: "Inicio",
-                  backgroundColor: Colors.amber,
+        // ── BottomNavigationBar Dark Premium ──────────────────────────────────
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(
+                color: isDark ? _C.cardBorder : Colors.grey.shade200,
+              ),
+            ),
+          ),
+          child: BottomNavigationBar(
+            onTap: (index) => setState(() => _paginaActual = index),
+            currentIndex: _paginaActual,
+            backgroundColor: isDark ? _C.navBg : Colors.white,
+            selectedItemColor: _C.accent,
+            unselectedItemColor: isDark ? _C.muted : Colors.grey.shade400,
+            selectedFontSize: 10,
+            unselectedFontSize: 9,
+            type: BottomNavigationBarType.fixed,
+            elevation: 0,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home_outlined),
+                activeIcon: Icon(Icons.home),
+                label: 'Inicio',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.monetization_on_outlined),
+                activeIcon: Icon(Icons.monetization_on),
+                label: 'Ingresos',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.local_gas_station_outlined),
+                activeIcon: Icon(Icons.local_gas_station),
+                label: 'Combustible',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.bar_chart_outlined),
+                activeIcon: Icon(Icons.bar_chart),
+                label: 'Reportes',
+              ),
+            ],
+          ),
+        ),
+
+        // ── FAB — solo visible en tabs distintos al Inicio ────────────────────
+        floatingActionButton: (_paginaActual == 0)
+            ? null
+            : FloatingActionButton(
+                heroTag: 'btnaddService',
+                backgroundColor: _C.accent,
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const RegistroServicio()),
+                  );
+                },
+                child: const Icon(
+                  Icons.playlist_add_sharp,
+                  color: Color(0xFF0F1923),
                 ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.monetization_on_outlined),
-                  label: "Ingresos",
-                  backgroundColor: Colors.purple,
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.local_gas_station_sharp),
-                  label: "Consumo",
-                  backgroundColor: Colors.green,
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.settings),
-                  label: "Mas...",
-                  backgroundColor: Colors.black,
-                ),
-              ]),
-          floatingActionButton: (_paginaActual == 0)
-              ? null
-              : FloatingActionButton(
-                  heroTag: 'btnaddService',
-                  backgroundColor: Colors.amber.shade600,
-                  onPressed: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const RegistroServicio()));
-                  },
-                  child: const Icon(Icons.playlist_add_sharp),
-                ),
-          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-        ));
+              ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      ),
+    );
   }
 }
