@@ -80,14 +80,101 @@ class _RegistroServicioState extends State<RegistroServicio> {
       (_controller.text.isEmpty) ? 0 : 1; // referencial para el chip
 
   void _showAlertValor() {
-    QuickAlert.show(
+    showDialog(
       context: context,
-      title: 'Valor del servicio',
-      text: 'Ingrese un valor mayor a \nCOP \$0',
-      autoCloseDuration: const Duration(seconds: 3),
-      confirmBtnText: 'OK',
-      type: QuickAlertType.error,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: const Color(0xFF1A2535),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icono
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.error_outline_rounded,
+                    color: Colors.redAccent,
+                    size: 32,
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                // Título
+                const Text(
+                  'Valor del servicio',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color(0xFFF1F5F9),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Texto
+                const Text(
+                  'Ingrese un valor mayor a\nCOP \$0',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color(0xFF94A3B8),
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
+                ),
+
+                const SizedBox(height: 22),
+
+                // Botón
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF5C518),
+                      foregroundColor: const Color(0xFF0F1923),
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text(
+                      'OK',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
+
+    // Auto cerrar en 3 segundos
+    Future.delayed(const Duration(seconds: 5), () {
+      if (context.mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+    });
   }
 
   // ── Guardar ──────────────────────────────────────────────────────────────────
