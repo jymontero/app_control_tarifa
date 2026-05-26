@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:taxi_servicios/domain/entitis/estaciongas.dart';
 import 'package:taxi_servicios/domain/entitis/gas.dart';
 import 'package:taxi_servicios/domain/entitis/ingresos.dart';
+import 'package:taxi_servicios/domain/entitis/perfil.dart';
 import 'package:taxi_servicios/domain/entitis/servicio.dart';
 import 'package:taxi_servicios/domain/entitis/variables.dart';
 
@@ -291,5 +292,26 @@ class FireStoreDataBase {
 
       await doc.reference.update({'fecha': fechaNueva});
     }
+  }
+
+  /// Obtiene el perfil del conductor (documento único)
+  Future<Perfil?> getPerfil() async {
+    try {
+      final doc = await db.collection('perfil').doc('conductor').get();
+      if (!doc.exists || doc.data() == null) return null;
+      final perfil = Perfil.fromJson(doc.data()!);
+      perfil.id = doc.id;
+      return perfil;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Guarda o actualiza el perfil del conductor
+  Future<void> guardarPerfil(Perfil perfil) async {
+    await db
+        .collection('perfil')
+        .doc('conductor')
+        .set(perfil.toJson(), SetOptions(merge: true));
   }
 }
