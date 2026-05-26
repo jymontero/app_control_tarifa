@@ -38,8 +38,10 @@ class StepperFinalized extends StatefulWidget {
 class _StepperFinalizedState extends State<StepperFinalized> {
   final FireStoreDataBase _db = FireStoreDataBase();
   List<int> _listaControlGanancia = [];
+  int numServiciosF = 0;
   int _currentStep = 0;
   DateTime _selectedDate = DateTime.now().toLocal();
+  bool _loadingFinish = false;
 
   final _fmt =
       NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 0);
@@ -64,6 +66,7 @@ class _StepperFinalizedState extends State<StepperFinalized> {
   void _getDataServiciosToday(String date) async {
     List<Servicio> listaServicio = await _db.getModeloServicios(date);
     if (listaServicio.isNotEmpty && mounted) {
+      numServiciosF = listaServicio.length;
       Future.microtask(() => context
           .read<ContadorServicioProvider>()
           .sumarListaServiciosBD(listaServicio, 'FINISH'));
@@ -77,8 +80,9 @@ class _StepperFinalizedState extends State<StepperFinalized> {
         Provider.of<ContadorServicioProvider>(context, listen: false);
 
     final int ganancia = serviciosProvider.metaObtenidaFinish;
-    final int totalBruto = serviciosProvider.valorMetaObtenida;
-    final int numServicios = serviciosProvider.numeroServiciosTotal;
+    final int totalBruto = serviciosProvider.valorBruto;
+    // final int numServicios = serviciosProvider.numeroServiciosTotal;
+    final int numServicios = numServiciosF;
     final int valorTanqueo =
         int.parse(tanqueo.valorTanqueo.replaceAll(',', ''));
     final int valorEntrega =
@@ -125,9 +129,21 @@ class _StepperFinalizedState extends State<StepperFinalized> {
       autoCloseDuration: const Duration(seconds: 5),
       confirmBtnText: 'OK',
       type: QuickAlertType.success,
-      onConfirmBtnTap: () {
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      },
+      backgroundColor: const Color(0xFF1A2535), // ← fondo card oscuro
+      titleColor: const Color(0xFFF1F5F9), // ← título blanco
+      textColor: const Color(0xFF94A3B8), // ← texto secundario
+      confirmBtnColor: const Color(0xFFF5C518), // ← botón amarillo
+      confirmBtnTextStyle: const TextStyle(
+        // ← texto botón oscuro
+        color: Color(0xFF0F1923),
+        fontWeight: FontWeight.w500,
+        fontSize: 14,
+      ),
+    );
+    if (!mounted) return;
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      '/',
+      (route) => false,
     );
   }
 
@@ -266,7 +282,7 @@ class _StepperFinalizedState extends State<StepperFinalized> {
               ),
               const SizedBox(height: 4),
               Text(
-                _fmt.format(contador.valorMetaObtenida),
+                _fmt.format(contador.valorBruto),
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w500,
@@ -338,9 +354,9 @@ class _StepperFinalizedState extends State<StepperFinalized> {
   Widget _buildStepper(ServicioTanqueoProvider tanqueo) {
     return Theme(
       data: Theme.of(context).copyWith(
-        colorScheme: ColorScheme.dark(
+        colorScheme: const ColorScheme.dark(
           primary: _C.accent,
-          onPrimary: const Color(0xFF0F1923),
+          onPrimary: Color(0xFF0F1923),
           surface: _C.cardBg,
           onSurface: _C.primary,
         ),
@@ -457,8 +473,8 @@ class _StepperFinalizedState extends State<StepperFinalized> {
       padding: const EdgeInsets.all(10),
       child: Column(
         children: [
-          _resumenFila('Total bruto', _fmt.format(contador.valorMetaObtenida),
-              _C.primary),
+          _resumenFila(
+              'Total bruto', _fmt.format(contador.valorBruto), _C.primary),
           const Divider(color: _C.cardBorder, height: 12),
           _resumenFila('Tanqueo', '- ${_fmt.format(valorTanqueo)}', _C.red),
           _resumenFila('Entrega', '- ${_fmt.format(valorEntrega)}', _C.red),
