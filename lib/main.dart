@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:taxi_servicios/providers/perfil_provider.dart';
+import 'package:taxi_servicios/providers/reportes_provider.dart';
 
 import 'firebase_options.dart';
 import 'package:taxi_servicios/providers/configuracion_provider.dart';
@@ -27,6 +28,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => IngresosProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => PerfilProvider()),
+        ChangeNotifierProvider(create: (_) => ReportesProvider()),
       ],
       child: const MyApp(),
     ),
