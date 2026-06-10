@@ -13,6 +13,7 @@ import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:taxi_servicios/providers/theme_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_ganancias/homeganancia_screen.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_reportes/reportes_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_servicios/registroservicio_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_configuracion/listvariables_screen.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
@@ -45,7 +46,7 @@ class _Home extends State<Home> {
     const GoalDairy(),
     const HomeGanancia(),
     const Gasoline(),
-    const Configuration(),
+    const ReportesScreen(),
   ];
 
   // ── Lifecycle ────────────────────────────────────────────────────────────────
