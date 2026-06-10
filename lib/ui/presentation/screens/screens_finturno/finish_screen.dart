@@ -6,12 +6,14 @@ import 'package:pattern_formatter/pattern_formatter.dart';
 import 'package:provider/provider.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:taxi_servicios/domain/entitis/servicio.dart';
+import 'package:taxi_servicios/providers/configuracion_provider.dart';
 import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:taxi_servicios/providers/tanqueo_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_finturno/registrylavada_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_finturno/registryentrega_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_tanqueo/registrocombustible_screen.dart';
+import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 
 // ── Paleta Dark Premium ───────────────────────────────────────────────────────
 class _C {
@@ -38,6 +40,7 @@ class StepperFinalized extends StatefulWidget {
 class _StepperFinalizedState extends State<StepperFinalized> {
   final FireStoreDataBase _db = FireStoreDataBase();
   List<int> _listaControlGanancia = [];
+  List<Servicio> _listaServicio = [];
   int numServiciosF = 0;
   int _currentStep = 0;
   DateTime _selectedDate = DateTime.now().toLocal();
@@ -64,20 +67,23 @@ class _StepperFinalizedState extends State<StepperFinalized> {
   }
 
   void _getDataServiciosToday(String date) async {
-    List<Servicio> listaServicio = await _db.getModeloServicios(date);
-    if (listaServicio.isNotEmpty && mounted) {
-      numServiciosF = listaServicio.length;
+    _listaServicio = await _db.getModeloServicios(date);
+    if (_listaServicio.isNotEmpty && mounted) {
+      numServiciosF = _listaServicio.length;
       Future.microtask(() => context
           .read<ContadorServicioProvider>()
-          .sumarListaServiciosBD(listaServicio, 'FINISH'));
+          .sumarListaServiciosBD(_listaServicio, 'FINISH'));
     }
   }
 
   // ── Guardar turno ─────────────────────────────────────────────────────────────
 
   Future<void> _guardarTurno(ServicioTanqueoProvider tanqueo) async {
+    _showLoading();
     final serviciosProvider =
         Provider.of<ContadorServicioProvider>(context, listen: false);
+    final configuracionProvider =
+        Provider.of<ConfiguracionProvider>(context, listen: false);
 
     final int ganancia = serviciosProvider.metaObtenidaFinish;
     final int totalBruto = serviciosProvider.valorBruto;
@@ -92,6 +98,16 @@ class _StepperFinalizedState extends State<StepperFinalized> {
     final double valorGalones =
         double.parse(tanqueo.valorGalones.replaceAll(',', '.'));
     final int valorKilometros = int.parse(tanqueo.valorKilometros);
+    final int sueldoObjetivo = configuracionProvider.sueldoObjetivo;
+    final metricas = _calcularMetricasTurno();
+    final totalEfectivo = metricas['totalEfectivo'] ?? 0;
+    final totalTransferencia = metricas['totalTransferencia'] ?? 0;
+    final numServiosPagoEfectivo = metricas['numServiosPagoEfectivo'] ?? 0;
+    final numServiciosPagoTransferencia =
+        metricas['numServiciosPagoTransferencia'] ?? 0;
+    final numTipoServicioTaxi = metricas['numTipoServicioTaxi'] ?? 0;
+    final numTipoServicioPlataforma =
+        metricas['numTipoServicioPlataforma'] ?? 0;
 
     // Guardar ganancia con desglose completo
     await _db.addGananciaBD(
@@ -102,6 +118,13 @@ class _StepperFinalizedState extends State<StepperFinalized> {
       totalBruto: totalBruto,
       deducciones: deducciones,
       numServicios: numServicios,
+      sueldoObjetivo: sueldoObjetivo,
+      totalEfectivo: totalEfectivo,
+      totalTransferencia: totalTransferencia,
+      numServiosPagoEfectivo: numServiosPagoEfectivo,
+      numServiciosPagoTransferencia: numServiciosPagoTransferencia,
+      numTipoServicioTaxi: numTipoServicioTaxi,
+      numTipoServicioPlataforma: numTipoServicioPlataforma,
     );
 
     // Guardar tanqueo
@@ -118,33 +141,90 @@ class _StepperFinalizedState extends State<StepperFinalized> {
         '${_selectedDate.day}-${_selectedDate.month}-${_selectedDate.year}');
 
     if (!mounted) return;
-    _showAlertSuccess();
-  }
-
-  void _showAlertSuccess() {
-    QuickAlert.show(
-      context: context,
-      title: 'Turno Finalizado',
-      text: 'Buen Descanso',
-      autoCloseDuration: const Duration(seconds: 5),
-      confirmBtnText: 'OK',
-      type: QuickAlertType.success,
-      backgroundColor: const Color(0xFF1A2535), // ← fondo card oscuro
-      titleColor: const Color(0xFFF1F5F9), // ← título blanco
-      textColor: const Color(0xFF94A3B8), // ← texto secundario
-      confirmBtnColor: const Color(0xFFF5C518), // ← botón amarillo
-      confirmBtnTextStyle: const TextStyle(
-        // ← texto botón oscuro
-        color: Color(0xFF0F1923),
-        fontWeight: FontWeight.w500,
-        fontSize: 14,
-      ),
-    );
-    if (!mounted) return;
+    _hideLoading();
     Navigator.of(context).pushNamedAndRemoveUntil(
       '/',
       (route) => false,
     );
+  }
+
+  void _showLoading() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) {
+        return const AlertDialog(
+          backgroundColor: Color(0xFF1A2535),
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 20),
+              Expanded(
+                child: Text(
+                  'Finalizando turno...',
+                  style: TextStyle(
+                    color: Color(0xFFF1F5F9),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _hideLoading() {
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  void _showSuccessSnackBar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Turno finalizado correctamente'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Map<String, int> _calcularMetricasTurno() {
+    int totalEfectivo = 0;
+    int totalTransferencia = 0;
+    int numServiosPagoEfectivo = 0;
+    int numServiciosPagoTransferencia = 0;
+    int numTipoServicioTaxi = 0;
+    int numTipoServicioPlataforma = 0;
+
+    for (final servicio in _listaServicio) {
+      if (servicio.tipoServicio.toLowerCase() == 'taxi') {
+        numTipoServicioTaxi++;
+      }
+
+      if (servicio.tipoServicio.toLowerCase() == 'plataforma') {
+        numTipoServicioPlataforma++;
+      }
+
+      if (servicio.metodoPago.toLowerCase() == 'efectivo') {
+        totalEfectivo += servicio.valorservicio;
+        numServiosPagoEfectivo++;
+      }
+
+      if (servicio.metodoPago.toLowerCase() == 'transferencia') {
+        totalTransferencia += servicio.valorservicio;
+        numServiciosPagoTransferencia++;
+      }
+    }
+
+    return {
+      'totalEfectivo': totalEfectivo,
+      'totalTransferencia': totalTransferencia,
+      'numServiosPagoEfectivo': numServiosPagoEfectivo,
+      'numServiciosPagoTransferencia': numServiciosPagoTransferencia,
+      'numTipoServicioTaxi': numTipoServicioTaxi,
+      'numTipoServicioPlataforma': numTipoServicioPlataforma,
+    };
   }
 
   // ── Build ─────────────────────────────────────────────────────────────────────
@@ -154,6 +234,7 @@ class _StepperFinalizedState extends State<StepperFinalized> {
     final tanqueo = Provider.of<ServicioTanqueoProvider>(context, listen: true);
 
     return Scaffold(
+      //appBar: const AppBarCustomized(),
       backgroundColor: _C.bg,
       body: SafeArea(
         child: Column(

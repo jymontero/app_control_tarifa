@@ -157,6 +157,13 @@ class FireStoreDataBase {
     int totalBruto = 0,
     int deducciones = 0,
     int numServicios = 0,
+    int sueldoObjetivo = 0,
+    int totalEfectivo = 0,
+    int totalTransferencia = 0,
+    int numServiosPagoEfectivo = 0,
+    int numServiciosPagoTransferencia = 0,
+    int numTipoServicioTaxi = 0,
+    int numTipoServicioPlataforma = 0,
   }) async {
     Map<String, dynamic> ganancia = {
       'dia': dia,
@@ -166,6 +173,13 @@ class FireStoreDataBase {
       'totalBruto': totalBruto,
       'deducciones': deducciones,
       'numServicios': numServicios,
+      'sueldoObjetivo': sueldoObjetivo,
+      'totalEfectivo': totalEfectivo,
+      'totalTransferencia': totalTransferencia,
+      'numServiosPagoEfectivo': numServiosPagoEfectivo,
+      'numServiciosPagoTransferencia': numServiciosPagoTransferencia,
+      'numTipoServicioTaxi': numTipoServicioTaxi,
+      'numTipoServicioPlataforma': numTipoServicioPlataforma,
     };
     await db.collection('ingresos').doc().set(ganancia);
   }
