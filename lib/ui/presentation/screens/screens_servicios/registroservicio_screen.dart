@@ -233,7 +233,7 @@ class _RegistroServicioState extends State<RegistroServicio> {
       context.read<ContadorServicioProvider>().decrementarMetaPorHacer(valor);
 
       // Guardar en Firebase con nuevos campos
-      await _db.addServicioBD(
+      _db.addServicioBD(
         _fechaFormateada,
         _horaFormateada,
         valor,
@@ -242,7 +242,7 @@ class _RegistroServicioState extends State<RegistroServicio> {
         _metodoPago,
       );
 
-      if (!mounted) return;
+      //if (!mounted) return;
       Navigator.pop(context);
     }
   }
