@@ -76,162 +76,166 @@ class _CalculadoraState extends State<Calculadora> {
     return Scaffold(
       backgroundColor: _C.bg,
       body: SafeArea(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            // Display entrada
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: TextField(
-                decoration: const InputDecoration.collapsed(
-                  hintText: '0',
-                  hintStyle: TextStyle(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              // Display entrada
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: TextField(
+                  decoration: const InputDecoration.collapsed(
+                    hintText: '0',
+                    hintStyle: TextStyle(
+                      fontSize: 36,
+                      fontFamily: 'RobotoMono',
+                      color: _C.muted,
+                    ),
+                  ),
+                  style: const TextStyle(
                     fontSize: 36,
                     fontFamily: 'RobotoMono',
-                    color: _C.muted,
+                    color: _C.secondary,
                   ),
+                  textAlign: TextAlign.right,
+                  controller: _txtEntrada,
+                  onTap: () => FocusScope.of(context).requestFocus(FocusNode()),
                 ),
-                style: const TextStyle(
-                  fontSize: 36,
-                  fontFamily: 'RobotoMono',
-                  color: _C.secondary,
-                ),
-                textAlign: TextAlign.right,
-                controller: _txtEntrada,
-                onTap: () => FocusScope.of(context).requestFocus(FocusNode()),
               ),
-            ),
 
-            // Display resultado
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: TextField(
-                decoration: const InputDecoration.collapsed(
-                  hintText: 'Resultado',
-                  hintStyle: TextStyle(
+              // Display resultado
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: TextField(
+                  decoration: const InputDecoration.collapsed(
+                    hintText: 'Resultado',
+                    hintStyle: TextStyle(
+                      fontFamily: 'RobotoMono',
+                      color: _C.muted,
+                    ),
+                  ),
+                  style: const TextStyle(
+                    fontSize: 42,
                     fontFamily: 'RobotoMono',
-                    color: _C.muted,
+                    fontWeight: FontWeight.bold,
+                    color: _C.primary,
                   ),
+                  textAlign: TextAlign.right,
+                  controller: _txtResultado,
+                  readOnly: true,
                 ),
-                style: const TextStyle(
-                  fontSize: 42,
-                  fontFamily: 'RobotoMono',
-                  fontWeight: FontWeight.bold,
-                  color: _C.primary,
-                ),
-                textAlign: TextAlign.right,
-                controller: _txtResultado,
-                readOnly: true,
               ),
-            ),
 
-            const SizedBox(height: 12),
-            const Divider(color: _C.cardBorder, height: 1),
-            const SizedBox(height: 8),
+              const SizedBox(height: 12),
+              const Divider(color: _C.cardBorder, height: 1),
+              const SizedBox(height: 8),
 
-            // Fila 1
-            _buildFila([
-              _btnAC('AC'),
-              _btnBorrar(),
-              _btnOp('%'),
-              _btnOp('/'),
-            ]),
+              // Fila 1
+              _buildFila([
+                _btnAC('AC'),
+                _btnBorrar(),
+                _btnOp('%'),
+                _btnOp('/'),
+              ]),
 
-            // Fila 2
-            _buildFila([
-              _btnNum('7'),
-              _btnNum('8'),
-              _btnNum('9'),
-              _btnOp('*'),
-            ]),
+              // Fila 2
+              _buildFila([
+                _btnNum('7'),
+                _btnNum('8'),
+                _btnNum('9'),
+                _btnOp('*'),
+              ]),
 
-            // Fila 3
-            _buildFila([
-              _btnNum('4'),
-              _btnNum('5'),
-              _btnNum('6'),
-              _btnOp('-'),
-            ]),
+              // Fila 3
+              _buildFila([
+                _btnNum('4'),
+                _btnNum('5'),
+                _btnNum('6'),
+                _btnOp('-'),
+              ]),
 
-            // Fila 4
-            _buildFila([
-              _btnNum('1'),
-              _btnNum('2'),
-              _btnNum('3'),
-              _btnOp('+'),
-            ]),
+              // Fila 4
+              _buildFila([
+                _btnNum('1'),
+                _btnNum('2'),
+                _btnNum('3'),
+                _btnOp('+'),
+              ]),
 
-            // Fila 5
-            _buildFila([
-              _btnNum('0'),
-              _btnNum('.'),
-              _btnIgual(),
-            ]),
+              // Fila 5
+              _buildFila([
+                _btnNum('0'),
+                _btnNum('.'),
+                _btnIgual(),
+              ]),
 
-            const SizedBox(height: 8),
+              const SizedBox(height: 8),
 
-            // Botones Cancelar / OK
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => Navigator.pop(context, _txtEntrada),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 13),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.04),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: _C.cardBorder),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'Cancelar',
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: _C.secondary,
-                              fontWeight: FontWeight.w500,
+              // Botones Cancelar / OK
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(context, _txtEntrada),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.04),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: _C.cardBorder),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Cancelar',
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: _C.secondary,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        if (_txtResultado.text == '0' ||
-                            _txtResultado.text == 'Error') {
-                          Navigator.pop(context, _txtEntrada);
-                        } else {
-                          Navigator.pop(context, _txtResultado);
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 13),
-                        decoration: BoxDecoration(
-                          color: _C.accent,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'OK',
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: Color(0xFF0F1923),
-                              fontWeight: FontWeight.w500,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          if (_txtResultado.text == '0' ||
+                              _txtResultado.text == 'Error') {
+                            Navigator.pop(context, _txtEntrada);
+                          } else {
+                            Navigator.pop(context, _txtResultado);
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          decoration: BoxDecoration(
+                            color: _C.accent,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'OK',
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: Color(0xFF0F1923),
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
