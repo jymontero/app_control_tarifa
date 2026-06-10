@@ -202,7 +202,8 @@ class _ReportesScreenState extends State<ReportesScreen> {
   Widget _buildHeroResumen(ReportesProvider prov) {
     final r = prov.resumen;
     final meta = context.read<ConfiguracionProvider>().metaRegistradaBD;
-    final metaPeriodo = meta * r.diasLaborados;
+    //final metaPeriodo = meta * r.diasLaborados;
+    final metaPeriodo = r.salarioObjetivo;
     final pct = _pctVsMeta(r.totalGanancia, metaPeriodo);
 
     return Container(
@@ -260,7 +261,7 @@ class _ReportesScreenState extends State<ReportesScreen> {
                       style: TextStyle(fontSize: 9, color: _colorBadge(pct)),
                     ),
                     Text(
-                      '${pct.toStringAsFixed(0)}%',
+                      _labelBadge(pct),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,

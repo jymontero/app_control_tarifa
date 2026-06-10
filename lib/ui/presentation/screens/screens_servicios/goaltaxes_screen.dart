@@ -48,7 +48,16 @@ class _GoalDairyState extends State<GoalDairy> {
     symbol: '\$',
     decimalDigits: 0,
   );
-
+  int get _taxiCount =>
+      _listaServicios.where((s) => s.tipoServicio == 'taxi').length;
+  int get _plataformaCount =>
+      _listaServicios.where((s) => s.tipoServicio == 'plataforma').length;
+  int get _efectivoTotal => _listaServicios
+      .where((s) => s.metodoPago == 'efectivo')
+      .fold(0, (sum, s) => sum + s.valorservicio);
+  int get _transferenciaTotal => _listaServicios
+      .where((s) => s.metodoPago == 'transferencia')
+      .fold(0, (sum, s) => sum + s.valorservicio);
   // ── Lifecycle ───────────────────────────────────────────────────────────────
 
   @override
@@ -128,21 +137,108 @@ class _GoalDairyState extends State<GoalDairy> {
   }
 
   void _mostrarAlertaFacturada() {
-    QuickAlert.show(
+    showDialog(
       context: context,
-      title: 'Servicio Facturado',
-      text: 'No se puede modificar su valor',
-      autoCloseDuration: const Duration(seconds: 5),
-      confirmBtnText: 'OK',
-      type: QuickAlertType.warning,
+      barrierDismissible: true,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: const Color(0xFF1A2535),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icono
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.error_outline_rounded,
+                    color: Colors.redAccent,
+                    size: 32,
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                // Título
+                const Text(
+                  'Servicio Facturado',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color(0xFFF1F5F9),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Texto
+                const Text(
+                  'No se puede modificar su información',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color(0xFF94A3B8),
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
+                ),
+
+                const SizedBox(height: 22),
+
+                // Botón
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF5C518),
+                      foregroundColor: const Color(0xFF0F1923),
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: const Text(
+                      'OK',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
+
+    // Auto cerrar en 3 segundos
+    // Future.delayed(const Duration(seconds: 3), () {
+    //   if (context.mounted) {
+    //     Navigator.of(context, rootNavigator: true).pop();
+    //   }
+    // });
   }
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
 
   String _compacto(int valor) {
     if (valor >= 1000000) return '${(valor / 1000000).toStringAsFixed(1)}M';
-    if (valor >= 1000) return '${(valor / 1000).toStringAsFixed(0)}k';
+    if (valor >= 1000) return '${(valor / 1000).toStringAsFixed(1)}k';
     return valor.toString();
   }
 
@@ -161,8 +257,9 @@ class _GoalDairyState extends State<GoalDairy> {
           children: [
             _buildHeroCard(),
             _buildMetricsRow(),
-            const SizedBox(height: 12),
+            const SizedBox(height: 5),
             // _buildBotonRegistrar(),
+            _buildConsolidado(),
             const SizedBox(height: 12),
             _buildHistorialHeader(),
             Expanded(
@@ -316,6 +413,146 @@ class _GoalDairyState extends State<GoalDairy> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildConsolidado() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      child: Row(
+        children: [
+          // Tipo de servicio
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A2535),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF1E2D3D)),
+              ),
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('TIPO SERVICIO',
+                      style: TextStyle(
+                          fontSize: 9,
+                          color: Color(0xFF94A3B8),
+                          letterSpacing: 0.3)),
+                  const SizedBox(height: 6),
+                  _consolidadoFila(
+                      'Taxi', '$_taxiCount', const Color(0xFFF5C518)),
+                  const SizedBox(height: 4),
+                  _consolidadoFila('Plataforma', '$_plataformaCount',
+                      const Color(0xFF60A5FA)),
+                  const SizedBox(height: 6),
+                  // Barra proporcional
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: Row(
+                      children: [
+                        Flexible(
+                          flex: _taxiCount > 0 ? _taxiCount : 1,
+                          child: Container(
+                            height: 4,
+                            color: const Color(0xFFF5C518).withOpacity(0.7),
+                          ),
+                        ),
+                        Flexible(
+                          flex: _plataformaCount > 0 ? _plataformaCount : 0,
+                          child: Container(
+                            height: 4,
+                            color: const Color(0xFF60A5FA).withOpacity(0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          // Método de pago
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A2535),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF1E2D3D)),
+              ),
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('MÉTODO PAGO',
+                      style: TextStyle(
+                          fontSize: 9,
+                          color: Color(0xFF94A3B8),
+                          letterSpacing: 0.3)),
+                  const SizedBox(height: 6),
+                  _consolidadoFila('Efectivo', '\$${_compacto(_efectivoTotal)}',
+                      const Color(0xFF4ADE80)),
+                  const SizedBox(height: 4),
+                  _consolidadoFila(
+                      'Transf.',
+                      '\$${_compacto(_transferenciaTotal)}',
+                      const Color(0xFFA78BFA)),
+                  const SizedBox(height: 6),
+                  // Barra proporcional
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: Row(
+                      children: [
+                        Flexible(
+                          flex: _efectivoTotal > 0 ? _efectivoTotal : 1,
+                          child: Container(
+                            height: 4,
+                            color: const Color(0xFF4ADE80).withOpacity(0.7),
+                          ),
+                        ),
+                        Flexible(
+                          flex:
+                              _transferenciaTotal > 0 ? _transferenciaTotal : 0,
+                          child: Container(
+                            height: 4,
+                            color: const Color(0xFFA78BFA).withOpacity(0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _consolidadoFila(String label, String valor, Color color) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 5),
+            Text(label,
+                style: const TextStyle(fontSize: 10, color: Color(0xFFF1F5F9))),
+          ],
+        ),
+        Text(valor,
+            style: TextStyle(
+                fontSize: 10, fontWeight: FontWeight.w500, color: color)),
+      ],
     );
   }
 

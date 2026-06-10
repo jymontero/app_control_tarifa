@@ -90,8 +90,8 @@ class _HomeGananciaState extends State<HomeGanancia> {
   }
 
   String _labelBadge(double pct) {
-    if (pct >= 100) return '+${(pct - 100).toStringAsFixed(0)}% meta';
-    return '-${(100 - pct).toStringAsFixed(0)}% meta';
+    if (pct >= 100) return '+${(pct - 100).toStringAsFixed(0)}%';
+    return '-${(100 - pct).toStringAsFixed(0)}%';
   }
 
   void _cambiarMes(int delta) {
@@ -280,8 +280,9 @@ class _HomeGananciaState extends State<HomeGanancia> {
         : _listaIngresos.map((e) => e.monto).reduce((a, b) => a > b ? a : b);
     final deduccionesC = _listaIngresos.isEmpty
         ? 0
-        : _listaIngresos.fold(0, (sum, item) => sum + item.deducciones);
-    final pctMeta = _pctVsMeta(saldo, deduccionesC * diasLaborados);
+        : _listaIngresos.fold(0, (sum, item) => sum + item.sueldoObjetivo);
+    //final pctMeta = _pctVsMeta(saldo, deduccionesC * diasLaborados);
+    final pctMeta = _pctVsMeta(saldo, deduccionesC);
 
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -306,7 +307,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
           ),
           _metricItem(
             label: 'Vs meta',
-            value: '${pctMeta.toStringAsFixed(0)}%',
+            value: _labelBadge(pctMeta),
             color: pctMeta >= 100 ? _C.green : _C.red,
             hasBorder: false,
           ),
@@ -371,7 +372,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: _listaIngresos.map((ingreso) {
-              final pct = _pctVsMeta(ingreso.monto, ingreso.deducciones);
+              final pct = _pctVsMeta(ingreso.monto, ingreso.sueldoObjetivo);
               final color = _colorBadge(pct);
               final altura = maxMonto > 0
                   ? (ingreso.monto / maxMonto * 40).clamp(4.0, 40.0)
@@ -493,7 +494,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
   }
 
   Widget _buildIngresoItem(Ingreso ingreso, int meta) {
-    final pct = _pctVsMeta(ingreso.monto, ingreso.deducciones);
+    final pct = _pctVsMeta(ingreso.monto, ingreso.sueldoObjetivo);
     final color = _colorBadge(pct);
     final fecha = _fechaIngreso(ingreso);
 
@@ -538,7 +539,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  _labelBadge(pct),
+                  '${_labelBadge(pct)} meta',
                   style: TextStyle(fontSize: 9, color: color),
                 ),
               ),
