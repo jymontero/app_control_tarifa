@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
-import 'package:pattern_formatter/pattern_formatter.dart';
 import 'package:provider/provider.dart';
-import 'package:quickalert/quickalert.dart';
 import 'package:taxi_servicios/domain/entitis/servicio.dart';
 import 'package:taxi_servicios/providers/configuracion_provider.dart';
 import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
@@ -13,7 +10,6 @@ import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_finturno/registrylavada_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_finturno/registryentrega_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_tanqueo/registrocombustible_screen.dart';
-import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 
 // ── Paleta Dark Premium ───────────────────────────────────────────────────────
 class _C {
@@ -25,7 +21,7 @@ class _C {
   static const accent = Color(0xFFF5C518);
   static const primary = Color(0xFFF1F5F9);
   static const secondary = Color(0xFF94A3B8);
-  static const muted = Color(0xFF3D5166);
+  //static const muted = Color(0xFF3D5166);
   static const green = Color(0xFF4ADE80);
   static const red = Color(0xFFF87171);
 }
@@ -39,12 +35,11 @@ class StepperFinalized extends StatefulWidget {
 
 class _StepperFinalizedState extends State<StepperFinalized> {
   final FireStoreDataBase _db = FireStoreDataBase();
-  List<int> _listaControlGanancia = [];
+  final List<int> _listaControlGanancia = [];
   List<Servicio> _listaServicio = [];
   int numServiciosF = 0;
   int _currentStep = 0;
   DateTime _selectedDate = DateTime.now().toLocal();
-  bool _loadingFinish = false;
 
   final _fmt =
       NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 0);
@@ -178,15 +173,6 @@ class _StepperFinalizedState extends State<StepperFinalized> {
     if (mounted) {
       Navigator.of(context).pop();
     }
-  }
-
-  void _showSuccessSnackBar() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Turno finalizado correctamente'),
-        duration: Duration(seconds: 2),
-      ),
-    );
   }
 
   Map<String, int> _calcularMetricasTurno() {
