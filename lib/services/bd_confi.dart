@@ -308,6 +308,23 @@ class FireStoreDataBase {
     }
   }
 
+  //metodo para cambiar de estado facturada
+
+  Future<void> facturarPendientes() async {
+    final query = await FirebaseFirestore.instance
+        .collection('servicios')
+        .where('facturada', isEqualTo: false)
+        .get();
+
+    for (final doc in query.docs) {
+      await doc.reference.update({
+        'facturada': true,
+      });
+    }
+
+    print('${query.docs.length} registros actualizados');
+  }
+
   /// Obtiene el perfil del conductor (documento único)
   Future<Perfil?> getPerfil() async {
     try {
