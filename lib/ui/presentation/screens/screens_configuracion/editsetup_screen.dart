@@ -79,9 +79,38 @@ class _EditVariableState extends State<EditVariable> {
     context.read<ContadorServicioProvider>().sumarMetaPorHacer(valor);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Variable actualizada correctamente'),
-        backgroundColor: Color(0xFF1A2535),
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xFF1A2535),
+        elevation: 0,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(
+            color: _C.accent.withOpacity(0.25),
+          ),
+        ),
+        content: const Row(
+          children: [
+            Icon(
+              Icons.check_circle_rounded,
+              color: _C.accent,
+              size: 20,
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Variable actualizada correctamente',
+                style: TextStyle(
+                  color: Color(0xFFF1F5F9),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        duration: const Duration(seconds: 5),
       ),
     );
     Navigator.pop(context);
