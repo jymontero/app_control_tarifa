@@ -21,6 +21,7 @@ class _C {
   static const muted = Color(0xFF3D5166);
   static const green = Color(0xFF4ADE80);
   static const red = Color(0xFFF87171);
+  static const purple = Color(0xFFA78BFA);
 }
 
 class HomeGanancia extends StatefulWidget {
@@ -35,6 +36,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
   DateTime _selectedDate = DateTime.now().toLocal();
   late Future<List<Ingreso>> _ingresosFuture;
   List<Ingreso> _listaIngresos = [];
+  String _periodo = 'mensual'; // 'mensual' | 'anual'
 
   final _fmt =
       NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 0);
@@ -51,10 +53,25 @@ class _HomeGananciaState extends State<HomeGanancia> {
   // ── Data ─────────────────────────────────────────────────────────────────────
 
   void _cargarIngresos() {
-    _ingresosFuture = _bd.getModeloIngresos(
-      _selectedDate.month.toString(),
-      _selectedDate.year.toString(),
-    );
+    if (_periodo == 'mensual') {
+      _ingresosFuture = _bd.getModeloIngresos(
+        _selectedDate.month.toString(),
+        _selectedDate.year.toString(),
+      );
+    } else {
+      _ingresosFuture = _cargarIngresosAnual();
+    }
+  }
+
+  Future<List<Ingreso>> _cargarIngresosAnual() async {
+    final futures = List.generate(12, (i) {
+      return _bd.getModeloIngresos(
+        (i + 1).toString(),
+        _selectedDate.year.toString(),
+      );
+    });
+    final resultados = await Future.wait(futures);
+    return resultados.expand((l) => l).toList();
   }
 
   List<Ingreso> _ordenarLista(List<Ingreso> lista) {
@@ -69,8 +86,9 @@ class _HomeGananciaState extends State<HomeGanancia> {
 
   String _compacto(int valor) {
     if (valor >= 1000000) return '${(valor / 1000000).toStringAsFixed(1)}M';
-    if (valor >= 1000) return '${(valor / 1000).toStringAsFixed(0)}k';
-    return valor.toString();
+    //if (valor >= 1000) return '${(valor / 1000).toStringAsFixed(1)}k';
+    return _fmt.format(valor);
+    //valor.toString();
   }
 
   String _nombreMes() => DateFormat.MMMM('es').format(_selectedDate);
@@ -96,10 +114,21 @@ class _HomeGananciaState extends State<HomeGanancia> {
 
   void _cambiarMes(int delta) {
     setState(() {
-      _selectedDate = DateTime(
-        _selectedDate.year,
-        _selectedDate.month + delta,
-      );
+      if (_periodo == 'mensual') {
+        _selectedDate =
+            DateTime(_selectedDate.year, _selectedDate.month + delta);
+      } else {
+        _selectedDate = DateTime(_selectedDate.year + delta);
+      }
+      _cargarIngresos();
+    });
+  }
+
+  void _cambiarPeriodo(String periodo) {
+    if (_periodo == periodo) return;
+    setState(() {
+      _periodo = periodo;
+      _selectedDate = DateTime.now();
       _cargarIngresos();
     });
   }
@@ -114,6 +143,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            _buildSelectorPeriodo(),
             _buildSelectorMes(),
             Expanded(
               child: FutureBuilder<List<Ingreso>>(
@@ -149,10 +179,11 @@ class _HomeGananciaState extends State<HomeGanancia> {
                         _buildGraficaTendencia(),
                         _buildListaHeader(),
                         Expanded(
-                          child: _listaIngresos.isEmpty
-                              ? _buildEstadoVacio()
-                              : _buildListaIngresos(),
-                        ),
+                            child: _listaIngresos.isEmpty
+                                ? _buildEstadoVacio()
+                                : (_periodo == 'mensual'
+                                    ? _buildListaIngresos()
+                                    : _buildListaIngresosAnual())),
                       ],
                     );
                   }
@@ -204,7 +235,9 @@ class _HomeGananciaState extends State<HomeGanancia> {
                         color: _C.accent, size: 13),
                     const SizedBox(width: 6),
                     Text(
-                      '${_nombreMes().substring(0, 1).toUpperCase()}${_nombreMes().substring(1)} ${_selectedDate.year}',
+                      _periodo == 'mensual'
+                          ? '${_nombreMes().substring(0, 1).toUpperCase()}${_nombreMes().substring(1)} ${_selectedDate.year}'
+                          : '${_selectedDate.year}',
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
@@ -233,6 +266,52 @@ class _HomeGananciaState extends State<HomeGanancia> {
     );
   }
 
+  Widget _buildSelectorPeriodo() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: _C.cardBg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _C.cardBorder),
+        ),
+        padding: const EdgeInsets.all(3),
+        child: Row(
+          children: [
+            _periodoBtn('Mensual', 'mensual'),
+            _periodoBtn('Anual', 'anual'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _periodoBtn(String label, String value) {
+    final isActive = _periodo == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _cambiarPeriodo(value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isActive ? _C.accent : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: isActive ? const Color(0xFF0F1923) : _C.secondary,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
   // ── Resumen hero ──────────────────────────────────────────────────────────────
 
   Widget _buildResumenMes(int saldo, int diasLaborados) {
@@ -295,13 +374,13 @@ class _HomeGananciaState extends State<HomeGanancia> {
         children: [
           _metricItem(
             label: 'Promedio/día',
-            value: '\$${_compacto(promedio)}',
+            value: _compacto(promedio),
             color: _C.primary,
             hasBorder: true,
           ),
           _metricItem(
             label: 'Mejor día',
-            value: '\$${_compacto(mejor)}',
+            value: _compacto(mejor),
             color: _C.green,
             hasBorder: true,
           ),
@@ -393,7 +472,8 @@ class _HomeGananciaState extends State<HomeGanancia> {
                       ),
                       const SizedBox(height: 3),
                       Text(ingreso.dia,
-                          style: const TextStyle(fontSize: 7, color: _C.muted)),
+                          style:
+                              const TextStyle(fontSize: 7, color: _C.primary)),
                     ],
                   ),
                 ),
@@ -578,7 +658,170 @@ class _HomeGananciaState extends State<HomeGanancia> {
               ],
             ),
           ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              _pagoChip('Efectivo', ingreso.totalEfectivo, _C.green),
+              const SizedBox(width: 6),
+              _pagoChip('Transf.', ingreso.totalTransferencia, _C.purple),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildListaIngresosAnual() {
+    final Map<int, List<Ingreso>> porMes = {};
+    for (final i in _listaIngresos) {
+      final mes = int.parse(i.mes);
+      porMes[mes] = [...(porMes[mes] ?? []), i];
+    }
+
+    final mesesOrdenados = porMes.keys.toList()..sort((a, b) => b.compareTo(a));
+
+    const meses = [
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre'
+    ];
+
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      itemCount: mesesOrdenados.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 6),
+      itemBuilder: (_, i) {
+        final mes = mesesOrdenados[i];
+        final lista = porMes[mes]!;
+        final totalGanancia = lista.fold(0, (s, x) => s + x.monto);
+        final totalBruto = lista.fold(0, (s, x) => s + x.totalBruto);
+        final totalDeducciones = lista.fold(0, (s, x) => s + x.deducciones);
+        final totalServicios = lista.fold(0, (s, x) => s + x.numServicios);
+        final totalEfectivo = lista.fold(0, (s, x) => s + x.totalEfectivo);
+        final totalTransferencia =
+            lista.fold(0, (s, x) => s + x.totalTransferencia);
+        final metaMes = lista.fold(0, (s, x) => s + x.sueldoObjetivo);
+        final pct = _pctVsMeta(totalGanancia, metaMes);
+        final color = _colorBadge(pct);
+
+        return Container(
+          decoration: BoxDecoration(
+            color: _C.cardBg,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _C.cardBorder),
+          ),
+          padding: const EdgeInsets.all(11),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('${meses[mes - 1]} ${_selectedDate.year}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: _C.primary,
+                            )),
+                        Text('${lista.length} días · $totalServicios servicios',
+                            style: const TextStyle(
+                                fontSize: 9, color: _C.secondary)),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(_labelBadge(pct),
+                        style: TextStyle(fontSize: 9, color: color)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.03),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    _desglosItem(
+                        label: 'Bruto',
+                        value: _compacto(totalBruto),
+                        color: _C.primary),
+                    _desglosItem(
+                        label: 'Deducciones',
+                        value: '-${_compacto(totalDeducciones)}',
+                        color: _C.red),
+                    _desglosItem(
+                        label: 'Ganancia',
+                        value: _compacto(totalGanancia),
+                        color: _C.green),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  _pagoChip('Efectivo', totalEfectivo, _C.green),
+                  const SizedBox(width: 6),
+                  _pagoChip('Transf.', totalTransferencia, _C.purple),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _pagoChip(String label, int valor, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.06),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withOpacity(0.15)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 5,
+                  height: 5,
+                  decoration:
+                      BoxDecoration(color: color, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 4),
+                Text(label,
+                    style: const TextStyle(fontSize: 9, color: _C.secondary)),
+              ],
+            ),
+            Text(_compacto(valor),
+                style: TextStyle(
+                    fontSize: 10, fontWeight: FontWeight.w500, color: color)),
+          ],
+        ),
       ),
     );
   }
