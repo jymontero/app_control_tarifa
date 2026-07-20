@@ -537,6 +537,15 @@ class _GasolineState extends State<Gasoline> {
 
   // ── Lista tanqueos ────────────────────────────────────────────────────────────
 
+  String _fechaTanqueo(String fecha) {
+    final fechaF = DateTime.parse(fecha);
+
+    return DateFormat(
+      'EEE, d MMM yyyy',
+      'es',
+    ).format(fechaF);
+  }
+
   Widget _buildListaTanqueos() {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -553,6 +562,7 @@ class _GasolineState extends State<Gasoline> {
   Widget _buildTanqueoItem(GasolineTank t) {
     final rend = _rendimientoItem(t);
     final promedio = _rendimientoPromedio;
+    final fecha = _fechaTanqueo(t.fecha);
 
     // Badge de rendimiento
     Color badgeColor;
@@ -596,7 +606,8 @@ class _GasolineState extends State<Gasoline> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  t.fecha,
+                  //t.fecha,
+                  fecha,
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,

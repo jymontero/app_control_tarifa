@@ -8,12 +8,14 @@ class ContadorServicioProvider with ChangeNotifier {
   int _valorMetaObtenidaFinish = 0;
   late int _numeroSerciosTotal = 0;
   int _valorMetaServiciosLista = 0;
+  int _valorBruto = 0;
 
   int get valorMetaObtenida => _valorMetaObtenida;
-  int get configuracion => _configuracionMetaRegistrada;
+  int get configuracion => _metaTotalOriginal - _valorMetaObtenida;
   int get metaObtenidaFinish => _valorMetaObtenidaFinish;
   int get numeroServiciosTotal => _numeroSerciosTotal;
   int get valorMetaObetnidaLista => _valorMetaServiciosLista;
+  int get valorBruto => _valorBruto;
 
   // ── Getters nuevos para los mockups ────────────────────────────────────────
 
@@ -43,11 +45,13 @@ class ContadorServicioProvider with ChangeNotifier {
     if (modo == 'HOME') {
       _valorMetaObtenida = 0;
       _valorMetaObtenida += sumar;
-      _configuracionMetaRegistrada -= sumar;
+      //_configuracionMetaRegistrada -= sumar;
       notifyListeners();
     } else if (modo == 'FINISH') {
       _valorMetaObtenidaFinish = 0;
+      _valorBruto = 0;
       _valorMetaObtenidaFinish += sumar;
+      _valorBruto = _valorMetaObtenidaFinish;
       notifyListeners();
     } else if (modo == 'LISTA') {
       _valorMetaServiciosLista = 0;
@@ -80,9 +84,10 @@ class ContadorServicioProvider with ChangeNotifier {
   }
 
   ///
-
+  /// Metodo se utliza desde configuracion variables
   void sumarMetaPorHacer(int valor) {
     _configuracionMetaRegistrada += valor;
+    configuracion;
     notifyListeners();
   }
 
@@ -107,6 +112,7 @@ class ContadorServicioProvider with ChangeNotifier {
 
   void setearMetaObtenidaFinish(int valor) {
     _valorMetaObtenidaFinish = 0;
+    _valorBruto = 0;
     notifyListeners();
   }
 }

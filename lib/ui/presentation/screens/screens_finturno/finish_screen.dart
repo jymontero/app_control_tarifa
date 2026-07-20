@@ -1,19 +1,30 @@
-// ignore_for_file: avoid_print, duplicate_ignore
-
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:quickalert/quickalert.dart';
 import 'package:taxi_servicios/domain/entitis/servicio.dart';
+import 'package:taxi_servicios/providers/configuracion_provider.dart';
 import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:taxi_servicios/providers/tanqueo_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
-import 'package:taxi_servicios/ui/presentation/screens/home_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_finturno/registrylavada_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_finturno/registryentrega_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_tanqueo/registrocombustible_screen.dart';
-import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
+
+// ── Paleta Dark Premium ───────────────────────────────────────────────────────
+class _C {
+  static const bg = Color(0xFF0F1923);
+  static const cardBg = Color(0xFF1A2535);
+  static const cardBorder = Color(0xFF1E2D3D);
+  static const heroBg = Color(0xFF1A3A5C);
+  static const heroBorder = Color(0xFF1E3A55);
+  static const accent = Color(0xFFF5C518);
+  static const primary = Color(0xFFF1F5F9);
+  static const secondary = Color(0xFF94A3B8);
+  //static const muted = Color(0xFF3D5166);
+  static const green = Color(0xFF4ADE80);
+  static const red = Color(0xFFF87171);
+}
 
 class StepperFinalized extends StatefulWidget {
   const StepperFinalized({super.key});
@@ -23,315 +34,656 @@ class StepperFinalized extends StatefulWidget {
 }
 
 class _StepperFinalizedState extends State<StepperFinalized> {
-  List<int> listaControlGananciaStepp = [];
-  List<Servicio> listaServicios = [];
-  int currentStep = 0;
-  FireStoreDataBase db = FireStoreDataBase();
-  DateTime selectedDate = DateTime.now().toLocal();
-  int metaObtenida = 0;
+  final FireStoreDataBase _db = FireStoreDataBase();
+  final List<int> _listaControlGanancia = [];
+  List<Servicio> _listaServicio = [];
+  int numServiciosF = 0;
+  int _currentStep = 0;
+  DateTime _selectedDate = DateTime.now().toLocal();
+
+  final _fmt =
+      NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 0);
+
+  // ── Lifecycle ────────────────────────────────────────────────────────────────
 
   @override
   void initState() {
+    super.initState();
     initializeDateFormatting('es');
-    final fechaTemp =
-        '${selectedDate.day}-${selectedDate.month}-${selectedDate.year}'
-            .toString();
-
     Future.microtask(() =>
         context.read<ContadorServicioProvider>().setearMetaObtenidaFinish(0));
-    getDataServiciosToday(fechaTemp);
-
-    super.initState();
+    _cargarServiciosHoy();
   }
 
-  void getDataServiciosToday(String date) async {
-    List<Servicio> listaServicio = await db.getModeloServicios(date);
-    if (listaServicio.isNotEmpty) {
+  void _cargarServiciosHoy() {
+    final fecha =
+        '${_selectedDate.day}-${_selectedDate.month}-${_selectedDate.year}';
+    _getDataServiciosToday(fecha);
+  }
+
+  void _getDataServiciosToday(String date) async {
+    _listaServicio = await _db.getModeloServicios(date);
+    if (_listaServicio.isNotEmpty && mounted) {
+      numServiciosF = _listaServicio.length;
       Future.microtask(() => context
           .read<ContadorServicioProvider>()
-          .sumarListaServiciosBD(listaServicio, 'FINISH'));
+          .sumarListaServiciosBD(_listaServicio, 'FINISH'));
     }
   }
 
-  Widget _buildTextGoal(Color color, int monto, double sizeLetter) {
-    final numberFormat =
-        NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 0);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Padding(padding: EdgeInsets.all(10.0)),
-        Text(
-          'COP ${numberFormat.format(monto)}',
-          style: TextStyle(
-            fontSize: sizeLetter,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-      ],
+  // ── Guardar turno ─────────────────────────────────────────────────────────────
+
+  Future<void> _guardarTurno(ServicioTanqueoProvider tanqueo) async {
+    _showLoading();
+    final serviciosProvider =
+        Provider.of<ContadorServicioProvider>(context, listen: false);
+    final configuracionProvider =
+        Provider.of<ConfiguracionProvider>(context, listen: false);
+
+    final int ganancia = serviciosProvider.metaObtenidaFinish;
+    final int totalBruto = serviciosProvider.valorBruto;
+    // final int numServicios = serviciosProvider.numeroServiciosTotal;
+    final int numServicios = numServiciosF;
+    final int valorTanqueo =
+        int.parse(tanqueo.valorTanqueo.replaceAll(',', ''));
+    final int valorEntrega =
+        int.parse(tanqueo.valorEntrega.replaceAll(',', ''));
+    final int valorLavada = int.parse(tanqueo.valorLavada.replaceAll(',', ''));
+    final int deducciones = valorTanqueo + valorEntrega + valorLavada;
+    final double valorGalones =
+        double.parse(tanqueo.valorGalones.replaceAll(',', '.'));
+    final int valorKilometros = int.parse(tanqueo.valorKilometros);
+    final int sueldoObjetivo = configuracionProvider.sueldoObjetivo;
+    final metricas = _calcularMetricasTurno();
+    final totalEfectivo = metricas['totalEfectivo'] ?? 0;
+    final totalTransferencia = metricas['totalTransferencia'] ?? 0;
+    final numServiosPagoEfectivo = metricas['numServiosPagoEfectivo'] ?? 0;
+    final numServiciosPagoTransferencia =
+        metricas['numServiciosPagoTransferencia'] ?? 0;
+    final numTipoServicioTaxi = metricas['numTipoServicioTaxi'] ?? 0;
+    final numTipoServicioPlataforma =
+        metricas['numTipoServicioPlataforma'] ?? 0;
+
+    // Guardar ganancia con desglose completo
+    await _db.addGananciaBD(
+      ganancia,
+      _selectedDate.day.toString(),
+      _selectedDate.month.toString(),
+      _selectedDate.year.toString(),
+      totalBruto: totalBruto,
+      deducciones: deducciones,
+      numServicios: numServicios,
+      sueldoObjetivo: sueldoObjetivo,
+      totalEfectivo: totalEfectivo,
+      totalTransferencia: totalTransferencia,
+      numServiosPagoEfectivo: numServiosPagoEfectivo,
+      numServiciosPagoTransferencia: numServiciosPagoTransferencia,
+      numTipoServicioTaxi: numTipoServicioTaxi,
+      numTipoServicioPlataforma: numTipoServicioPlataforma,
+    );
+
+    // Guardar tanqueo
+    await _db.addTanqueoBD(
+      valorTanqueo,
+      valorKilometros,
+      valorGalones,
+      '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}',
+      '${_selectedDate.hour}:${_selectedDate.minute}:${_selectedDate.second}',
+    );
+
+    // Marcar servicios como facturados
+    await _db.actualizarEstadoServicio(
+        '${_selectedDate.day}-${_selectedDate.month}-${_selectedDate.year}');
+
+    if (!mounted) return;
+    _hideLoading();
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      '/',
+      (route) => false,
     );
   }
 
-  Widget _selectDate(BuildContext context) {
-    return SizedBox(
-      child: TextButton.icon(
-          onPressed: () async {
-            final DateTime? selected = await showDatePicker(
-              context: context,
-              locale: const Locale('es'),
-              initialDate: selectedDate,
-              firstDate: DateTime(2022),
-              lastDate: DateTime(2030),
-              initialEntryMode: DatePickerEntryMode.calendarOnly,
-            );
-            if (selected != null && selected != selectedDate) {
-              setState(() {
-                selectedDate = selected;
-                final fechaTemp =
-                    '${selectedDate.day}-${selectedDate.month}-${selectedDate.year}'
-                        .toString();
-                getDataServiciosToday(fechaTemp);
-              });
-            }
-          },
-          icon: const Icon(
-            Icons.edit_calendar_outlined,
-            size: 22,
-            color: Colors.black,
+  void _showLoading() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) {
+        return const AlertDialog(
+          backgroundColor: Color(0xFF1A2535),
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 20),
+              Expanded(
+                child: Text(
+                  'Finalizando turno...',
+                  style: TextStyle(
+                    color: Color(0xFFF1F5F9),
+                  ),
+                ),
+              ),
+            ],
           ),
-          label: Text(
-            DateFormat.yMMMEd('es').format(selectedDate),
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-                fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black),
-          )),
+        );
+      },
     );
   }
 
-  List<Step> getSpets() {
-    return <Step>[
-      Step(
-          isActive: currentStep >= 0,
-          state: currentStep > 0 ? StepState.complete : StepState.indexed,
-          title: const Text('Tanqueo'),
-          content: const SizedBox(
-            width: 300,
-            height: 200,
-            child: RegistroCombustible(),
-          )),
-      Step(
-          isActive: currentStep >= 1,
-          state: currentStep > 1 ? StepState.complete : StepState.indexed,
-          title: const Text('Entrega'),
-          content: const SizedBox(
-              width: 300, height: 100, child: RegistryEntrega())),
-      Step(
-          isActive: currentStep >= 2,
-          state: currentStep > 2 ? StepState.complete : StepState.indexed,
-          title: const Text('Lavada'),
-          content: const SizedBox(
-            width: 300,
-            height: 110,
-            child: RegistryLavada(),
-          )),
-      Step(
-          isActive: currentStep >= 3,
-          state: currentStep >= 3 ? StepState.complete : StepState.indexed,
-          title: const Text('Ganancias'),
-          content: SizedBox(
-              width: 300,
-              height: 110,
-              child: Column(
-                children: [
-                  _buildTextGoal(
-                      Colors.green,
-                      context
-                          .watch<ContadorServicioProvider>()
-                          .metaObtenidaFinish,
-                      20),
-                ],
-              )))
-    ];
+  void _hideLoading() {
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
   }
 
-  void showAlert() {
-    QuickAlert.show(
-        context: context,
-        title: "Turno Finalizado",
-        text: "Buen Descanso",
-        autoCloseDuration: const Duration(seconds: 5),
-        confirmBtnText: "OK",
-        type: QuickAlertType.success);
+  Map<String, int> _calcularMetricasTurno() {
+    int totalEfectivo = 0;
+    int totalTransferencia = 0;
+    int numServiosPagoEfectivo = 0;
+    int numServiciosPagoTransferencia = 0;
+    int numTipoServicioTaxi = 0;
+    int numTipoServicioPlataforma = 0;
+
+    for (final servicio in _listaServicio) {
+      if (servicio.tipoServicio.toLowerCase() == 'taxi') {
+        numTipoServicioTaxi++;
+      }
+
+      if (servicio.tipoServicio.toLowerCase() == 'plataforma') {
+        numTipoServicioPlataforma++;
+      }
+
+      if (servicio.metodoPago.toLowerCase() == 'efectivo') {
+        totalEfectivo += servicio.valorservicio;
+        numServiosPagoEfectivo++;
+      }
+
+      if (servicio.metodoPago.toLowerCase() == 'transferencia') {
+        totalTransferencia += servicio.valorservicio;
+        numServiciosPagoTransferencia++;
+      }
+    }
+
+    return {
+      'totalEfectivo': totalEfectivo,
+      'totalTransferencia': totalTransferencia,
+      'numServiosPagoEfectivo': numServiosPagoEfectivo,
+      'numServiciosPagoTransferencia': numServiciosPagoTransferencia,
+      'numTipoServicioTaxi': numTipoServicioTaxi,
+      'numTipoServicioPlataforma': numTipoServicioPlataforma,
+    };
   }
+
+  // ── Build ─────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final tanqueo = Provider.of<ServicioTanqueoProvider>(context, listen: true);
 
-    int valorTanqueoProvider = 0;
-    int valorEntregaProvider = 0;
-    int valorLavadaProvider = 0;
-    double valorGalones = 0;
-    int valorKilometros = 0;
-
     return Scaffold(
-        appBar: const AppBarCustomized(),
-        body: Theme(
-            data: Theme.of(context).copyWith(
-              colorScheme: const ColorScheme.light(primary: Colors.blue),
+      //appBar: const AppBarCustomized(),
+      backgroundColor: _C.bg,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: [
+                  _buildTotalBruto(),
+                  const SizedBox(height: 14),
+                  _buildProgresoDeducciones(),
+                  const SizedBox(height: 14),
+                  _buildStepper(tanqueo),
+                ],
+              ),
             ),
-            child: ListView(
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Header ────────────────────────────────────────────────────────────────────
+
+  Widget _buildHeader() {
+    return Container(
+      color: _C.bg,
+      padding: const EdgeInsets.fromLTRB(14, 16, 14, 10),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.04),
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(color: _C.cardBorder),
+              ),
+              child: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: _C.secondary,
+                size: 14,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  "Finalizar Turno",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
+                  'Finalizar turno',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: _C.primary,
+                  ),
                 ),
-                _selectDate(context),
-                _buildTextGoal(
-                    Colors.purple,
-                    context
-                        .watch<ContadorServicioProvider>()
-                        .metaObtenidaFinish,
-                    20),
-                Stepper(
-                    type: StepperType.vertical,
-                    currentStep: currentStep,
-                    onStepContinue: () {
-                      if (currentStep == 0) {
-                        valorTanqueoProvider =
-                            int.parse(tanqueo.valorTanqueo.replaceAll(',', ''));
-
-                        context
-                            .read<ContadorServicioProvider>()
-                            .decrementarMetaObtenidaFinish(
-                                valorTanqueoProvider);
-
-                        listaControlGananciaStepp.add(valorTanqueoProvider);
-                      }
-                      if (currentStep == 1) {
-                        valorEntregaProvider =
-                            int.parse(tanqueo.valorEntrega.replaceAll(',', ''));
-                        context
-                            .read<ContadorServicioProvider>()
-                            .decrementarMetaObtenidaFinish(
-                                valorEntregaProvider);
-
-                        listaControlGananciaStepp.add(valorEntregaProvider);
-                      }
-                      if (currentStep == 2) {
-                        valorLavadaProvider =
-                            int.parse(tanqueo.valorLavada.replaceAll(',', ''));
-                        context
-                            .read<ContadorServicioProvider>()
-                            .decrementarMetaObtenidaFinish(valorLavadaProvider);
-
-                        listaControlGananciaStepp.add(valorLavadaProvider);
-                      }
-                      if (currentStep == 3) {
-                        // ignore: avoid_print
-                        final serviciosProvider =
-                            Provider.of<ContadorServicioProvider>(context,
-                                listen: false);
-
-                        int ganancia = serviciosProvider.metaObtenidaFinish;
-
-                        valorTanqueoProvider =
-                            int.parse(tanqueo.valorTanqueo.replaceAll(',', ''));
-
-                        valorGalones = double.parse(
-                            tanqueo.valorGalones.replaceAll(',', '.'));
-                        print('ValoGalon');
-                        print(valorGalones);
-
-                        valorKilometros = int.parse(tanqueo.valorKilometros);
-
-                        //enviando base de datos
-                        db.addGananciaBD(
-                            ganancia,
-                            selectedDate.day.toString(),
-                            selectedDate.month.toString(),
-                            selectedDate.year.toString());
-
-                        db.addTanqueoBD(
-                            valorTanqueoProvider,
-                            valorKilometros,
-                            valorGalones,
-                            '${selectedDate.year}-${(selectedDate.month).toString().padLeft(2, '0')}-${(selectedDate.day).toString().padLeft(2, '0')}',
-                            '${selectedDate.hour}:${selectedDate.minute}:${selectedDate.second}');
-                        db.actualizarEstadoServicio(
-                            '${selectedDate.day}-${selectedDate.month}-${selectedDate.year}'
-                                .toString());
-
-                        Navigator.pop(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const Home()));
-                      } else {
-                        setState(() {
-                          currentStep++;
-                        });
-                      }
-                    },
-                    onStepCancel: () {
-                      if (currentStep <= 0) return;
+                GestureDetector(
+                  onTap: () async {
+                    final DateTime? selected = await showDatePicker(
+                      context: context,
+                      locale: const Locale('es'),
+                      initialDate: _selectedDate,
+                      firstDate: DateTime(2022),
+                      lastDate: DateTime(2030),
+                      initialEntryMode: DatePickerEntryMode.calendarOnly,
+                    );
+                    if (selected != null && selected != _selectedDate) {
                       setState(() {
-                        currentStep--;
-                        int restar =
-                            listaControlGananciaStepp.elementAt(currentStep);
-
-                        listaControlGananciaStepp.removeAt(currentStep);
-
-                        context
-                            .read<ContadorServicioProvider>()
-                            .incrementarMetaObtenidaFinish(restar);
+                        _selectedDate = selected;
+                        _cargarServiciosHoy();
                       });
-                    },
-                    controlsBuilder: (context, ControlsDetails details) {
-                      return Row(
-                        children: <Widget>[
-                          Expanded(
-                              child: ElevatedButton(
-                            onPressed: details.onStepContinue,
-                            style: ButtonStyle(
-                                backgroundColor:
-                                    MaterialStateProperty.all(Colors.amber),
-                                foregroundColor:
-                                    MaterialStateProperty.all(Colors.black),
-                                shape: MaterialStateProperty.all(
-                                    RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(5)))),
-                            child: Text(
-                              currentStep == 3 ? 'CONFIRMAR' : 'Continuar',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                  fontSize: 13, fontWeight: FontWeight.bold),
-                            ),
-                          )),
-                          const SizedBox(width: 10),
-                          if (currentStep != 0)
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: details.onStepCancel,
-                                style: ButtonStyle(
-                                    backgroundColor:
-                                        MaterialStateProperty.all(Colors.amber),
-                                    foregroundColor:
-                                        MaterialStateProperty.all(Colors.black),
-                                    shape: MaterialStateProperty.all(
-                                        RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(5)))),
-                                child: const Text('Atras'),
-                              ),
-                            ),
-                        ],
-                      );
-                    },
-                    steps: getSpets()),
+                    }
+                  },
+                  child: Row(
+                    children: [
+                      const Icon(Icons.calendar_today_outlined,
+                          color: _C.accent, size: 11),
+                      const SizedBox(width: 4),
+                      Text(
+                        DateFormat.yMMMEd('es').format(_selectedDate),
+                        style: const TextStyle(fontSize: 10, color: _C.accent),
+                      ),
+                    ],
+                  ),
+                ),
               ],
-            )));
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Total bruto ───────────────────────────────────────────────────────────────
+
+  Widget _buildTotalBruto() {
+    return Consumer<ContadorServicioProvider>(
+      builder: (_, contador, __) {
+        return Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [_C.heroBg, Color(0xFF0D2137)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _C.heroBorder),
+          ),
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'TOTAL BRUTO DEL DÍA',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: _C.secondary,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _fmt.format(contador.valorBruto),
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w500,
+                  color: _C.primary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  _infoChip(
+                    '${contador.numeroServiciosTotal} servicios',
+                    _C.accent,
+                  ),
+                  const SizedBox(width: 8),
+                  _infoChip(
+                    'Ganancia: ${_fmt.format(contador.metaObtenidaFinish)}',
+                    _C.green,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _infoChip(String texto, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withOpacity(0.25)),
+      ),
+      child: Text(texto, style: TextStyle(fontSize: 10, color: color)),
+    );
+  }
+
+  // ── Progreso deducciones ──────────────────────────────────────────────────────
+
+  Widget _buildProgresoDeducciones() {
+    return Container(
+      decoration: BoxDecoration(
+        color: _C.cardBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _C.cardBorder),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            'Deducciones ingresadas',
+            style: TextStyle(fontSize: 10, color: _C.secondary),
+          ),
+          Text(
+            '$_currentStep de 3',
+            style: const TextStyle(
+                fontSize: 10, color: _C.accent, fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Stepper ───────────────────────────────────────────────────────────────────
+
+  Widget _buildStepper(ServicioTanqueoProvider tanqueo) {
+    return Theme(
+      data: Theme.of(context).copyWith(
+        colorScheme: const ColorScheme.dark(
+          primary: _C.accent,
+          onPrimary: Color(0xFF0F1923),
+          surface: _C.cardBg,
+          onSurface: _C.primary,
+        ),
+        canvasColor: _C.bg,
+      ),
+      child: Stepper(
+        type: StepperType.vertical,
+        currentStep: _currentStep,
+        onStepContinue: () => _onStepContinue(tanqueo),
+        onStepCancel: _onStepCancel,
+        controlsBuilder: (context, details) => _buildControles(details),
+        steps: _buildSteps(),
+      ),
+    );
+  }
+
+  List<Step> _buildSteps() {
+    return [
+      Step(
+        isActive: _currentStep >= 0,
+        state: _currentStep > 0 ? StepState.complete : StepState.indexed,
+        title: Text(
+          'Tanqueo',
+          style: TextStyle(
+            color: _currentStep >= 0 ? _C.primary : _C.secondary,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        content: const SizedBox(
+          width: 300,
+          height: 200,
+          child: RegistroCombustible(),
+        ),
+      ),
+      Step(
+        isActive: _currentStep >= 1,
+        state: _currentStep > 1 ? StepState.complete : StepState.indexed,
+        title: Text(
+          'Entrega',
+          style: TextStyle(
+            color: _currentStep >= 1 ? _C.primary : _C.secondary,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        content: const SizedBox(
+          width: 300,
+          height: 100,
+          child: RegistryEntrega(),
+        ),
+      ),
+      Step(
+        isActive: _currentStep >= 2,
+        state: _currentStep > 2 ? StepState.complete : StepState.indexed,
+        title: Text(
+          'Lavada',
+          style: TextStyle(
+            color: _currentStep >= 2 ? _C.primary : _C.secondary,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        content: const SizedBox(
+          width: 300,
+          height: 110,
+          child: RegistryLavada(),
+        ),
+      ),
+      Step(
+        isActive: _currentStep >= 3,
+        state: _currentStep >= 3 ? StepState.complete : StepState.indexed,
+        title: Text(
+          'Ganancias',
+          style: TextStyle(
+            color: _currentStep >= 3 ? _C.primary : _C.secondary,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        content: Consumer<ContadorServicioProvider>(
+          builder: (_, contador, __) => Container(
+            width: 300,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              children: [
+                _resumenGanancias(contador),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ];
+  }
+
+  Widget _resumenGanancias(ContadorServicioProvider contador) {
+    final tanqueo = Provider.of<ServicioTanqueoProvider>(context, listen: true);
+    final valorTanqueo = tanqueo.valorTanqueo.isEmpty
+        ? 0
+        : int.tryParse(tanqueo.valorTanqueo.replaceAll(',', '')) ?? 0;
+    final valorEntrega = tanqueo.valorEntrega.isEmpty
+        ? 0
+        : int.tryParse(tanqueo.valorEntrega.replaceAll(',', '')) ?? 0;
+    final valorLavada = tanqueo.valorLavada.isEmpty
+        ? 0
+        : int.tryParse(tanqueo.valorLavada.replaceAll(',', '')) ?? 0;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _C.cardBorder),
+      ),
+      padding: const EdgeInsets.all(10),
+      child: Column(
+        children: [
+          _resumenFila(
+              'Total bruto', _fmt.format(contador.valorBruto), _C.primary),
+          const Divider(color: _C.cardBorder, height: 12),
+          _resumenFila('Tanqueo', '- ${_fmt.format(valorTanqueo)}', _C.red),
+          _resumenFila('Entrega', '- ${_fmt.format(valorEntrega)}', _C.red),
+          _resumenFila('Lavada', '- ${_fmt.format(valorLavada)}', _C.red),
+          const Divider(color: _C.cardBorder, height: 12),
+          _resumenFila(
+            'Ganancia neta',
+            _fmt.format(contador.metaObtenidaFinish),
+            _C.green,
+            bold: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _resumenFila(String label, String value, Color color,
+      {bool bold = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label,
+              style: const TextStyle(fontSize: 11, color: _C.secondary)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: bold ? 13 : 11,
+              fontWeight: bold ? FontWeight.w500 : FontWeight.normal,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Controles stepper ─────────────────────────────────────────────────────────
+
+  Widget _buildControles(ControlsDetails details) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: details.onStepContinue,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _C.accent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Text(
+                    _currentStep == 3 ? 'Confirmar' : 'Continuar →',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF0F1923),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (_currentStep != 0) ...[
+            const SizedBox(width: 8),
+            Expanded(
+              child: GestureDetector(
+                onTap: details.onStepCancel,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.04),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: _C.cardBorder),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      '← Atrás',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: _C.secondary,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ── Lógica pasos ─────────────────────────────────────────────────────────────
+
+  void _onStepContinue(ServicioTanqueoProvider tanqueo) {
+    if (_currentStep == 0) {
+      final valor = int.parse(tanqueo.valorTanqueo.replaceAll(',', ''));
+      context
+          .read<ContadorServicioProvider>()
+          .decrementarMetaObtenidaFinish(valor);
+      _listaControlGanancia.add(valor);
+    }
+
+    if (_currentStep == 1) {
+      final valor = int.parse(tanqueo.valorEntrega.replaceAll(',', ''));
+      context
+          .read<ContadorServicioProvider>()
+          .decrementarMetaObtenidaFinish(valor);
+      _listaControlGanancia.add(valor);
+    }
+
+    if (_currentStep == 2) {
+      final valor = int.parse(tanqueo.valorLavada.replaceAll(',', ''));
+      context
+          .read<ContadorServicioProvider>()
+          .decrementarMetaObtenidaFinish(valor);
+      _listaControlGanancia.add(valor);
+    }
+
+    if (_currentStep == 3) {
+      _guardarTurno(tanqueo);
+      return;
+    }
+
+    setState(() => _currentStep++);
+  }
+
+  void _onStepCancel() {
+    if (_currentStep <= 0) return;
+    setState(() {
+      _currentStep--;
+      final restar = _listaControlGanancia.elementAt(_currentStep);
+      _listaControlGanancia.removeAt(_currentStep);
+      context
+          .read<ContadorServicioProvider>()
+          .incrementarMetaObtenidaFinish(restar);
+    });
   }
 }

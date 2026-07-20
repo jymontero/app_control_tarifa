@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:taxi_servicios/domain/entitis/estaciongas.dart';
 import 'package:taxi_servicios/domain/entitis/gas.dart';
 import 'package:taxi_servicios/domain/entitis/ingresos.dart';
+import 'package:taxi_servicios/domain/entitis/perfil.dart';
 import 'package:taxi_servicios/domain/entitis/servicio.dart';
 import 'package:taxi_servicios/domain/entitis/variables.dart';
 
@@ -149,14 +150,37 @@ class FireStoreDataBase {
   }
 
   Future<void> addGananciaBD(
-      int valor, String dia, String mes, String anio) async {
+    int valor,
+    String dia,
+    String mes,
+    String anio, {
+    int totalBruto = 0,
+    int deducciones = 0,
+    int numServicios = 0,
+    int sueldoObjetivo = 0,
+    int totalEfectivo = 0,
+    int totalTransferencia = 0,
+    int numServiosPagoEfectivo = 0,
+    int numServiciosPagoTransferencia = 0,
+    int numTipoServicioTaxi = 0,
+    int numTipoServicioPlataforma = 0,
+  }) async {
     Map<String, dynamic> ganancia = {
-      "dia": dia,
-      "mes": mes,
-      "anio": anio,
-      "monto": valor
+      'dia': dia,
+      'mes': mes,
+      'anio': anio,
+      'monto': valor,
+      'totalBruto': totalBruto,
+      'deducciones': deducciones,
+      'numServicios': numServicios,
+      'sueldoObjetivo': sueldoObjetivo,
+      'totalEfectivo': totalEfectivo,
+      'totalTransferencia': totalTransferencia,
+      'numServiosPagoEfectivo': numServiosPagoEfectivo,
+      'numServiciosPagoTransferencia': numServiciosPagoTransferencia,
+      'numTipoServicioTaxi': numTipoServicioTaxi,
+      'numTipoServicioPlataforma': numTipoServicioPlataforma,
     };
-
     await db.collection('ingresos').doc().set(ganancia);
   }
 
@@ -282,5 +306,26 @@ class FireStoreDataBase {
 
       await doc.reference.update({'fecha': fechaNueva});
     }
+  }
+
+  /// Obtiene el perfil del conductor (documento único)
+  Future<Perfil?> getPerfil() async {
+    try {
+      final doc = await db.collection('perfil').doc('conductor').get();
+      if (!doc.exists || doc.data() == null) return null;
+      final perfil = Perfil.fromJson(doc.data()!);
+      perfil.id = doc.id;
+      return perfil;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Guarda o actualiza el perfil del conductor
+  Future<void> guardarPerfil(Perfil perfil) async {
+    await db
+        .collection('perfil')
+        .doc('conductor')
+        .set(perfil.toJson(), SetOptions(merge: true));
   }
 }

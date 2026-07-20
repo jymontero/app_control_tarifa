@@ -7,10 +7,12 @@ class ConfiguracionProvider with ChangeNotifier {
   late int _metaRegistrada = 0;
   late List<Variable> _listVariables = [];
   late int _metaRegistradaBD = 0;
+  late int _sueldoObjetivo = 0;
 
   int get metaRegistrada => _metaRegistrada;
   List get listaVariables => _listVariables;
   int get metaRegistradaBD => _metaRegistradaBD;
+  int get sueldoObjetivo => _sueldoObjetivo;
 
   set dataFromBD(List<Variable> listaVariables) {
     _listVariables = listaVariables;
@@ -35,11 +37,13 @@ class ConfiguracionProvider with ChangeNotifier {
 
   void sumarListaBd(List<Variable> lista) {
     _listVariables = lista;
-
     int sumar = 0;
+
     for (var item in _listVariables) {
-      int aux = item.valor;
-      sumar += aux;
+      sumar += item.valor;
+      if (item.nombre.trim().toLowerCase() == 'sueldo') {
+        _sueldoObjetivo = item.valor;
+      }
     }
     _metaRegistradaBD = sumar;
     notifyListeners();

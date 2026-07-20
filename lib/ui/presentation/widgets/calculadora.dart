@@ -1,6 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:math_expressions/math_expressions.dart';
 
+// ── Paleta Dark Premium ───────────────────────────────────────────────────────
+class _C {
+  static const bg = Color(0xFF0F1923);
+  static const cardBg = Color(0xFF1A2535);
+  static const cardBorder = Color(0xFF1E2D3D);
+  static const accent = Color(0xFFF5C518);
+  static const primary = Color(0xFFF1F5F9);
+  static const secondary = Color(0xFF94A3B8);
+  static const muted = Color(0xFF3D5166);
+  static const btnBg = Color(0xFF1A2535);
+  static const btnOp = Color(0xFF1E3A55);
+  static const red = Color(0xFFF87171);
+}
+
 // ignore: must_be_immutable
 class Calculadora extends StatefulWidget {
   TextEditingController txtInicial;
@@ -12,259 +26,405 @@ class Calculadora extends StatefulWidget {
 }
 
 class _CalculadoraState extends State<Calculadora> {
-  String strInput = "";
-  final txtEntrada = TextEditingController(text: '0');
-  final txtResultado = TextEditingController(text: '0');
+  final _txtEntrada = TextEditingController(text: '0');
+  final _txtResultado = TextEditingController(text: '0');
+
+  // ── Lifecycle ────────────────────────────────────────────────────────────────
+
   @override
   void initState() {
     super.initState();
-    txtEntrada.addListener(() {});
-    txtResultado.addListener(() {});
-    setState(() {
-      if (widget.txtInicial.text == '0.0' ||
-          widget.txtInicial.text == '# Galones') {
-        txtEntrada.text = "0";
-      } else {
-        txtEntrada.text = widget.txtInicial.text;
-      }
-    });
+    // FIX: sin setState innecesario, sin listeners vacíos
+    if (widget.txtInicial.text == '0.0' ||
+        widget.txtInicial.text == '# Galones') {
+      _txtEntrada.text = '0';
+    } else {
+      _txtEntrada.text = widget.txtInicial.text;
+    }
   }
 
   @override
   void dispose() {
-    widget.txtInicial.text;
+    // FIX: dispose correcto de los controllers
+    _txtEntrada.dispose();
+    _txtResultado.dispose();
     super.dispose();
   }
+
+  // ── Lógica ───────────────────────────────────────────────────────────────────
+
+  void _calcular() {
+    // FIX: try/catch para expresiones inválidas
+    try {
+      final Parser p = Parser();
+      final ContextModel cm = ContextModel();
+      final Expression exp = p.parse(_txtEntrada.text);
+      setState(() {
+        _txtResultado.text = exp.evaluate(EvaluationType.REAL, cm).toString();
+      });
+    } catch (e) {
+      setState(() {
+        _txtResultado.text = 'Error';
+      });
+    }
+  }
+
+  // ── Build ─────────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: <Widget>[
-          Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: TextField(
-                decoration: const InputDecoration.collapsed(
-                    hintText: "0",
+      backgroundColor: _C.bg,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              // Display entrada
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: TextField(
+                  decoration: const InputDecoration.collapsed(
+                    hintText: '0',
                     hintStyle: TextStyle(
-                      fontSize: 40,
+                      fontSize: 36,
                       fontFamily: 'RobotoMono',
-                    )),
-                style: const TextStyle(
-                  fontSize: 40,
-                  fontFamily: 'RobotoMono',
+                      color: _C.muted,
+                    ),
+                  ),
+                  style: const TextStyle(
+                    fontSize: 36,
+                    fontFamily: 'RobotoMono',
+                    color: _C.secondary,
+                  ),
+                  textAlign: TextAlign.right,
+                  controller: _txtEntrada,
+                  onTap: () => FocusScope.of(context).requestFocus(FocusNode()),
                 ),
-                textAlign: TextAlign.right,
-                controller: txtEntrada,
-                onTap: () => FocusScope.of(context).requestFocus(FocusNode()),
-              )),
-          Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              child: TextField(
-                decoration: const InputDecoration.collapsed(
-                    hintText: "Resultado",
-                    fillColor: Colors.deepPurpleAccent,
-                    hintStyle: TextStyle(fontFamily: 'RobotoMono')),
-                textInputAction: TextInputAction.none,
-                keyboardType: TextInputType.number,
-                style: const TextStyle(
+              ),
+
+              // Display resultado
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: TextField(
+                  decoration: const InputDecoration.collapsed(
+                    hintText: 'Resultado',
+                    hintStyle: TextStyle(
+                      fontFamily: 'RobotoMono',
+                      color: _C.muted,
+                    ),
+                  ),
+                  style: const TextStyle(
                     fontSize: 42,
                     fontFamily: 'RobotoMono',
-                    fontWeight: FontWeight.bold
-                    // color: Colors.deepPurpleAccent
+                    fontWeight: FontWeight.bold,
+                    color: _C.primary,
+                  ),
+                  textAlign: TextAlign.right,
+                  controller: _txtResultado,
+                  readOnly: true,
+                ),
+              ),
+
+              const SizedBox(height: 12),
+              const Divider(color: _C.cardBorder, height: 1),
+              const SizedBox(height: 8),
+
+              // Fila 1
+              _buildFila([
+                _btnAC('AC'),
+                _btnBorrar(),
+                _btnOp('%'),
+                _btnOp('/'),
+              ]),
+
+              // Fila 2
+              _buildFila([
+                _btnNum('7'),
+                _btnNum('8'),
+                _btnNum('9'),
+                _btnOp('*'),
+              ]),
+
+              // Fila 3
+              _buildFila([
+                _btnNum('4'),
+                _btnNum('5'),
+                _btnNum('6'),
+                _btnOp('-'),
+              ]),
+
+              // Fila 4
+              _buildFila([
+                _btnNum('1'),
+                _btnNum('2'),
+                _btnNum('3'),
+                _btnOp('+'),
+              ]),
+
+              // Fila 5
+              _buildFila([
+                _btnNum('0'),
+                _btnNum('.'),
+                _btnIgual(),
+              ]),
+
+              const SizedBox(height: 8),
+
+              // Botones Cancelar / OK
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(context, _txtEntrada),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.04),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: _C.cardBorder),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Cancelar',
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: _C.secondary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                textAlign: TextAlign.right,
-                controller: txtResultado,
-              )),
-          const SizedBox(height: 15.0),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: <Widget>[
-              btnAC('AC', const Color(0xFFF5F7F9)),
-              btnBorrar(),
-              boton(
-                '%',
-                const Color(0xFFF5F7F9),
-              ),
-              boton(
-                '/',
-                const Color(0xFFF5F7F9),
-              ),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: <Widget>[
-              boton('7', Colors.white),
-              boton('8', Colors.white),
-              boton('9', Colors.white),
-              boton(
-                '*',
-                const Color(0xFFF5F7F9),
-              )
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: <Widget>[
-              boton('4', Colors.white),
-              boton('5', Colors.white),
-              boton('6', Colors.white),
-              boton(
-                '-',
-                const Color(0xFFF5F7F9),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          if (_txtResultado.text == '0' ||
+                              _txtResultado.text == 'Error') {
+                            Navigator.pop(context, _txtEntrada);
+                          } else {
+                            Navigator.pop(context, _txtResultado);
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          decoration: BoxDecoration(
+                            color: _C.accent,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'OK',
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: Color(0xFF0F1923),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: <Widget>[
-              boton('1', Colors.white),
-              boton('2', Colors.white),
-              boton('3', Colors.white),
-              boton('+', const Color(0xFFF5F7F9)),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: <Widget>[
-              boton('0', Colors.white),
-              boton('.', Colors.white),
-              btnIgual(),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: <Widget>[
-              ElevatedButton(
-                  style: ButtonStyle(
-                      backgroundColor: MaterialStateProperty.all(Colors.amber),
-                      foregroundColor: MaterialStateProperty.all(Colors.black),
-                      shape: MaterialStateProperty.all(RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(5)))),
-                  onPressed: () {
-                    Navigator.pop(context, txtEntrada);
-                  },
-                  child: const Text('Cancelar ',
-                      style: TextStyle(
-                        fontSize: 18,
-                      ))),
-              ElevatedButton(
-                  style: ButtonStyle(
-                      backgroundColor: MaterialStateProperty.all(Colors.amber),
-                      foregroundColor: MaterialStateProperty.all(Colors.black),
-                      shape: MaterialStateProperty.all(RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(5)))),
-                  onPressed: () {
-                    if (txtResultado.text == '0') {
-                      Navigator.pop(context, txtEntrada);
-                    } else {
-                      Navigator.pop(context, txtResultado);
-                    }
-                  },
-                  child: const Text('OK',
-                      style: TextStyle(
-                        fontSize: 18,
-                      )))
-            ],
-          ),
-          const SizedBox(
-            height: 10.0,
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget boton(btntxt, Color btnColor) {
-    return Container(
-      padding: const EdgeInsets.only(bottom: 10.0),
-      child: TextButton(
-        onPressed: () {
-          setState(() {
-            txtEntrada.text = txtEntrada.text + btntxt;
-          });
-        },
-        style: TextButton.styleFrom(),
-        /*color: btnColor,
-        padding: const EdgeInsets.all(18.0),
-        splashColor: Colors.black,
-        shape: const CircleBorder(),*/
-        child: Text(
-          btntxt,
-          style: const TextStyle(
-              fontSize: 28.0, color: Colors.black, fontFamily: 'RobotoMono'),
         ),
       ),
     );
   }
 
-  Widget btnAC(btntext, Color btnColor) {
-    return Container(
-      padding: const EdgeInsets.only(bottom: 10.0),
-      child: TextButton(
-        onPressed: () {
-          setState(() {
-            txtEntrada.text = "";
-            txtResultado.text = "";
-          });
-        },
-        /*color: btnColor,
-        padding: const EdgeInsets.all(18.0),
-        splashColor: Colors.black,
-        shape: const CircleBorder(),*/
-        child: Text(
-          btntext,
-          style: const TextStyle(
-              fontSize: 28.0, color: Colors.black, fontFamily: 'RobotoMono'),
+  // ── Helpers de layout ─────────────────────────────────────────────────────────
+
+  Widget _buildFila(List<Widget> botones) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: botones,
+      ),
+    );
+  }
+
+  // ── Botones ──────────────────────────────────────────────────────────────────
+
+  // FIX: tipo String explícito en parámetros
+  Widget _btnNum(String txt) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.all(3),
+        child: GestureDetector(
+          onTap: () {
+            setState(() {
+              if (_txtEntrada.text == '0') {
+                _txtEntrada.text = txt;
+              } else {
+                _txtEntrada.text += txt;
+              }
+            });
+          },
+          child: Container(
+            height: 56,
+            decoration: BoxDecoration(
+              color: _C.btnBg,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: _C.cardBorder),
+            ),
+            child: Center(
+              child: Text(
+                txt,
+                style: const TextStyle(
+                  fontSize: 22,
+                  color: _C.primary,
+                  fontFamily: 'RobotoMono',
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget btnBorrar() {
-    return Container(
-      padding: const EdgeInsets.only(bottom: 10.0),
-      child: TextButton(
-        onPressed: () {
-          txtEntrada.text = (txtEntrada.text.isNotEmpty)
-              ? (txtEntrada.text.substring(0, txtEntrada.text.length - 1))
-              : "";
-        },
-        /*color: const Color(0xFFF5F7F9),
-        padding: const EdgeInsets.all(18.0),
-        splashColor: Colors.black,
-        shape: const CircleBorder(),*/
-        child: const Icon(Icons.backspace, size: 35, color: Colors.blueGrey),
-      ),
-    );
-  }
-
-  Widget btnIgual() {
-    return Container(
-      padding: const EdgeInsets.only(bottom: 10.0),
-      child: TextButton(
-        onPressed: () {
-          Parser p = Parser();
-          ContextModel cm = ContextModel();
-          Expression exp = p.parse(txtEntrada.text);
-          setState(() {
-            txtResultado.text =
-                exp.evaluate(EvaluationType.REAL, cm).toString();
-          });
-        },
-        /*color: Colors.cyan,
-        padding: const EdgeInsets.all(18.0),
-        splashColor: Colors.black,
-        shape: const CircleBorder(),*/
-        child: const Text(
-          '=',
-          style: TextStyle(
-              fontSize: 28.0, color: Colors.black, fontFamily: 'RobotoMono'),
+  Widget _btnOp(String txt) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.all(3),
+        child: GestureDetector(
+          onTap: () {
+            setState(() {
+              _txtEntrada.text += txt;
+            });
+          },
+          child: Container(
+            height: 56,
+            decoration: BoxDecoration(
+              color: _C.btnOp,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: _C.accent.withOpacity(0.2)),
+            ),
+            child: Center(
+              child: Text(
+                txt,
+                style: const TextStyle(
+                  fontSize: 22,
+                  color: _C.accent,
+                  fontFamily: 'RobotoMono',
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
+
+  Widget _btnAC(String txt) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.all(3),
+        child: GestureDetector(
+          onTap: () {
+            setState(() {
+              _txtEntrada.text = '0';
+              _txtResultado.text = '0';
+            });
+          },
+          child: Container(
+            height: 56,
+            decoration: BoxDecoration(
+              color: _C.btnOp,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: _C.cardBorder),
+            ),
+            child: Center(
+              child: Text(
+                txt,
+                style: const TextStyle(
+                  fontSize: 20,
+                  color: _C.red,
+                  fontFamily: 'RobotoMono',
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _btnBorrar() {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.all(3),
+        child: GestureDetector(
+          onTap: () {
+            setState(() {
+              if (_txtEntrada.text.isNotEmpty) {
+                _txtEntrada.text =
+                    _txtEntrada.text.substring(0, _txtEntrada.text.length - 1);
+                if (_txtEntrada.text.isEmpty) _txtEntrada.text = '0';
+              }
+            });
+          },
+          child: Container(
+            height: 56,
+            decoration: BoxDecoration(
+              color: _C.btnOp,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: _C.cardBorder),
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.backspace_outlined,
+                size: 22,
+                color: _C.secondary,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _btnIgual() {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.all(3),
+        child: GestureDetector(
+          onTap: _calcular,
+          child: Container(
+            height: 56,
+            decoration: BoxDecoration(
+              color: _C.accent,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Center(
+              child: Text(
+                '=',
+                style: TextStyle(
+                  fontSize: 26,
+                  color: Color(0xFF0F1923),
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'RobotoMono',
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Constante faltante en _C
+extension _CExtension on _C {
+  static const red = Color(0xFFF87171);
 }
