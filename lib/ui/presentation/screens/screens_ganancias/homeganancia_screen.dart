@@ -7,6 +7,7 @@ import 'package:taxi_servicios/domain/entitis/ingresos.dart';
 import 'package:taxi_servicios/providers/ingresos_provider.dart';
 import 'package:taxi_servicios/providers/configuracion_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_servicios/listservices_screen.dart';
 
 // ── Paleta Dark Premium ───────────────────────────────────────────────────────
 class _C {
@@ -328,10 +329,12 @@ class _HomeGananciaState extends State<HomeGanancia> {
       ),
       padding: const EdgeInsets.all(14),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
-            'SALDO ${_nombreMes().toUpperCase()} ${_selectedDate.year}',
+            _periodo == 'mensual'
+                ? 'SALDO ${_nombreMes().toUpperCase()} ${_selectedDate.year}'
+                : 'SALDO AÑO ${_selectedDate.year}',
             style: const TextStyle(
                 fontSize: 10, color: _C.secondary, letterSpacing: 0.5),
           ),
@@ -430,10 +433,76 @@ class _HomeGananciaState extends State<HomeGanancia> {
   Widget _buildGraficaTendencia() {
     if (_listaIngresos.isEmpty) return const SizedBox();
 
-    final meta = context.read<ConfiguracionProvider>().metaRegistradaBD;
-    final maxMonto =
-        _listaIngresos.map((e) => e.monto).reduce((a, b) => a > b ? a : b);
+    List<_BarraGrafica> barras;
+    int maxMonto;
 
+    if (_periodo == 'mensual') {
+      final lista = [..._listaIngresos]
+        ..sort((a, b) => int.parse(a.dia).compareTo(int.parse(b.dia)));
+
+      barras = lista
+          .map((i) => _BarraGrafica(
+                label: i.dia,
+                monto: i.monto,
+                meta: i.sueldoObjetivo, // ← meta real del día
+              ))
+          .toList();
+
+      maxMonto = barras.map((b) => b.monto).reduce((a, b) => a > b ? a : b);
+    } else {
+      final meta = context.read<ConfiguracionProvider>().metaRegistradaBD;
+      final Map<int, int> porMes = {};
+      final Map<int, int> diasPorMes = {};
+      final Map<int, int> metaPorMes = {};
+
+      for (final i in _listaIngresos) {
+        final mes = int.parse(i.mes);
+        porMes[mes] = (porMes[mes] ?? 0) + i.monto;
+        diasPorMes[mes] = (diasPorMes[mes] ?? 0) + 1;
+        metaPorMes[mes] = (metaPorMes[mes] ?? 0) + i.sueldoObjetivo;
+      }
+
+      const mesesCortos = [
+        'ene',
+        'feb',
+        'mar',
+        'abr',
+        'may',
+        'jun',
+        'jul',
+        'ago',
+        'sep',
+        'oct',
+        'nov',
+        'dic'
+      ];
+
+      barras = List.generate(12, (i) {
+        final mes = i + 1;
+        return _BarraGrafica(
+          label: mesesCortos[i],
+          monto: porMes[mes] ?? 0,
+          meta: metaPorMes[mes] ?? 0,
+        );
+      }).where((b) => b.monto > 0).toList();
+
+      if (barras.isEmpty) return const SizedBox();
+
+      maxMonto = barras.map((b) => b.monto).reduce((a, b) => a > b ? a : b);
+    }
+
+    return _buildGraficaWidget(
+      titulo: _periodo == 'mensual' ? 'TENDENCIA DEL MES' : 'TENDENCIA DEL AÑO',
+      barras: barras,
+      maxMonto: maxMonto,
+    );
+  }
+
+  Widget _buildGraficaWidget({
+    required String titulo,
+    required List<_BarraGrafica> barras,
+    required int maxMonto,
+  }) {
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       decoration: BoxDecoration(
@@ -445,18 +514,17 @@ class _HomeGananciaState extends State<HomeGanancia> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('TENDENCIA DEL MES',
-              style: TextStyle(fontSize: 9, color: _C.secondary)),
+          Text(titulo,
+              style: const TextStyle(fontSize: 9, color: _C.secondary)),
           const SizedBox(height: 8),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
-            children: _listaIngresos.map((ingreso) {
-              final pct = _pctVsMeta(ingreso.monto, ingreso.sueldoObjetivo);
+            children: barras.map((b) {
+              final pct = _pctVsMeta(b.monto, b.meta);
               final color = _colorBadge(pct);
               final altura = maxMonto > 0
-                  ? (ingreso.monto / maxMonto * 40).clamp(4.0, 40.0)
+                  ? (b.monto / maxMonto * 40).clamp(4.0, 40.0)
                   : 4.0;
-
               return Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 1.5),
@@ -471,9 +539,9 @@ class _HomeGananciaState extends State<HomeGanancia> {
                         ),
                       ),
                       const SizedBox(height: 3),
-                      Text(ingreso.dia,
-                          style:
-                              const TextStyle(fontSize: 7, color: _C.primary)),
+                      Text(b.label,
+                          style: const TextStyle(
+                              fontSize: 7, color: _C.secondary)),
                     ],
                   ),
                 ),
@@ -604,10 +672,35 @@ class _HomeGananciaState extends State<HomeGanancia> {
                       ),
                     ),
                     if (ingreso.numServicios > 0)
-                      Text(
-                        '${ingreso.numServicios} servicios realizados',
-                        style:
-                            const TextStyle(fontSize: 9, color: _C.secondary),
+                      GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => DetalleServiciosDiaScreen(
+                              fecha:
+                                  '${ingreso.dia}-${ingreso.mes}-${ingreso.anio}',
+                              fechaFormateada: DateFormat.yMMMEd('es').format(
+                                DateFormat('d-M-yyyy').parse(
+                                    '${ingreso.dia}-${ingreso.mes}-${ingreso.anio}'),
+                              ),
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              '${ingreso.numServicios} servicios',
+                              style: const TextStyle(
+                                fontSize: 9,
+                                color: _C.accent,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(width: 3),
+                            const Icon(Icons.arrow_forward_ios_rounded,
+                                size: 8, color: _C.accent),
+                          ],
+                        ),
                       ),
                   ],
                 ),
@@ -735,9 +828,41 @@ class _HomeGananciaState extends State<HomeGanancia> {
                               fontWeight: FontWeight.w500,
                               color: _C.primary,
                             )),
-                        Text('${lista.length} días · $totalServicios servicios',
-                            style: const TextStyle(
-                                fontSize: 9, color: _C.secondary)),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${lista.length} días laborados',
+                                style: const TextStyle(
+                                    fontSize: 9, color: _C.secondary)),
+                            const SizedBox(height: 2),
+                            GestureDetector(
+                              onTap: () {
+                                // Cambia a vista mensual del mes tocado
+                                setState(() {
+                                  _periodo = 'mensual';
+                                  _selectedDate =
+                                      DateTime(_selectedDate.year, mes);
+                                  _cargarIngresos();
+                                });
+                              },
+                              child: Row(
+                                children: [
+                                  Text(
+                                    '$totalServicios servicios',
+                                    style: const TextStyle(
+                                      fontSize: 9,
+                                      color: _C.accent,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 3),
+                                  const Icon(Icons.arrow_forward_ios_rounded,
+                                      size: 8, color: _C.accent),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -880,4 +1005,16 @@ class _HomeGananciaState extends State<HomeGanancia> {
       ),
     );
   }
+}
+
+// Fuera de la clase, al final del archivo
+class _BarraGrafica {
+  final String label;
+  final int monto;
+  final int meta;
+  const _BarraGrafica({
+    required this.label,
+    required this.monto,
+    required this.meta,
+  });
 }
