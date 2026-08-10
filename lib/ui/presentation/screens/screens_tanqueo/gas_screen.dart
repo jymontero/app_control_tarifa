@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:mat_month_picker_dialog/mat_month_picker_dialog.dart';
 import 'package:taxi_servicios/domain/entitis/estaciongas.dart';
 import 'package:taxi_servicios/domain/entitis/gas.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
@@ -35,7 +36,8 @@ class _GasolineState extends State<Gasoline> {
   List<EstacionGas> _listaEDS = [];
   bool _cargandoTanqueo = true;
   bool _cargandoEDS = true;
-  DateTime _mesSeleccionado = DateTime.now();
+  DateTime _selectedDate = DateTime.now().toLocal();
+  String _periodo = 'mensual';
 
   final _fmt = NumberFormat.currency(
     locale: 'es_MX',
@@ -70,7 +72,8 @@ class _GasolineState extends State<Gasoline> {
   }
 
   Future<void> _cargarTanqueo() async {
-    final lista = await _bd.getModeloTanqueo();
+    final lista = await _bd.getModeloTanqueoMes(
+        month: _selectedDate.month, year: _selectedDate.year);
     if (!mounted) return;
     setState(() {
       _listaTanqueo = lista;
@@ -104,9 +107,11 @@ class _GasolineState extends State<Gasoline> {
 
   String _compacto(int valor) {
     if (valor >= 1000000) return '${(valor / 1000000).toStringAsFixed(1)}M';
-    if (valor >= 1000) return '${(valor / 1000).toStringAsFixed(0)}k';
-    return valor.toString();
+    //if (valor >= 1000) return '${(valor / 1000).toStringAsFixed(0)}k';
+    return _fmt.format(valor);
   }
+
+  String _nombreMes() => DateFormat.MMMM('es').format(_selectedDate);
 
   // ── Build ─────────────────────────────────────────────────────────────────────
 
@@ -123,6 +128,7 @@ class _GasolineState extends State<Gasoline> {
               child: ListView(
                 padding: const EdgeInsets.only(bottom: 12),
                 children: [
+                  _buildSelectorPeriodo(),
                   _buildSelectorMes(),
                   _buildCardEDS(),
                   _buildCardRendimiento(),
@@ -147,6 +153,61 @@ class _GasolineState extends State<Gasoline> {
   }
 
   // ── Selector mes ──────────────────────────────────────────────────────────────
+  Widget _buildSelectorPeriodo() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: _C.cardBg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _C.cardBorder),
+        ),
+        padding: const EdgeInsets.all(3),
+        child: Row(
+          children: [
+            _periodoBtn('Mensual', 'mensual'),
+            _periodoBtn('Anual', 'anual'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _periodoBtn(String label, String value) {
+    final isActive = _periodo == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _cambiarPeriodo(value),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isActive ? _C.accent : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: isActive ? const Color(0xFF0F1923) : _C.secondary,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _cambiarPeriodo(String periodo) {
+    if (_periodo == periodo) return;
+    setState(() {
+      _periodo = periodo;
+      _selectedDate = DateTime.now();
+      _cargarTanqueo();
+    });
+  }
 
   Widget _buildSelectorMes() {
     return Padding(
@@ -156,64 +217,69 @@ class _GasolineState extends State<Gasoline> {
         children: [
           Row(
             children: [
-              IconButton(
-                icon: const Icon(
-                  Icons.chevron_left,
-                  color: _C.secondary,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _mesSeleccionado = DateTime(
-                      _mesSeleccionado.year,
-                      _mesSeleccionado.month - 1,
-                    );
-                  });
-                },
+              GestureDetector(
+                onTap: () => _cambiarMes(-1),
+                child: const Icon(Icons.chevron_left,
+                    color: _C.secondary, size: 22),
               ),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.calendar_today_outlined,
-                    color: _C.accent,
-                    size: 12,
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    _mesActual(),
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: _C.primary,
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: () async {
+                  final DateTime? selected = await showMonthPicker(
+                    context: context,
+                    initialDate: _selectedDate,
+                    firstDate: DateTime(2022),
+                    lastDate: DateTime(2030),
+                    locale: const Locale('es'),
+                  );
+                  if (selected != null && selected != _selectedDate) {
+                    setState(() {
+                      _selectedDate = selected;
+                      _cargarTanqueo();
+                    });
+                  }
+                },
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_today_outlined,
+                        color: _C.accent, size: 13),
+                    const SizedBox(width: 6),
+                    Text(
+                      _periodo == 'mensual'
+                          ? '${_nombreMes().substring(0, 1).toUpperCase()}${_nombreMes().substring(1)} ${_selectedDate.year}'
+                          : '${_selectedDate.year}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: _C.primary,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              IconButton(
-                icon: const Icon(
-                  Icons.chevron_right,
-                  color: _C.secondary,
+                  ],
                 ),
-                onPressed: () {
-                  setState(() {
-                    _mesSeleccionado = DateTime(
-                      _mesSeleccionado.year,
-                      _mesSeleccionado.month + 1,
-                    );
-                  });
-                },
+              ),
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: () => _cambiarMes(1),
+                child: const Icon(Icons.chevron_right,
+                    color: _C.secondary, size: 22),
               ),
             ],
-          ),
-          Text(
-            '${_listaTanqueo.length} tanqueos',
-            style: const TextStyle(
-              fontSize: 10,
-              color: _C.accent,
-            ),
           ),
         ],
       ),
     );
+  }
+
+  void _cambiarMes(int delta) {
+    setState(() {
+      if (_periodo == 'mensual') {
+        _selectedDate =
+            DateTime(_selectedDate.year, _selectedDate.month + delta);
+      } else {
+        _selectedDate = DateTime(_selectedDate.year + delta);
+      }
+      _cargarTanqueo();
+    });
   }
 
   String _mesActual() {
@@ -233,7 +299,7 @@ class _GasolineState extends State<Gasoline> {
     ];
     //final now = DateTime.now();
     //return '${meses[now.month - 1]} ${now.year}';
-    return '${meses[_mesSeleccionado.month - 1]} ${_mesSeleccionado.year}';
+    return '${meses[_selectedDate.month - 1]} ${_selectedDate.year}';
   }
 
   // ── Card EDS activa ───────────────────────────────────────────────────────────
@@ -302,7 +368,7 @@ class _GasolineState extends State<Gasoline> {
                                     child: const Text(
                                       'Mejor Precio',
                                       style: TextStyle(
-                                          fontSize: 9, color: _C.accent),
+                                          fontSize: 10, color: _C.accent),
                                     ),
                                   ),
                                 ],
@@ -310,18 +376,18 @@ class _GasolineState extends State<Gasoline> {
                               Text(
                                 _listaEDS.first.barrio,
                                 style: const TextStyle(
-                                    fontSize: 10, color: _C.secondary),
+                                    fontSize: 11, color: _C.secondary),
                               ),
                             ],
                           ),
                         ),
                         Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             const Text(
                               'Precio galón',
                               style:
-                                  TextStyle(fontSize: 9, color: _C.secondary),
+                                  TextStyle(fontSize: 11, color: _C.secondary),
                             ),
                             Text(
                               _fmt.format(_listaEDS.first.valorgalon),
@@ -343,7 +409,7 @@ class _GasolineState extends State<Gasoline> {
                       children: [
                         _resumenItem(
                           label: 'Total gastado',
-                          value: '\$${_compacto(_totalGastado)}',
+                          value: _compacto(_totalGastado),
                           color: _C.red,
                         ),
                         _resumenItem(
@@ -378,14 +444,14 @@ class _GasolineState extends State<Gasoline> {
         ),
         margin: const EdgeInsets.symmetric(horizontal: 3),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(label,
-                style: const TextStyle(fontSize: 8, color: _C.secondary)),
+                style: const TextStyle(fontSize: 10, color: _C.secondary)),
             const SizedBox(height: 3),
             Text(value,
                 style: TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.w500, color: color)),
+                    fontSize: 12, fontWeight: FontWeight.w500, color: color)),
           ],
         ),
       ),
@@ -447,19 +513,19 @@ class _GasolineState extends State<Gasoline> {
                 Text(
                   'Rendimiento promedio',
                   style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w500,
                       color: _C.primary),
                 ),
                 Text(
                   'Km por galón este mes',
-                  style: TextStyle(fontSize: 9, color: _C.secondary),
+                  style: TextStyle(fontSize: 10, color: _C.secondary),
                 ),
               ],
             ),
           ),
           Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
                 rend > 0 ? rend.toStringAsFixed(1) : '--',
@@ -471,7 +537,7 @@ class _GasolineState extends State<Gasoline> {
               ),
               const Text(
                 'km/gal',
-                style: TextStyle(fontSize: 9, color: _C.secondary),
+                style: TextStyle(fontSize: 10, color: _C.secondary),
               ),
             ],
           ),
@@ -507,7 +573,7 @@ class _GasolineState extends State<Gasoline> {
             child: const Text(
               '+ Gestionar EDS',
               style: TextStyle(
-                  fontSize: 10, color: _C.accent, fontWeight: FontWeight.w500),
+                  fontSize: 11, color: _C.accent, fontWeight: FontWeight.w500),
             ),
           ),
         ],
@@ -609,7 +675,7 @@ class _GasolineState extends State<Gasoline> {
                   //t.fecha,
                   fecha,
                   style: const TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: _C.primary,
                   ),
@@ -619,17 +685,17 @@ class _GasolineState extends State<Gasoline> {
                   children: [
                     Text(
                       '${t.kilometraje} km',
-                      style: const TextStyle(fontSize: 9, color: _C.secondary),
+                      style: const TextStyle(fontSize: 10, color: _C.secondary),
                     ),
                     const SizedBox(width: 6),
                     Text(
                       '${t.galon.toStringAsFixed(1)} gal',
-                      style: const TextStyle(fontSize: 9, color: _C.secondary),
+                      style: const TextStyle(fontSize: 10, color: _C.secondary),
                     ),
                     const SizedBox(width: 6),
                     Text(
                       '${rend.toStringAsFixed(1)} km/gal',
-                      style: const TextStyle(fontSize: 9, color: _C.secondary),
+                      style: const TextStyle(fontSize: 10, color: _C.secondary),
                     ),
                   ],
                 ),
@@ -637,7 +703,7 @@ class _GasolineState extends State<Gasoline> {
             ),
           ),
           Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
                 _fmt.format(t.valor),
@@ -656,7 +722,7 @@ class _GasolineState extends State<Gasoline> {
                 ),
                 child: Text(
                   badgeLabel,
-                  style: TextStyle(fontSize: 9, color: badgeColor),
+                  style: TextStyle(fontSize: 10, color: badgeColor),
                 ),
               ),
             ],

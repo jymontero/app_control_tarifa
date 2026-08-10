@@ -93,24 +93,31 @@ class FireStoreDataBase {
     return eds;
   }
 
-  Future<List<GasolineTank>> getModeloTanqueo() async {
+  Future<List<GasolineTank>> getModeloTanqueoMes(
+      {required int month, required int year}) async {
+    // El formato de fecha es '2024-02-14' así que filtramos por rango
+    final inicio = DateTime(year, month, 1);
+    final fin = DateTime(year, month + 1, 1);
+
+    final fechaInicio =
+        '${inicio.year}-${inicio.month.toString().padLeft(2, '0')}-${inicio.day.toString().padLeft(2, '0')}';
+
+    final fechaFin =
+        '${fin.year}-${fin.month.toString().padLeft(2, '0')}-${fin.day.toString().padLeft(2, '0')}';
+
     final queryGAS = await db
         .collection('gasolina')
+        .where('fecha', isGreaterThanOrEqualTo: fechaInicio)
+        .where('fecha', isLessThan: fechaFin)
         .orderBy('fecha', descending: true)
-        .limit(17)
         .get();
 
-    final gas = queryGAS.docs.map((e) {
+    return queryGAS.docs.map((e) {
       final modeloGasolineTank = GasolineTank.fromJson(e.data());
       modeloGasolineTank.id = e.id;
       return modeloGasolineTank;
     }).toList();
-    // ignore: avoid_print
-
-    return gas;
   }
-
-  Future<void> averageValorTanqueo() async {}
 
 //CONSULTAS DE AGREGACION BASE DE DATOS FIREBASE
   Future<void> addVariableBD(int monto, String nombre) async {
