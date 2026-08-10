@@ -303,7 +303,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
             child: Text(
               label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.w500,
                 color: isActive ? const Color(0xFF0F1923) : _C.secondary,
               ),
@@ -336,7 +336,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
                 ? 'SALDO ${_nombreMes().toUpperCase()} ${_selectedDate.year}'
                 : 'SALDO AÑO ${_selectedDate.year}',
             style: const TextStyle(
-                fontSize: 10, color: _C.secondary, letterSpacing: 0.5),
+                fontSize: 12, color: _C.secondary, letterSpacing: 0.5),
           ),
           const SizedBox(height: 4),
           Text(
@@ -421,7 +421,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
                 )),
             const SizedBox(height: 2),
             Text(label,
-                style: const TextStyle(fontSize: 9, color: _C.secondary)),
+                style: const TextStyle(fontSize: 10, color: _C.secondary)),
           ],
         ),
       ),
@@ -515,7 +515,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(titulo,
-              style: const TextStyle(fontSize: 9, color: _C.secondary)),
+              style: const TextStyle(fontSize: 12, color: _C.secondary)),
           const SizedBox(height: 8),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -541,7 +541,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
                       const SizedBox(height: 3),
                       Text(b.label,
                           style: const TextStyle(
-                              fontSize: 7, color: _C.secondary)),
+                              fontSize: 9, color: _C.secondary)),
                     ],
                   ),
                 ),
@@ -575,7 +575,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
           ),
         ),
         const SizedBox(width: 4),
-        Text(label, style: const TextStyle(fontSize: 8, color: _C.secondary)),
+        Text(label, style: const TextStyle(fontSize: 9, color: _C.secondary)),
       ],
     );
   }
@@ -621,7 +621,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
           const SizedBox(height: 4),
           const Text(
             'Finaliza un turno para ver tus ingresos',
-            style: TextStyle(color: _C.muted, fontSize: 11),
+            style: TextStyle(color: _C.muted, fontSize: 12),
           ),
         ],
       ),
@@ -691,14 +691,14 @@ class _HomeGananciaState extends State<HomeGanancia> {
                             Text(
                               '${ingreso.numServicios} servicios',
                               style: const TextStyle(
-                                fontSize: 9,
+                                fontSize: 10,
                                 color: _C.accent,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                             const SizedBox(width: 3),
                             const Icon(Icons.arrow_forward_ios_rounded,
-                                size: 8, color: _C.accent),
+                                size: 9, color: _C.accent),
                           ],
                         ),
                       ),
@@ -713,7 +713,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
                 ),
                 child: Text(
                   '${_labelBadge(pct)} meta',
-                  style: TextStyle(fontSize: 9, color: color),
+                  style: TextStyle(fontSize: 10, color: color),
                 ),
               ),
             ],
@@ -833,7 +833,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
                           children: [
                             Text('${lista.length} días laborados',
                                 style: const TextStyle(
-                                    fontSize: 9, color: _C.secondary)),
+                                    fontSize: 10, color: _C.secondary)),
                             const SizedBox(height: 2),
                             GestureDetector(
                               onTap: () {
@@ -874,7 +874,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(_labelBadge(pct),
-                        style: TextStyle(fontSize: 9, color: color)),
+                        style: TextStyle(fontSize: 10, color: color)),
                   ),
                 ],
               ),
@@ -939,7 +939,7 @@ class _HomeGananciaState extends State<HomeGanancia> {
                 ),
                 const SizedBox(width: 4),
                 Text(label,
-                    style: const TextStyle(fontSize: 9, color: _C.secondary)),
+                    style: const TextStyle(fontSize: 11, color: _C.secondary)),
               ],
             ),
             Text(_compacto(valor),
@@ -959,11 +959,12 @@ class _HomeGananciaState extends State<HomeGanancia> {
     return Expanded(
       child: Column(
         children: [
-          Text(label, style: const TextStyle(fontSize: 8, color: _C.secondary)),
+          Text(label,
+              style: const TextStyle(fontSize: 10, color: _C.secondary)),
           const SizedBox(height: 3),
           Text(value,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.w500,
                 color: color,
               )),
