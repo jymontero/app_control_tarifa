@@ -119,6 +119,24 @@ class FireStoreDataBase {
     }).toList();
   }
 
+  Future<List<GasolineTank>> getTanqueosAnio(int year) async {
+    final inicio = '$year-01-01';
+    final fin = '${year + 1}-01-01';
+
+    final queryGAS = await db
+        .collection('gasolina')
+        .where('fecha', isGreaterThanOrEqualTo: inicio)
+        .where('fecha', isLessThan: fin)
+        .orderBy('fecha', descending: false)
+        .get();
+
+    return queryGAS.docs.map((e) {
+      final modeloGasolineTank = GasolineTank.fromJson(e.data());
+      modeloGasolineTank.id = e.id;
+      return modeloGasolineTank;
+    }).toList();
+  }
+
 //CONSULTAS DE AGREGACION BASE DE DATOS FIREBASE
   Future<void> addVariableBD(int monto, String nombre) async {
     Map<String, dynamic> variable = {"valor": monto, "nombre": nombre};

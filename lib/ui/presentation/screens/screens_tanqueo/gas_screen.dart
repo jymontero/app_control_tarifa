@@ -72,11 +72,16 @@ class _GasolineState extends State<Gasoline> {
   }
 
   Future<void> _cargarTanqueo() async {
-    final lista = await _bd.getModeloTanqueoMes(
-        month: _selectedDate.month, year: _selectedDate.year);
+    if (_periodo == 'mensual') {
+      _listaTanqueo = await _bd.getModeloTanqueoMes(
+          month: _selectedDate.month, year: _selectedDate.year);
+    } else {
+      _listaTanqueo = await _bd.getTanqueosAnio(_selectedDate.year);
+    }
+
     if (!mounted) return;
     setState(() {
-      _listaTanqueo = lista;
+      _listaTanqueo;
       _cargandoTanqueo = false;
     });
   }
@@ -142,7 +147,9 @@ class _GasolineState extends State<Gasoline> {
                         )
                       : _listaTanqueo.isEmpty
                           ? _buildEstadoVacio()
-                          : _buildListaTanqueos(),
+                          : (_periodo == 'mensual'
+                              ? _buildListaTanqueos()
+                              : _buildListaTanqueosAnual()),
                 ],
               ),
             ),
@@ -650,83 +657,282 @@ class _GasolineState extends State<Gasoline> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: _C.cardBorder),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: Row(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: _C.accent.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(9),
-            ),
-            child: const Icon(
-              Icons.local_gas_station_rounded,
-              color: _C.accent,
-              size: 16,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  //t.fecha,
-                  fecha,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: _C.primary,
+          // Fila superior — fecha + total
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: _C.accent.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.local_gas_station_rounded,
+                      color: _C.accent,
+                      size: 15,
+                    ),
                   ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _fechaTanqueo(t.fecha),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: _C.primary,
+                    ),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    _fmt.format(t.valor),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: _C.primary,
+                    ),
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: badgeColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: Text(
+                      badgeLabel,
+                      style: TextStyle(fontSize: 11, color: badgeColor),
+                    ),
+                  ),
+                ],
+              )
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.03),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.white.withOpacity(0.05)),
+            ),
+            child: Row(
+              children: [
+                _desglosItem(
+                  label: 'Galones',
+                  value: '${t.galon.toStringAsFixed(1)} gal',
+                  color: const Color(0xFF60A5FA),
                 ),
-                const SizedBox(height: 3),
-                Row(
-                  children: [
-                    Text(
-                      '${t.kilometraje} km',
-                      style: const TextStyle(fontSize: 10, color: _C.secondary),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${t.galon.toStringAsFixed(1)} gal',
-                      style: const TextStyle(fontSize: 10, color: _C.secondary),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${rend.toStringAsFixed(1)} km/gal',
-                      style: const TextStyle(fontSize: 10, color: _C.secondary),
-                    ),
-                  ],
+                // const SizedBox(width: 1),
+                _desglosItem(
+                  label: 'Rendimiento',
+                  value: '${rend.toStringAsFixed(1)} km/gal',
+                  color: _C.green,
+                ),
+                // const SizedBox(width: 5),
+                _desglosItem(
+                  label: 'Kilometraje',
+                  value: '${t.kilometraje} km',
+                  color: _C.accent,
                 ),
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          // Fila métricas
+        ],
+      ),
+    );
+  }
+
+  Widget _buildListaTanqueosAnual() {
+    // Agrupar _listaTanqueo por mes
+    final Map<int, List<GasolineTank>> porMes = {};
+    for (final t in _listaTanqueo) {
+      final mes = DateTime.parse(t.fecha).month;
+      porMes[mes] = [...(porMes[mes] ?? []), t];
+    }
+
+    // Ordenar meses descendente — más reciente primero
+    final mesesOrdenados = porMes.keys.toList()..sort((a, b) => b.compareTo(a));
+
+    const meses = [
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre'
+    ];
+
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      physics: const NeverScrollableScrollPhysics(),
+      shrinkWrap: true,
+      itemCount: mesesOrdenados.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 6),
+      itemBuilder: (_, i) {
+        final mes = mesesOrdenados[i];
+        final lista = porMes[mes]!;
+
+        // Cálculos del mes
+        final totalValor = lista.fold(0, (s, t) => s + t.valor);
+        final totalGalones = lista.fold(0.0, (s, t) => s + t.galon);
+        final totalKm = lista.fold(0, (s, t) => s + t.kilometraje);
+        final rend = totalGalones > 0 ? totalKm / totalGalones : 0.0;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: _C.cardBg,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _C.cardBorder),
+          ),
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                _fmt.format(t.valor),
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: _C.primary,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: _C.accent.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        child: const Icon(
+                          Icons.local_gas_station_rounded,
+                          color: _C.accent,
+                          size: 16,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        meses[mes - 1],
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: _C.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  // Total del mes
+                  Text(
+                    _fmt.format(totalValor),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: _C.primary,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: badgeColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(5),
+                  color: Colors.white.withOpacity(0.03),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.05),
+                  ),
                 ),
-                child: Text(
-                  badgeLabel,
-                  style: TextStyle(fontSize: 10, color: badgeColor),
+                child: Row(
+                  children: [
+                    _desglosItem(
+                      label: 'Tanqueos',
+                      value: '${lista.length}',
+                      color: const Color(0xFF60A5FA),
+                    ),
+                    _desglosItem(
+                      label: 'Total Galones',
+                      value: totalGalones.toStringAsFixed(1),
+                      color: _C.primary,
+                    ),
+                    _desglosItem(
+                      label: 'Rendimiento',
+                      value: rend.toStringAsFixed(1),
+                      color: _C.green,
+                    ),
+                    _desglosItem(
+                      label: 'Total Km',
+                      value: totalKm.toStringAsFixed(1),
+                      color: _C.accent,
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  Widget _metricaChip(String label, String valor, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withOpacity(0.2)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(label,
+                style: const TextStyle(fontSize: 10, color: _C.secondary)),
+            const SizedBox(height: 1),
+            Text(valor,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: color,
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _desglosItem({
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(label,
+              style: const TextStyle(fontSize: 10, color: _C.secondary)),
+          const SizedBox(height: 3),
+          Text(value,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: color,
+              )),
         ],
       ),
     );
