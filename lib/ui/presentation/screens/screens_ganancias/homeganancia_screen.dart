@@ -365,7 +365,8 @@ class _HomeGananciaState extends State<HomeGanancia> {
         : _listaIngresos.fold(0, (sum, item) => sum + item.sueldoObjetivo);
     //final pctMeta = _pctVsMeta(saldo, deduccionesC * diasLaborados);
     final pctMeta = _pctVsMeta(saldo, deduccionesC);
-
+    final peorDia =
+        _listaIngresos.map((i) => i.monto).reduce((a, b) => a < b ? a : b);
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       decoration: BoxDecoration(
@@ -385,6 +386,12 @@ class _HomeGananciaState extends State<HomeGanancia> {
             label: 'Mejor día',
             value: _compacto(mejor),
             color: _C.green,
+            hasBorder: true,
+          ),
+          _metricItem(
+            label: 'Peor día',
+            value: _compacto(peorDia),
+            color: _C.red,
             hasBorder: true,
           ),
           _metricItem(
