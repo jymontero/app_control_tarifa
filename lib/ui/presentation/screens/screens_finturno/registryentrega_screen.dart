@@ -6,7 +6,6 @@ import 'package:taxi_servicios/providers/tanqueo_provider.dart';
 
 // ── Paleta Dark Premium ───────────────────────────────────────────────────────
 class _C {
-  static const cardBorder = Color(0xFF1E2D3D);
   static const accent = Color(0xFFF5C518);
   static const primary = Color(0xFFF1F5F9);
   static const secondary = Color(0xFF94A3B8);

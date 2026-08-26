@@ -3,9 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 import 'package:taxi_servicios/domain/entitis/servicio.dart';
 import 'package:taxi_servicios/domain/entitis/variables.dart';
 import 'package:taxi_servicios/providers/configuracion_provider.dart';
@@ -15,7 +12,6 @@ import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_ganancias/homeganancia_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_reportes/reportes_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_servicios/registroservicio_screen.dart';
-import 'package:taxi_servicios/ui/presentation/screens/screens_configuracion/listvariables_screen.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 
 import 'screens_tanqueo/gas_screen.dart';

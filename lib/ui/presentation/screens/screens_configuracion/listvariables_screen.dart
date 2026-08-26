@@ -19,7 +19,6 @@ class _C {
   static const primary = Color(0xFFF1F5F9);
   static const secondary = Color(0xFF94A3B8);
   static const muted = Color(0xFF3D5166);
-  static const green = Color(0xFF4ADE80);
   static const red = Color(0xFFF87171);
 }
 

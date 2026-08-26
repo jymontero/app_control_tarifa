@@ -9,8 +9,6 @@ import 'package:taxi_servicios/ui/presentation/widgets/calculadora.dart';
 
 // ── Paleta Dark Premium ───────────────────────────────────────────────────────
 class _C {
-  static const bg = Color(0xFF0F1923);
-  static const cardBg = Color(0xFF1A2535);
   static const cardBorder = Color(0xFF1E2D3D);
   static const accent = Color(0xFFF5C518);
   static const primary = Color(0xFFF1F5F9);

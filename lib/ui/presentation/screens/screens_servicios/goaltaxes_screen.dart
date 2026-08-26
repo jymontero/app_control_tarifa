@@ -238,9 +238,16 @@ class _GoalDairyState extends State<GoalDairy> {
 
   String _compacto(int valor) {
     if (valor >= 1000000) return '${(valor / 1000000).toStringAsFixed(1)}M';
-    if (valor >= 1000) return '${(valor / 1000).toStringAsFixed(1)}k';
-    return valor.toString();
+    //if (valor >= 1000) return '${(valor / 1000).toStringAsFixed(1)}k';
+    return _fmt.format(valor);
   }
+
+  // String _compacto(int valor) {
+  //   if (valor >= 1000000) return '${(valor / 1000000).toStringAsFixed(1)}M';
+  //   //if (valor >= 1000) return '${(valor / 1000).toStringAsFixed(1)}k';
+  //   return _fmt.format(valor);
+  //   //valor.toString();
+  // }
 
   Color _colorMetodoPago(String metodo) =>
       metodo == 'transferencia' ? Colors.purpleAccent.shade100 : _C.green;
@@ -304,7 +311,7 @@ class _GoalDairyState extends State<GoalDairy> {
               const Text(
                 'RECAUDADO HOY',
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: 11,
                   color: _C.secondary,
                   letterSpacing: 0.5,
                 ),
@@ -334,11 +341,11 @@ class _GoalDairyState extends State<GoalDairy> {
                 children: [
                   Text(
                     '${pct.toStringAsFixed(0)}% de la meta',
-                    style: const TextStyle(fontSize: 9, color: _C.accent),
+                    style: const TextStyle(fontSize: 10, color: _C.accent),
                   ),
                   Text(
                     'Meta: ${_fmt.format(meta)}',
-                    style: const TextStyle(fontSize: 9, color: _C.secondary),
+                    style: const TextStyle(fontSize: 10, color: _C.secondary),
                   ),
                 ],
               ),
@@ -372,13 +379,15 @@ class _GoalDairyState extends State<GoalDairy> {
               ),
               _metricItem(
                 label: 'Promedio',
-                value: '\$${_compacto(contador.promedioPorServicio)}',
+                value: _compacto(contador.promedioPorServicio),
                 color: _C.primary,
                 hasBorder: true,
               ),
               _metricItem(
-                label: 'Por hacer',
-                value: '\$${_compacto(porHacer < 0 ? 0 : porHacer)}',
+                label: porHacer <= 0 ? 'Por encima' : 'Por hacer',
+                value: porHacer <= 0
+                    ? '+ ${_compacto(porHacer.abs())}'
+                    : ' ${_compacto(porHacer)}',
                 color: porHacer <= 0 ? _C.green : _C.red,
                 hasBorder: false,
               ),
@@ -409,7 +418,7 @@ class _GoalDairyState extends State<GoalDairy> {
                     fontSize: 14, fontWeight: FontWeight.w500, color: color)),
             const SizedBox(height: 2),
             Text(label,
-                style: const TextStyle(fontSize: 9, color: _C.secondary)),
+                style: const TextStyle(fontSize: 10, color: _C.secondary)),
           ],
         ),
       ),
@@ -435,7 +444,7 @@ class _GoalDairyState extends State<GoalDairy> {
                 children: [
                   const Text('TIPO SERVICIO',
                       style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 10,
                           color: Color(0xFF94A3B8),
                           letterSpacing: 0.3)),
                   const SizedBox(height: 6),
@@ -486,16 +495,14 @@ class _GoalDairyState extends State<GoalDairy> {
                 children: [
                   const Text('MÉTODO PAGO',
                       style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 10,
                           color: Color(0xFF94A3B8),
                           letterSpacing: 0.3)),
                   const SizedBox(height: 6),
-                  _consolidadoFila('Efectivo', '\$${_compacto(_efectivoTotal)}',
+                  _consolidadoFila('Efectivo', _compacto(_efectivoTotal),
                       const Color(0xFF4ADE80)),
                   const SizedBox(height: 4),
-                  _consolidadoFila(
-                      'Transf.',
-                      '\$${_compacto(_transferenciaTotal)}',
+                  _consolidadoFila('Transf.', _compacto(_transferenciaTotal),
                       const Color(0xFFA78BFA)),
                   const SizedBox(height: 6),
                   // Barra proporcional
@@ -546,7 +553,7 @@ class _GoalDairyState extends State<GoalDairy> {
             ),
             const SizedBox(width: 5),
             Text(label,
-                style: const TextStyle(fontSize: 10, color: Color(0xFFF1F5F9))),
+                style: const TextStyle(fontSize: 11, color: Color(0xFFF1F5F9))),
           ],
         ),
         Text(valor,
@@ -707,7 +714,7 @@ class _GoalDairyState extends State<GoalDairy> {
                   children: [
                     Text(
                       s.hora,
-                      style: const TextStyle(fontSize: 9, color: _C.secondary),
+                      style: const TextStyle(fontSize: 10, color: _C.secondary),
                     ),
                     const SizedBox(width: 6),
                     // Badge tipo servicio
@@ -720,7 +727,7 @@ class _GoalDairyState extends State<GoalDairy> {
                       ),
                       child: Text(
                         s.tipoServicio == 'plataforma' ? 'Plataforma' : 'Taxi',
-                        style: const TextStyle(fontSize: 8, color: _C.accent),
+                        style: const TextStyle(fontSize: 9, color: _C.accent),
                       ),
                     ),
                     const SizedBox(width: 4),
@@ -736,7 +743,7 @@ class _GoalDairyState extends State<GoalDairy> {
                         s.metodoPago == 'transferencia'
                             ? 'Transf.'
                             : 'Efectivo',
-                        style: TextStyle(fontSize: 8, color: colorPago),
+                        style: TextStyle(fontSize: 9, color: colorPago),
                       ),
                     ),
                   ],
@@ -922,7 +929,7 @@ class _GoalDairyState extends State<GoalDairy> {
                   Text(
                     'Registrar nuevo servicio',
                     style: TextStyle(
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: Color(0xFF0F1923),
                     ),
@@ -957,7 +964,7 @@ class _GoalDairyState extends State<GoalDairy> {
                       Text(
                         'Desliza para finalizar turno',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 13,
                           fontWeight: FontWeight.w500,
                           color: _C.red.withOpacity(
                             1.0 - state.thumbFractionalPosition,

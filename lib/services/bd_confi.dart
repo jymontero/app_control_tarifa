@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:taxi_servicios/domain/entitis/estaciongas.dart';
+import 'package:taxi_servicios/domain/entitis/etiqueta.dart';
 import 'package:taxi_servicios/domain/entitis/gas.dart';
 import 'package:taxi_servicios/domain/entitis/ingresos.dart';
 import 'package:taxi_servicios/domain/entitis/perfil.dart';
 import 'package:taxi_servicios/domain/entitis/servicio.dart';
+import 'package:taxi_servicios/domain/entitis/turno.dart';
 import 'package:taxi_servicios/domain/entitis/variables.dart';
 
 class FireStoreDataBase {
@@ -93,24 +95,49 @@ class FireStoreDataBase {
     return eds;
   }
 
-  Future<List<GasolineTank>> getModeloTanqueo() async {
+  Future<List<GasolineTank>> getModeloTanqueoMes(
+      {required int month, required int year}) async {
+    // El formato de fecha es '2024-02-14' así que filtramos por rango
+    final inicio = DateTime(year, month, 1);
+    final fin = DateTime(year, month + 1, 1);
+
+    final fechaInicio =
+        '${inicio.year}-${inicio.month.toString().padLeft(2, '0')}-${inicio.day.toString().padLeft(2, '0')}';
+
+    final fechaFin =
+        '${fin.year}-${fin.month.toString().padLeft(2, '0')}-${fin.day.toString().padLeft(2, '0')}';
+
     final queryGAS = await db
         .collection('gasolina')
+        .where('fecha', isGreaterThanOrEqualTo: fechaInicio)
+        .where('fecha', isLessThan: fechaFin)
         .orderBy('fecha', descending: true)
-        .limit(17)
         .get();
 
-    final gas = queryGAS.docs.map((e) {
+    return queryGAS.docs.map((e) {
       final modeloGasolineTank = GasolineTank.fromJson(e.data());
       modeloGasolineTank.id = e.id;
       return modeloGasolineTank;
     }).toList();
-    // ignore: avoid_print
-
-    return gas;
   }
 
-  Future<void> averageValorTanqueo() async {}
+  Future<List<GasolineTank>> getTanqueosAnio(int year) async {
+    final inicio = '$year-01-01';
+    final fin = '${year + 1}-01-01';
+
+    final queryGAS = await db
+        .collection('gasolina')
+        .where('fecha', isGreaterThanOrEqualTo: inicio)
+        .where('fecha', isLessThan: fin)
+        .orderBy('fecha', descending: false)
+        .get();
+
+    return queryGAS.docs.map((e) {
+      final modeloGasolineTank = GasolineTank.fromJson(e.data());
+      modeloGasolineTank.id = e.id;
+      return modeloGasolineTank;
+    }).toList();
+  }
 
 //CONSULTAS DE AGREGACION BASE DE DATOS FIREBASE
   Future<void> addVariableBD(int monto, String nombre) async {
@@ -327,5 +354,106 @@ class FireStoreDataBase {
         .collection('perfil')
         .doc('conductor')
         .set(perfil.toJson(), SetOptions(merge: true));
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // ETIQUETAS — agregar a FireStoreDataBase en bd_confi.dart
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Obtiene todas las etiquetas del conductor
+  Future<List<Etiqueta>> getEtiquetas() async {
+    final query = await db.collection('etiquetas').orderBy('nombre').get();
+
+    return query.docs.map((e) {
+      final etiqueta = Etiqueta.fromJson(e.data());
+      etiqueta.id = e.id;
+      return etiqueta;
+    }).toList();
+  }
+
+  /// Crea una nueva etiqueta
+  Future<Etiqueta> addEtiqueta(String nombre, String color) async {
+    final doc = await db.collection('etiquetas').add({
+      'nombre': nombre,
+      'color': color,
+    });
+    final etiqueta = Etiqueta(nombre: nombre, color: color);
+    etiqueta.id = doc.id;
+    return etiqueta;
+  }
+
+  /// Elimina una etiqueta
+  Future<void> eliminarEtiqueta(String etiquetaId) async {
+    await db.collection('etiquetas').doc(etiquetaId).delete();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // TURNOS — agregar a FireStoreDataBase en bd_confi.dart
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Obtiene todos los turnos de un mes específico
+  Future<List<Turno>> getTurnosMes(int mes, int anio) async {
+    final inicioStr = '$anio-${mes.toString().padLeft(2, '0')}-01';
+    final fin = DateTime(anio, mes + 1, 1);
+    final finStr = '${fin.year}-${fin.month.toString().padLeft(2, '0')}-01';
+
+    final query = await db
+        .collection('turnos')
+        .where('fecha', isGreaterThanOrEqualTo: inicioStr)
+        .where('fecha', isLessThan: finStr)
+        .get();
+
+    return query.docs.map((e) {
+      final turno = Turno.fromJson(e.data());
+      turno.id = e.id;
+      return turno;
+    }).toList();
+  }
+
+  /// Agrega una etiqueta a un día
+  Future<Turno> addTurno({
+    required String fecha,
+    required String etiquetaId,
+    required String etiquetaNombre,
+    required String etiquetaColor,
+  }) async {
+    final doc = await db.collection('turnos').add({
+      'fecha': fecha,
+      'etiquetaId': etiquetaId,
+      'etiquetaNombre': etiquetaNombre,
+      'etiquetaColor': etiquetaColor,
+      'confirmado': false,
+    });
+    final turno = Turno(
+      fecha: fecha,
+      etiquetaId: etiquetaId,
+      etiquetaNombre: etiquetaNombre,
+      etiquetaColor: etiquetaColor,
+    );
+    turno.id = doc.id;
+    return turno;
+  }
+
+  /// Elimina una etiqueta de un día específico
+  Future<void> eliminarTurno(String turnoId) async {
+    await db.collection('turnos').doc(turnoId).delete();
+  }
+
+  /// Elimina todas las etiquetas de un día
+  Future<void> eliminarTurnosDia(String fecha) async {
+    final query =
+        await db.collection('turnos').where('fecha', isEqualTo: fecha).get();
+    for (final doc in query.docs) {
+      await doc.reference.delete();
+    }
+  }
+
+  /// Marca un turno como confirmado (cuando hay ingreso registrado)
+  Future<void> confirmarTurno(String fecha) async {
+    final query =
+        await db.collection('turnos').where('fecha', isEqualTo: fecha).get();
+    for (final doc in query.docs) {
+      await doc.reference.update({'confirmado': true});
+    }
   }
 }

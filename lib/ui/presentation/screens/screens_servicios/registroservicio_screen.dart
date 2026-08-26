@@ -199,17 +199,26 @@ class _RegistroServicioState extends State<RegistroServicio> {
         title: Column(
           children: [
             const Text(
-              '¿Registrar servicio?',
+              '¿Registrar Servicio?',
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: _C.primary, fontSize: 15, fontWeight: FontWeight.w500),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 10),
             Text(
               _fmt.format(valor),
               textAlign: TextAlign.center,
               style: const TextStyle(
                   color: _C.accent, fontSize: 20, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              '${_capitalizar(_metodoPago)} - ${_capitalizar(_tipoServicio)}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: _C.primary,
+                fontSize: 13,
+              ),
             ),
           ],
         ),
@@ -730,5 +739,10 @@ class _RegistroServicioState extends State<RegistroServicio> {
       'dic'
     ];
     return meses[mes - 1];
+  }
+
+  String _capitalizar(String texto) {
+    if (texto.isEmpty) return texto;
+    return texto[0].toUpperCase() + texto.substring(1).toLowerCase();
   }
 }

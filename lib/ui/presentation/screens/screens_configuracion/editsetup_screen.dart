@@ -1,4 +1,4 @@
-// ignore_for_file: must_be_immutable
+// ignore_for_file: must_be_immutable, unused_field
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -17,7 +17,6 @@ class _C {
   static const accent = Color(0xFFF5C518);
   static const primary = Color(0xFFF1F5F9);
   static const secondary = Color(0xFF94A3B8);
-  static const muted = Color(0xFF3D5166);
   static const red = Color(0xFFF87171);
 }
 

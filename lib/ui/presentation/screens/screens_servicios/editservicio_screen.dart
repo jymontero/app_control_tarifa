@@ -11,14 +11,11 @@ import 'package:taxi_servicios/services/bd_confi.dart';
 // ── Paleta Dark Premium ───────────────────────────────────────────────────────
 class _C {
   static const bg = Color(0xFF0F1923);
-  static const cardBg = Color(0xFF1A2535);
   static const cardBorder = Color(0xFF1E2D3D);
   static const accent = Color(0xFFF5C518);
   static const primary = Color(0xFFF1F5F9);
   static const secondary = Color(0xFF64748B);
   static const muted = Color(0xFF3D5166);
-  static const green = Color(0xFF4ADE80);
-  static const red = Color(0xFFF87171);
 }
 
 class EditService extends StatefulWidget {
