@@ -7,6 +7,7 @@ import 'package:taxi_servicios/domain/entitis/ingresos.dart';
 import 'package:taxi_servicios/providers/ingresos_provider.dart';
 import 'package:taxi_servicios/providers/configuracion_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_calendarioTurno/turno_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_servicios/listservices_screen.dart';
 
 // ── Paleta Dark Premium ───────────────────────────────────────────────────────
@@ -256,10 +257,18 @@ class _HomeGananciaState extends State<HomeGanancia> {
               ),
             ],
           ),
-          Consumer<IngresosProvider>(
-            builder: (_, prov, __) => Text(
-              '${prov.diasLaborados} días laborados',
-              style: const TextStyle(fontSize: 10, color: _C.accent),
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const TurneroScreen(),
+              ),
+            ),
+            child: Consumer<IngresosProvider>(
+              builder: (_, prov, __) => Text(
+                '${prov.diasLaborados} días laborados',
+                style: const TextStyle(fontSize: 10, color: _C.accent),
+              ),
             ),
           ),
         ],
@@ -838,9 +847,21 @@ class _HomeGananciaState extends State<HomeGanancia> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('${lista.length} días laborados',
-                                style: const TextStyle(
-                                    fontSize: 10, color: _C.secondary)),
+                            GestureDetector(
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const TurneroScreen(),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Text('${lista.length} días laborados',
+                                      style: const TextStyle(
+                                          fontSize: 10, color: _C.secondary)),
+                                ],
+                              ),
+                            ),
                             const SizedBox(height: 2),
                             GestureDetector(
                               onTap: () {

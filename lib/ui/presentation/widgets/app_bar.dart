@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cron/cron.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_Perfil/perfil_screen.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_calendarioTurno/turno_screen.dart';
 
 class AppBarCustomized extends StatefulWidget implements PreferredSizeWidget {
   final double height;
@@ -107,6 +108,29 @@ class _AppBarCustomizedState extends State<AppBarCustomized> {
         ],
       ),
       actions: [
+        GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const TurneroScreen()),
+          ),
+          child: Container(
+            width: 32,
+            height: 32,
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5C518).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(
+                color: const Color(0xFFF5C518).withOpacity(0.2),
+              ),
+            ),
+            child: const Icon(
+              Icons.calendar_month_outlined,
+              color: Color(0xFFF5C518),
+              size: 15,
+            ),
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.only(right: 12),
           child: Container(
