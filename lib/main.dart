@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:taxi_servicios/providers/perfil_provider.dart';
 import 'package:taxi_servicios/providers/reportes_provider.dart';
+import 'package:taxi_servicios/providers/turno_provider.dart';
 
 import 'firebase_options.dart';
 import 'package:taxi_servicios/providers/configuracion_provider.dart';
@@ -29,6 +30,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => PerfilProvider()),
         ChangeNotifierProvider(create: (_) => ReportesProvider()),
+        ChangeNotifierProvider(create: (_) => TurnoProvider()..inicializar()),
       ],
       child: const MyApp(),
     ),

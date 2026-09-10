@@ -6,6 +6,7 @@ import 'package:taxi_servicios/domain/entitis/servicio.dart';
 import 'package:taxi_servicios/providers/configuracion_provider.dart';
 import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:taxi_servicios/providers/tanqueo_provider.dart';
+import 'package:taxi_servicios/providers/turno_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_finturno/registrylavada_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_finturno/registryentrega_screen.dart';
@@ -103,6 +104,8 @@ class _StepperFinalizedState extends State<StepperFinalized> {
     final numTipoServicioTaxi = metricas['numTipoServicioTaxi'] ?? 0;
     final numTipoServicioPlataforma =
         metricas['numTipoServicioPlataforma'] ?? 0;
+
+    await context.read<TurnoProvider>().finalizarTurno();
 
     // Guardar ganancia con desglose completo
     await _db.addGananciaBD(

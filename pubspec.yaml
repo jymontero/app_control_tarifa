@@ -51,6 +51,8 @@ dependencies:
     sdk: flutter
   mat_month_picker_dialog: ^1.1.1
   math_expressions: ^2.4.0
+  shared_preferences: ^2.2.3
+  # shared_preferences: ^2.2.3
 
 dev_dependencies:
   flutter_test:
