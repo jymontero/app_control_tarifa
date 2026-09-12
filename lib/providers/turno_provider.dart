@@ -92,6 +92,15 @@ class TurnoProvider with ChangeNotifier, WidgetsBindingObserver {
 
   Timer? _timer;
 
+  // ── Vigilancia de actividad ────────────────────────────────────────────────
+  DateTime? _ultimaActividad;
+  Timer? _timerVigilanciaActividad;
+  bool _requiereConfirmacionActividad = false;
+  int _intervalosAlertados = 0;
+
+  // Por ahora 60 minutos; el valor puede venir de configuración posteriormente.
+  static const Duration tiempoAlertaActividad = Duration(minutes: 5);
+
   List<PausaTurno> _pausas = [];
 
   // ── Constructor ─────────────────────────────────────────────────────────────
@@ -115,6 +124,10 @@ class TurnoProvider with ChangeNotifier, WidgetsBindingObserver {
   bool get activo => _estado == EstadoTurno.activo;
 
   bool get pausado => _estado == EstadoTurno.pausado;
+
+  DateTime? get ultimaActividad => _ultimaActividad;
+
+  bool get requiereConfirmacionActividad => _requiereConfirmacionActividad;
 
   /// Devuelve los segundos activos reales.
   ///
@@ -263,7 +276,15 @@ class TurnoProvider with ChangeNotifier, WidgetsBindingObserver {
         }
       }
 
+      _ultimaActividad = _leerFecha(prefs.getInt('turno_ultima_actividad'));
+      _intervalosAlertados = prefs.getInt('turno_intervalos_alertados') ?? 0;
+
+      // Compatibilidad: si todavía no existe la nueva marca, usamos el inicio
+      // del período activo como referencia inicial.
+      _ultimaActividad ??= _inicioPeriodoActivo;
+
       _iniciarTimer();
+      _iniciarVigilanciaActividad();
     }
 
     // ── Estado pausado ─────────────────────────────────────────────────────────
@@ -294,6 +315,8 @@ class TurnoProvider with ChangeNotifier, WidgetsBindingObserver {
       }
 
       _inicioPeriodoActivo = null;
+      _cancelarVigilanciaActividad();
+      _requiereConfirmacionActividad = false;
     }
 
     notifyListeners();
@@ -309,6 +332,9 @@ class TurnoProvider with ChangeNotifier, WidgetsBindingObserver {
     _segundosAcumulados = 0;
 
     _inicioPeriodoActivo = ahora;
+    _ultimaActividad = ahora;
+    _intervalosAlertados = 0;
+    _requiereConfirmacionActividad = false;
 
     _inicioPausa = null;
 
@@ -321,6 +347,7 @@ class TurnoProvider with ChangeNotifier, WidgetsBindingObserver {
     await _guardarEstado();
 
     _iniciarTimer();
+    _iniciarVigilanciaActividad();
 
     notifyListeners();
   }
@@ -338,6 +365,8 @@ class TurnoProvider with ChangeNotifier, WidgetsBindingObserver {
     _acumularTiempoActivo(ahora);
 
     _timer?.cancel();
+    _cancelarVigilanciaActividad();
+    _requiereConfirmacionActividad = false;
 
     _inicioPausa = ahora;
 
@@ -409,6 +438,8 @@ class TurnoProvider with ChangeNotifier, WidgetsBindingObserver {
     }
 
     _timer?.cancel();
+    _cancelarVigilanciaActividad();
+    _requiereConfirmacionActividad = false;
 
     final datos = {
       'horaInicio': _horaInicio,
@@ -444,6 +475,138 @@ class TurnoProvider with ChangeNotifier, WidgetsBindingObserver {
     }
 
     _inicioPeriodoActivo = null;
+  }
+
+  // ── Actividad del turno ─────────────────────────────────────────────────────
+
+  /// Registra actividad laboral confirmada por una acción del usuario.
+  ///
+  /// Un servicio creado es una actividad. También se utiliza al iniciar,
+  /// reanudar y confirmar que el conductor sigue trabajando.
+  Future<void> registrarActividad([DateTime? fecha]) async {
+    if (_estado != EstadoTurno.activo) return;
+
+    _ultimaActividad = fecha ?? DateTime.now();
+    _intervalosAlertados = 0;
+    _requiereConfirmacionActividad = false;
+
+    await _guardarEstado();
+    _iniciarVigilanciaActividad();
+    notifyListeners();
+  }
+
+  /// Debe llamarse cuando se elimina un servicio.
+  ///
+  /// Si todavía existen servicios, [fechaUltimoServicio] debe ser la fecha
+  /// del último servicio restante. Si no quedan servicios, no modificamos la
+  /// actividad del turno para no borrar una actividad válida como una
+  /// reanudación o confirmación manual.
+  Future<void> registrarEliminacionServicio(
+      DateTime? fechaUltimoServicio) async {
+    if (_estado != EstadoTurno.activo) return;
+
+    if (fechaUltimoServicio != null) {
+      _ultimaActividad = fechaUltimoServicio;
+      _intervalosAlertados = 0;
+      _requiereConfirmacionActividad = false;
+      await _guardarEstado();
+      _iniciarVigilanciaActividad();
+      notifyListeners();
+    }
+  }
+
+  /// El usuario confirma que continúa trabajando.
+  Future<void> confirmarQueSigoTrabajando() async {
+    await registrarActividad();
+  }
+
+  /// Convierte los intervalos completos de inactividad detectados en una
+  /// pausa retrospectiva y deja activo el tiempo posterior a la última alerta.
+  ///
+  /// Ejemplo con intervalo de 60 min:
+  /// 08:00 última actividad, alertas 09:00 y 10:00, respuesta NO a las 10:15.
+  /// Se registra 08:00-10:00 como pausa y 10:00-10:15 permanece activo.
+  Future<void> iniciarPausaPorInactividad() async {
+    if (_estado != EstadoTurno.activo || _ultimaActividad == null) return;
+
+    final ahora = DateTime.now();
+    final cantidadIntervalos = ahora.difference(_ultimaActividad!).inMinutes ~/
+        tiempoAlertaActividad.inMinutes;
+
+    if (cantidadIntervalos <= 0) return;
+
+    final finPausa = _ultimaActividad!.add(
+      tiempoAlertaActividad * cantidadIntervalos,
+    );
+
+    // El tiempo activo se divide en dos: todo lo anterior a la pausa queda
+    // acumulado y el último período activo continúa desde finPausa.
+    final inicioPeriodo = _inicioPeriodoActivo;
+    if (inicioPeriodo != null && finPausa.isAfter(inicioPeriodo)) {
+      final segundosHastaPausa = finPausa.difference(inicioPeriodo).inSeconds;
+      if (segundosHastaPausa > 0) {
+        _segundosAcumulados += segundosHastaPausa;
+      }
+    }
+
+    _inicioPeriodoActivo = finPausa;
+
+    // Una pausa retrospectiva se registra cerrada: ya conocemos inicio y fin.
+    _pausas.add(
+      PausaTurno(
+        etiqueta: 'No estoy trabajando',
+        inicio: _ultimaActividad!,
+        fin: finPausa,
+      ),
+    );
+
+    // El intervalo posterior a la última alerta sigue siendo activo.
+    _ultimaActividad = finPausa;
+    _intervalosAlertados = cantidadIntervalos;
+    _requiereConfirmacionActividad = false;
+
+    await _guardarEstado();
+    _iniciarVigilanciaActividad();
+    notifyListeners();
+  }
+
+  void _iniciarVigilanciaActividad() {
+    _timerVigilanciaActividad?.cancel();
+
+    if (_estado != EstadoTurno.activo || _ultimaActividad == null) return;
+
+    _timerVigilanciaActividad = Timer.periodic(
+      const Duration(minutes: 1),
+      (_) => _comprobarActividad(),
+    );
+
+    _comprobarActividad();
+  }
+
+  void _cancelarVigilanciaActividad() {
+    _timerVigilanciaActividad?.cancel();
+    _timerVigilanciaActividad = null;
+  }
+
+  void _comprobarActividad() {
+    if (_estado != EstadoTurno.activo || _ultimaActividad == null) return;
+
+    final minutosTranscurridos =
+        DateTime.now().difference(_ultimaActividad!).inMinutes;
+    final intervalosCompletos =
+        minutosTranscurridos ~/ tiempoAlertaActividad.inMinutes;
+
+    if (intervalosCompletos > _intervalosAlertados) {
+      _intervalosAlertados = intervalosCompletos;
+      _requiereConfirmacionActividad = true;
+      _guardarEstado();
+      notifyListeners();
+    }
+  }
+
+  DateTime? _leerFecha(int? milliseconds) {
+    if (milliseconds == null) return null;
+    return DateTime.fromMillisecondsSinceEpoch(milliseconds);
   }
 
   // ── Timer de actualización de UI ────────────────────────────────────────────
@@ -533,6 +696,20 @@ class TurnoProvider with ChangeNotifier, WidgetsBindingObserver {
       );
     }
 
+    if (_ultimaActividad != null) {
+      await prefs.setInt(
+        'turno_ultima_actividad',
+        _ultimaActividad!.millisecondsSinceEpoch,
+      );
+    } else {
+      await prefs.remove('turno_ultima_actividad');
+    }
+
+    await prefs.setInt(
+      'turno_intervalos_alertados',
+      _intervalosAlertados,
+    );
+
     // Guardar todas las pausas como JSON.
     final pausasJson = jsonEncode(
       _pausas.map((p) => p.toMap()).toList(),
@@ -560,6 +737,9 @@ class TurnoProvider with ChangeNotifier, WidgetsBindingObserver {
     _segundosAcumulados = 0;
 
     _inicioPeriodoActivo = null;
+    _ultimaActividad = null;
+    _requiereConfirmacionActividad = false;
+    _intervalosAlertados = 0;
 
     _pausas = [];
 
@@ -579,6 +759,8 @@ class TurnoProvider with ChangeNotifier, WidgetsBindingObserver {
     // Datos utilizados por la versión anterior.
     await prefs.remove('turno_segundos_activos');
     await prefs.remove('turno_ultima_actualizacion');
+    await prefs.remove('turno_ultima_actividad');
+    await prefs.remove('turno_intervalos_alertados');
 
     notifyListeners();
   }
@@ -597,6 +779,8 @@ class TurnoProvider with ChangeNotifier, WidgetsBindingObserver {
       // Solo notificamos para que el AppBar y demás widgets
       // actualicen inmediatamente el valor mostrado.
       if (_estado == EstadoTurno.activo) {
+        _comprobarActividad();
+        _iniciarVigilanciaActividad();
         notifyListeners();
       }
     }
@@ -609,6 +793,7 @@ class TurnoProvider with ChangeNotifier, WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
 
     _timer?.cancel();
+    _cancelarVigilanciaActividad();
 
     super.dispose();
   }
