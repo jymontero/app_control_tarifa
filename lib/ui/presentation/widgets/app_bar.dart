@@ -34,6 +34,7 @@ class AppBarCustomized extends StatefulWidget implements PreferredSizeWidget {
 
 class _AppBarCustomizedState extends State<AppBarCustomized> {
   String _saludo = '';
+  bool _dialogoActividadMostrado = false;
 
   // ── Lifecycle ────────────────────────────────────────────────────────────────
 
@@ -58,6 +59,86 @@ class _AppBarCustomizedState extends State<AppBarCustomized> {
     return 'Buenas noches,';
   }
 
+  // ── Alerta de actividad ─────────────────────────────────────────────────────
+
+  void _verificarAlertaActividad(TurnoProvider turno) {
+    if (!turno.requiereConfirmacionActividad) {
+      _dialogoActividadMostrado = false;
+      return;
+    }
+
+    if (_dialogoActividadMostrado || !mounted) return;
+
+    _dialogoActividadMostrado = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _mostrarDialogoActividad();
+    });
+  }
+
+  Future<void> _mostrarDialogoActividad() async {
+    final respuesta = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: _C.cardBg,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: _C.cardBorder),
+        ),
+        title: const Text(
+          '¿Sigues trabajando?',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: _C.primary,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        content: const Text(
+          'Llevas bastante tiempo sin registrar actividad. ¿Sigues trabajando o deseas registrar una pausa?',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: _C.secondary,
+            fontSize: 12,
+            height: 1.4,
+          ),
+        ),
+        actionsAlignment: MainAxisAlignment.spaceEvenly,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, true),
+            child: const Text(
+              'Sí, sigo trabajando',
+              style: TextStyle(color: _C.green),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: const Text(
+              'No estoy trabajando',
+              style: TextStyle(color: _C.red),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return;
+
+    final turno = context.read<TurnoProvider>();
+
+    if (respuesta == true) {
+      await turno.confirmarQueSigoTrabajando();
+    } else if (respuesta == false) {
+      await turno.iniciarPausaPorInactividad();
+    }
+    // Si se cierra/ignora la alerta, no hacemos nada. El Provider conserva
+    // el intervalo ya alertado y volverá a generar otra alerta al completar
+    // el siguiente intervalo configurado.
+  }
+
   // ── Badge de turno ────────────────────────────────────────────────────────────
 
   void _onBadgeTap() {
@@ -74,37 +155,40 @@ class _AppBarCustomizedState extends State<AppBarCustomized> {
 
   Widget _buildBottomSheetTurno(BuildContext ctx, TurnoProvider turno) {
     return Consumer<TurnoProvider>(
-      builder: (_, t, __) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Handle
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: _C.muted,
-                  borderRadius: BorderRadius.circular(2),
+      builder: (_, t, __) {
+        _verificarAlertaActividad(t);
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Handle
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: _C.muted,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
 
-            // Estado actual
-            if (t.sinIniciar) ...[
-              _buildEstadoSinIniciar(ctx),
-            ] else ...[
-              _buildCronometro(t),
-              const SizedBox(height: 16),
-              if (t.activo) _buildBotonesActivo(ctx, t),
-              if (t.pausado) _buildBotonesPausado(ctx, t),
+              // Estado actual
+              if (t.sinIniciar) ...[
+                _buildEstadoSinIniciar(ctx),
+              ] else ...[
+                _buildCronometro(t),
+                const SizedBox(height: 16),
+                if (t.activo) _buildBotonesActivo(ctx, t),
+                if (t.pausado) _buildBotonesPausado(ctx, t),
+              ],
             ],
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -202,9 +286,9 @@ class _AppBarCustomizedState extends State<AppBarCustomized> {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
+        const Text(
           'Tiempo activo',
-          style: const TextStyle(fontSize: 10, color: _C.secondary),
+          style: TextStyle(fontSize: 10, color: _C.secondary),
         ),
         // Hora de inicio
         if (t.horaInicio != null) ...[
@@ -486,6 +570,13 @@ class _AppBarCustomizedState extends State<AppBarCustomized> {
         ],
       ),
       actions: [
+        // Vigila la alerta aunque el bottom sheet esté cerrado.
+        Consumer<TurnoProvider>(
+          builder: (_, turno, __) {
+            _verificarAlertaActividad(turno);
+            return const SizedBox.shrink();
+          },
+        ),
         // Botón calendario
         GestureDetector(
           onTap: () => Navigator.push(

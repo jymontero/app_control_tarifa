@@ -99,7 +99,7 @@ class TurnoProvider with ChangeNotifier, WidgetsBindingObserver {
   int _intervalosAlertados = 0;
 
   // Por ahora 60 minutos; el valor puede venir de configuración posteriormente.
-  static const Duration tiempoAlertaActividad = Duration(minutes: 5);
+  static const Duration tiempoAlertaActividad = Duration(minutes: 60);
 
   List<PausaTurno> _pausas = [];
 
@@ -401,17 +401,24 @@ class TurnoProvider with ChangeNotifier, WidgetsBindingObserver {
     }
 
     _inicioPausa = null;
-
     _etiquetaPausa = null;
 
-    // Comienza un nuevo período de tiempo activo.
+    // Comienza un nuevo período activo.
     _inicioPeriodoActivo = ahora;
+
+    // Reanudar es una nueva actividad.
+    _ultimaActividad = ahora;
+
+    // Reiniciar el ciclo de alertas.
+    _requiereConfirmacionActividad = false;
+    _intervalosAlertados = 0;
 
     _estado = EstadoTurno.activo;
 
     await _guardarEstado();
 
     _iniciarTimer();
+    _iniciarVigilanciaActividad();
 
     notifyListeners();
   }
@@ -484,6 +491,14 @@ class TurnoProvider with ChangeNotifier, WidgetsBindingObserver {
   /// Un servicio creado es una actividad. También se utiliza al iniciar,
   /// reanudar y confirmar que el conductor sigue trabajando.
   Future<void> registrarActividad([DateTime? fecha]) async {
+    if (_estado == EstadoTurno.pausado) {
+      await reanudarTurno();
+      return;
+    }
+    if (_estado == EstadoTurno.sinIniciar) {
+      await iniciarTurno();
+      return;
+    }
     if (_estado != EstadoTurno.activo) return;
 
     _ultimaActividad = fecha ?? DateTime.now();
@@ -527,46 +542,85 @@ class TurnoProvider with ChangeNotifier, WidgetsBindingObserver {
   /// 08:00 última actividad, alertas 09:00 y 10:00, respuesta NO a las 10:15.
   /// Se registra 08:00-10:00 como pausa y 10:00-10:15 permanece activo.
   Future<void> iniciarPausaPorInactividad() async {
-    if (_estado != EstadoTurno.activo || _ultimaActividad == null) return;
+    if (_estado != EstadoTurno.activo || _ultimaActividad == null) {
+      return;
+    }
 
     final ahora = DateTime.now();
-    final cantidadIntervalos = ahora.difference(_ultimaActividad!).inMinutes ~/
-        tiempoAlertaActividad.inMinutes;
 
-    if (cantidadIntervalos <= 0) return;
+    final minutosTranscurridos = ahora.difference(_ultimaActividad!).inMinutes;
 
-    final finPausa = _ultimaActividad!.add(
+    final cantidadIntervalos =
+        minutosTranscurridos ~/ tiempoAlertaActividad.inMinutes;
+
+    if (cantidadIntervalos <= 0) {
+      return;
+    }
+
+    // Fin del último intervalo completo de inactividad.
+    final finPausaRetrospectiva = _ultimaActividad!.add(
       tiempoAlertaActividad * cantidadIntervalos,
     );
 
-    // El tiempo activo se divide en dos: todo lo anterior a la pausa queda
-    // acumulado y el último período activo continúa desde finPausa.
-    final inicioPeriodo = _inicioPeriodoActivo;
-    if (inicioPeriodo != null && finPausa.isAfter(inicioPeriodo)) {
-      final segundosHastaPausa = finPausa.difference(inicioPeriodo).inSeconds;
-      if (segundosHastaPausa > 0) {
-        _segundosAcumulados += segundosHastaPausa;
-      }
+    // 1. Acumular como tiempo activo hasta el final
+    //    del último intervalo completo.
+    if (_inicioPeriodoActivo != null) {
+      _acumularTiempoActivo(finPausaRetrospectiva);
     }
 
-    _inicioPeriodoActivo = finPausa;
-
-    // Una pausa retrospectiva se registra cerrada: ya conocemos inicio y fin.
+    // 2. Registrar la pausa retrospectiva correspondiente
+    //    únicamente a los intervalos completos.
     _pausas.add(
       PausaTurno(
         etiqueta: 'No estoy trabajando',
         inicio: _ultimaActividad!,
-        fin: finPausa,
+        fin: finPausaRetrospectiva,
       ),
     );
 
-    // El intervalo posterior a la última alerta sigue siendo activo.
-    _ultimaActividad = finPausa;
-    _intervalosAlertados = cantidadIntervalos;
+    // 3. El tiempo que queda después del último intervalo completo
+    //    sigue siendo tiempo activo.
+    //
+    //    Ejemplo:
+    //    08:00 última actividad
+    //    10:00 fin de 2 intervalos
+    //    10:15 respuesta
+    //
+    //    10:00 -> 10:15 sigue siendo activo.
+    _inicioPeriodoActivo = finPausaRetrospectiva;
+    _acumularTiempoActivo(ahora);
+
+    // 4. AHORA comienza la pausa actual.
+    _inicioPausa = ahora;
+    _etiquetaPausa = 'No estoy trabajando';
+
+    _pausas.add(
+      PausaTurno(
+        etiqueta: 'No estoy trabajando',
+        inicio: ahora,
+      ),
+    );
+
+    // 5. Cambiar realmente el estado del turno.
+    _estado = EstadoTurno.pausado;
+
+    // 6. Ya no debemos vigilar inactividad mientras estamos pausados.
+    _cancelarVigilanciaActividad();
+
+    // El timer de UI tampoco debe seguir ejecutándose.
+    _timer?.cancel();
+
+    // Ya no hay un período activo.
+    _inicioPeriodoActivo = null;
+
+    // Reiniciamos el ciclo de alertas.
     _requiereConfirmacionActividad = false;
+    _intervalosAlertados = cantidadIntervalos;
 
     await _guardarEstado();
-    _iniciarVigilanciaActividad();
+
+    // Esto hace que AppBarCustomized y los demás widgets
+    // reflejen inmediatamente que el turno está pausado.
     notifyListeners();
   }
 
