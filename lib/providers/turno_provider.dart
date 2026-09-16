@@ -99,7 +99,10 @@ class TurnoProvider with ChangeNotifier, WidgetsBindingObserver {
   int _intervalosAlertados = 0;
 
   // Por ahora 60 minutos; el valor puede venir de configuración posteriormente.
-  static const Duration tiempoAlertaActividad = Duration(minutes: 60);
+  // static const Duration tiempoAlertaActividad = Duration(minutes: 60);
+  Duration _tiempoAlertaActividad = const Duration(minutes: 60);
+
+  Duration get tiempoAlertaActividad => _tiempoAlertaActividad;
 
   List<PausaTurno> _pausas = [];
 
@@ -321,7 +324,38 @@ class TurnoProvider with ChangeNotifier, WidgetsBindingObserver {
 
     notifyListeners();
   }
+// ── Configuración de vigilancia ─────────────────────────────────────────────
 
+  /// Actualiza el tiempo de alerta utilizado por la vigilancia de actividad.
+  ///
+  /// Si el turno está activo, reinicia únicamente el mecanismo de vigilancia.
+  /// No modifica:
+  /// - la última actividad;
+  /// - el tiempo activo;
+  /// - el inicio del turno;
+  /// - las pausas;
+  /// - el estado del turno.
+  ///
+  /// La nueva configuración se evalúa inmediatamente.
+  void actualizarTiempoAlerta(Duration nuevaDuracion) {
+    if (_tiempoAlertaActividad == nuevaDuracion) {
+      return;
+    }
+
+    _tiempoAlertaActividad = nuevaDuracion;
+
+    // El número de intervalos anteriores pertenece al intervalo anterior.
+    // Por eso debemos recalcularlo utilizando la nueva configuración.
+    _intervalosAlertados = 0;
+    _requiereConfirmacionActividad = false;
+
+    if (_estado == EstadoTurno.activo) {
+      _cancelarVigilanciaActividad();
+      _iniciarVigilanciaActividad();
+    }
+
+    notifyListeners();
+  }
   // ── Iniciar turno ───────────────────────────────────────────────────────────
 
   Future<void> iniciarTurno() async {

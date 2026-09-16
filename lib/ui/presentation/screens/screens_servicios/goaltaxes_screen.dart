@@ -9,6 +9,7 @@ import 'package:quickalert/widgets/quickalert_dialog.dart';
 import 'package:taxi_servicios/domain/entitis/servicio.dart';
 import 'package:taxi_servicios/providers/configuracion_provider.dart';
 import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
+import 'package:taxi_servicios/providers/turno_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_finturno/finish_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_servicios/editservicio_screen.dart';
@@ -133,6 +134,25 @@ class _GoalDairyState extends State<GoalDairy> {
             .sumarMetaPorHacer(servicio.valorservicio);
       });
       await _cargarServiciosHoy();
+      // Actualizar la última actividad del turno
+      if (_listaServicios.isNotEmpty) {
+        final ultimoServicio = _listaServicios.first;
+
+        final hora = DateFormat.jm().parse(ultimoServicio.hora);
+        final fecha = DateFormat('d-M-yyyy').parse(ultimoServicio.fecha);
+
+        final fechaHoraServicio = DateTime(
+          fecha.year,
+          fecha.month,
+          fecha.day,
+          hora.hour,
+          hora.minute,
+        );
+
+        // context
+        //     .read<TurnoProvider>()
+        //     .registrarEliminacionServicio(fechaHoraServicio);
+      }
     }
   }
 

@@ -7,6 +7,7 @@ import 'package:taxi_servicios/providers/theme_provider.dart';
 import 'package:taxi_servicios/providers/configuracion_provider.dart';
 import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_configuracion/listvariables_screen.dart';
+import 'package:taxi_servicios/providers/configuracion_turno_provider.dart';
 
 // ── Paleta Dark Premium ───────────────────────────────────────────────────────
 class _C {
@@ -401,7 +402,18 @@ class _PerfilScreenState extends State<PerfilScreen> {
             ),
             esDivider: true,
           ),
-
+          // Tiempo de alerta por inactividad
+          Consumer<ConfiguracionTurnoProvider>(
+            builder: (_, turnoConfig, __) {
+              return _menuItem(
+                icono: Icons.timer_outlined,
+                label: 'Alerta de inactividad',
+                valor: '${turnoConfig.tiempoAlertaActividad} minutos',
+                onTap: () => _mostrarSelectorTiempoAlerta(turnoConfig),
+                esDivider: true,
+              );
+            },
+          ),
           // Toggle modo oscuro
           Consumer<ThemeProvider>(
             builder: (_, themeProv, __) {
@@ -489,6 +501,128 @@ class _PerfilScreenState extends State<PerfilScreen> {
     );
   }
 
+  Future<void> _mostrarSelectorTiempoAlerta(
+    ConfiguracionTurnoProvider provider,
+  ) async {
+    final seleccion = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: _C.cardBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(20),
+        ),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: _C.muted,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Alerta de inactividad',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: _C.primary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Selecciona después de cuánto tiempo sin actividad '
+                  'quieres recibir la alerta.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: _C.secondary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ...ConfiguracionTurnoProvider.opcionesTiempoAlerta.map(
+                  (minutos) {
+                    final seleccionado =
+                        minutos == provider.tiempoAlertaActividad;
+
+                    return GestureDetector(
+                      onTap: () => Navigator.pop(ctx, minutos),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: seleccionado
+                              ? _C.accent.withOpacity(0.1)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: seleccionado
+                                ? _C.accent.withOpacity(0.35)
+                                : _C.cardBorder,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              seleccionado
+                                  ? Icons.radio_button_checked
+                                  : Icons.radio_button_off,
+                              color: seleccionado ? _C.accent : _C.muted,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                '$minutos minutos',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: seleccionado
+                                      ? FontWeight.w500
+                                      : FontWeight.w400,
+                                  color:
+                                      seleccionado ? _C.primary : _C.secondary,
+                                ),
+                              ),
+                            ),
+                            if (seleccionado)
+                              const Icon(
+                                Icons.check_rounded,
+                                color: _C.accent,
+                                size: 18,
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (seleccion == null || !mounted) {
+      return;
+    }
+
+    await provider.actualizarTiempoAlerta(seleccion);
+  }
   // ── Menu item ─────────────────────────────────────────────────────────────────
 
   Widget _menuItem({
