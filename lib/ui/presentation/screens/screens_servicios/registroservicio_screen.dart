@@ -6,6 +6,7 @@ import 'package:pattern_formatter/pattern_formatter.dart';
 import 'package:provider/provider.dart';
 import 'package:quickalert/quickalert.dart';
 import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
+import 'package:taxi_servicios/providers/turno_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 
@@ -237,6 +238,11 @@ class _RegistroServicioState extends State<RegistroServicio> {
     );
 
     if (confirmar == true && mounted) {
+      final turnoProvider = context.read<TurnoProvider>();
+      // Actualizar actividad del turno
+      await turnoProvider.registrarActividad();
+
+      if (!mounted) return;
       // Actualizar providers
       context.read<ContadorServicioProvider>().incrementarMetaObtenida(valor);
       context.read<ContadorServicioProvider>().decrementarMetaPorHacer(valor);

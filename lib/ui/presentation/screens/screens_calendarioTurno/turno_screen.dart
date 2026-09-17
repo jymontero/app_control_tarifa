@@ -442,13 +442,110 @@ class _TurneroScreenState extends State<TurneroScreen> {
   // ── Resumen mes ───────────────────────────────────────────────────────────────
 
   Widget _buildResumenMes() {
+    final confirmados = _confirmadosPorEtiqueta;
+    final planificados = _planificadosPorEtiqueta;
+    final hayContenido = confirmados.isNotEmpty || planificados.isNotEmpty;
+
+    if (!hayContenido) return const SizedBox();
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      decoration: BoxDecoration(
+        color: _C.cardBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _C.cardBorder),
+      ),
+      padding: const EdgeInsets.all(11),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Confirmados
+          if (confirmados.isNotEmpty) ...[
+            const Text(
+              'EJECUTADOS',
+              style: TextStyle(
+                fontSize: 9,
+                color: _C.secondary,
+                letterSpacing: 0.4,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...confirmados.entries.map((e) =>
+                _resumenFila(e.key, e.value, _colorEtiqueta(e.key), true)),
+          ],
+          // Separador
+          if (confirmados.isNotEmpty && planificados.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            const Divider(color: _C.cardBorder, height: 1),
+            const SizedBox(height: 8),
+          ],
+          // Planificados
+          if (planificados.isNotEmpty) ...[
+            const Text(
+              'PLANIFICADOS',
+              style: TextStyle(
+                fontSize: 9,
+                color: _C.secondary,
+                letterSpacing: 0.4,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...planificados.entries.map((e) =>
+                _resumenFila(e.key, e.value, _colorEtiqueta(e.key), false)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _resumenFila(String nombre, int dias, Color color, bool confirmado) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-          _resumenItem('Trabajados', '$_diasTrabajadosMes', _C.green),
-          const SizedBox(width: 6),
-          _resumenItem('Planificados', '$_diasPlanificados', _C.accent),
+          // Ícono estado
+          Container(
+            width: 18,
+            height: 18,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(5),
+            ),
+            child: Icon(
+              confirmado ? Icons.check_rounded : Icons.schedule_rounded,
+              size: 11,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Nombre etiqueta
+          Expanded(
+            child: Text(
+              nombre,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: color,
+              ),
+            ),
+          ),
+          // Días
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: color.withOpacity(0.2)),
+            ),
+            child: Text(
+              '$dias ${dias == 1 ? 'día' : 'días'}',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                color: color,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -985,5 +1082,38 @@ class _TurneroScreenState extends State<TurneroScreen> {
       return _turnosLocal[fechaStr] ?? [];
     }
     return _turnosDia(fechaStr);
+  }
+
+  Map<String, int> get _confirmadosPorEtiqueta {
+    final Map<String, int> resultado = {};
+    for (final t in _turnos) {
+      if (_diasTrabajados.contains(t.fecha)) {
+        resultado[t.etiquetaNombre] = (resultado[t.etiquetaNombre] ?? 0) + 1;
+      }
+    }
+    return resultado;
+  }
+
+  Map<String, int> get _planificadosPorEtiqueta {
+    final Map<String, int> resultado = {};
+    final hoy = DateTime.now();
+    for (final t in _turnos) {
+      final fecha = DateTime.parse(t.fecha);
+      final esFuturo = fecha.isAfter(DateTime(hoy.year, hoy.month, hoy.day));
+      if (esFuturo) {
+        resultado[t.etiquetaNombre] = (resultado[t.etiquetaNombre] ?? 0) + 1;
+      }
+    }
+    return resultado;
+  }
+
+// Para obtener el color de una etiqueta por nombre
+  Color _colorEtiqueta(String nombre) {
+    final etiqueta = _etiquetas.firstWhere(
+      (e) => e.nombre == nombre,
+      orElse: () => Etiqueta(nombre: nombre, color: '#94A3B8'),
+    );
+    return Color(
+        int.parse('FF${etiqueta.color.replaceAll('#', '')}', radix: 16));
   }
 }

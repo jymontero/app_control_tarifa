@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:taxi_servicios/providers/perfil_provider.dart';
 import 'package:taxi_servicios/providers/reportes_provider.dart';
+import 'package:taxi_servicios/providers/turno_provider.dart';
 
 import 'firebase_options.dart';
 import 'package:taxi_servicios/providers/configuracion_provider.dart';
@@ -12,6 +13,7 @@ import 'package:taxi_servicios/providers/ingresos_provider.dart';
 import 'package:taxi_servicios/providers/tanqueo_provider.dart';
 import 'package:taxi_servicios/providers/theme_provider.dart';
 import 'package:taxi_servicios/ui/presentation/screens/home_screen.dart';
+import 'package:taxi_servicios/providers/configuracion_turno_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,6 +31,19 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => PerfilProvider()),
         ChangeNotifierProvider(create: (_) => ReportesProvider()),
+        ChangeNotifierProvider(create: (_) => ConfiguracionTurnoProvider()),
+        // TurnoProvider depende de ConfiguracionTurnoProvider
+        ChangeNotifierProxyProvider<ConfiguracionTurnoProvider, TurnoProvider>(
+          create: (_) => TurnoProvider()..inicializar(),
+          update: (_, configuracionTurno, turno) {
+            final provider = turno ?? TurnoProvider();
+
+            provider.actualizarTiempoAlerta(
+              configuracionTurno.duracionAlertaActividad,
+            );
+            return provider;
+          },
+        ),
       ],
       child: const MyApp(),
     ),
