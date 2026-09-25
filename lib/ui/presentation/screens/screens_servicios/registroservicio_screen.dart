@@ -1,32 +1,35 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:pattern_formatter/pattern_formatter.dart';
 import 'package:provider/provider.dart';
-import 'package:quickalert/quickalert.dart';
+//import 'package:quickalert/quickalert.dart';
 import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:taxi_servicios/providers/turno_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
+import 'package:latlong2/latlong.dart';
 
 // ── Paleta Dark Premium ───────────────────────────────────────────────────────
 class _C {
   static const bg = Color(0xFF0F1923);
-  static const headerBg = Color(0xFF0D1F2D);
+  //static const headerBg = Color(0xFF0D1F2D);
   static const cardBg = Color(0xFF1A2535);
   static const cardBorder = Color(0xFF1E2D3D);
   static const accent = Color(0xFFF5C518);
   static const primary = Color(0xFFF1F5F9);
   static const secondary = Color(0xFF94A3B8);
-  static const muted = Color(0xFF3D5166);
+  //static const muted = Color(0xFF3D5166);
   static const green = Color(0xFF4ADE80);
-  static const red = Color(0xFFF87171);
-  static const heroBorder = Color(0xFF1E3A55);
+  //static const red = Color(0xFFF87171);
+  //static const heroBorder = Color(0xFF1E3A55);
 }
 
 class RegistroServicio extends StatefulWidget {
-  const RegistroServicio({super.key});
+  final Map<String, dynamic>? datoTracking;
+  const RegistroServicio({super.key, this.datoTracking});
 
   @override
   State<RegistroServicio> createState() => _RegistroServicioState();
@@ -37,7 +40,7 @@ class _RegistroServicioState extends State<RegistroServicio> {
   final _controller = TextEditingController();
   final _db = FireStoreDataBase();
 
-  DateTime _time = DateTime.now().toLocal();
+  final DateTime _time = DateTime.now().toLocal();
   String _tipoServicio = 'taxi'; // 'taxi' | 'plataforma'
   String _metodoPago = 'efectivo'; // 'efectivo' | 'transferencia'
 
@@ -77,8 +80,28 @@ class _RegistroServicioState extends State<RegistroServicio> {
 
   String get _horaFormateada => DateFormat.jm().format(_time);
 
+  // ignore: unused_element
   int get _numeroServicio =>
       (_controller.text.isEmpty) ? 0 : 1; // referencial para el chip
+
+  // ── Datos tracking ────────────────────────────────────────────────────────────
+
+  bool get _tieneTracking => widget.datoTracking != null;
+  double get _kmRecorridos =>
+      (widget.datoTracking?['kmRecorridos'] as double?) ?? 0;
+  String get _nombreInicio =>
+      widget.datoTracking?['nombreInicio'] as String? ?? '';
+  String get _nombreFin => widget.datoTracking?['nombreFin'] as String? ?? '';
+  List<LatLng> get _puntos =>
+      (widget.datoTracking?['puntos'] as List<LatLng>?) ?? [];
+  LatLng? get _puntoInicio => widget.datoTracking?['puntoInicio'] as LatLng?;
+  LatLng? get _puntoFin => widget.datoTracking?['puntoFin'] as LatLng?;
+
+  GeoPoint? _toGeoPoint(LatLng? p) =>
+      p == null ? null : GeoPoint(p.latitude, p.longitude);
+
+  List<GeoPoint> get _rutaGeoPoints =>
+      _puntos.map((p) => GeoPoint(p.latitude, p.longitude)).toList();
 
   void _showAlertValor() {
     showDialog(
@@ -255,6 +278,12 @@ class _RegistroServicioState extends State<RegistroServicio> {
         false,
         _tipoServicio,
         _metodoPago,
+        kmRecorridos: _kmRecorridos,
+        nombreInicio: _nombreInicio,
+        nombreFin: _nombreFin,
+        puntoInicio: _toGeoPoint(_puntoInicio),
+        puntoFin: _toGeoPoint(_puntoFin),
+        rutaPuntos: _rutaGeoPoints,
       );
 
       //if (!mounted) return;
@@ -289,6 +318,8 @@ class _RegistroServicioState extends State<RegistroServicio> {
               _buildSelectorFecha(),
               const SizedBox(height: 14),
               _buildChipResumen(),
+              const SizedBox(height: 14),
+              _buildCardTracking(),
               const SizedBox(height: 14),
               _buildBotonGuardar(),
               const SizedBox(height: 8),
@@ -750,5 +781,50 @@ class _RegistroServicioState extends State<RegistroServicio> {
   String _capitalizar(String texto) {
     if (texto.isEmpty) return texto;
     return texto[0].toUpperCase() + texto.substring(1).toLowerCase();
+  }
+
+  Widget _buildCardTracking() {
+    return Container(
+      decoration: BoxDecoration(
+        color: _C.cardBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _C.accent.withOpacity(0.3)),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          const Icon(Icons.route_rounded, color: _C.accent, size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Recorrido registrado',
+                    style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: _C.accent)),
+                if (_nombreInicio.isNotEmpty)
+                  Text('$_nombreInicio → $_nombreFin',
+                      style: const TextStyle(fontSize: 9, color: _C.secondary),
+                      overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: _C.accent.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '${_kmRecorridos.toStringAsFixed(1)} km',
+              style: const TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.w500, color: _C.accent),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

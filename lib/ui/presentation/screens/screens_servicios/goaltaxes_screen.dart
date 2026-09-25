@@ -14,6 +14,8 @@ import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_finturno/finish_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_servicios/editservicio_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_servicios/registroservicio_screen.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_tracking/tracking_screen.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_tracking/ver_ruta_screen.dart';
 
 // ── Paleta Dark Premium ───────────────────────────────────────────────────────
 class _C {
@@ -746,7 +748,7 @@ class _GoalDairyState extends State<GoalDairy> {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        s.tipoServicio == 'plataforma' ? 'Plataforma' : 'Taxi',
+                        s.tipoServicio == 'plataforma' ? 'Plataf.' : 'Taxi',
                         style: const TextStyle(fontSize: 9, color: _C.accent),
                       ),
                     ),
@@ -794,30 +796,72 @@ class _GoalDairyState extends State<GoalDairy> {
                 _cargarServiciosHoy();
               },
               child: Container(
-                width: 28,
-                height: 28,
+                width: 26,
+                height: 26,
                 decoration: BoxDecoration(
                   color: _C.accent.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(7),
                 ),
                 child:
-                    const Icon(Icons.edit_outlined, color: _C.accent, size: 14),
+                    const Icon(Icons.edit_outlined, color: _C.accent, size: 12),
               ),
             ),
             const SizedBox(width: 5),
             GestureDetector(
               onTap: () => _eliminarServicio(s),
               child: Container(
-                width: 28,
-                height: 28,
+                width: 26,
+                height: 26,
                 decoration: BoxDecoration(
                   color: _C.red.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(7),
                 ),
                 child:
-                    const Icon(Icons.delete_outline, color: _C.red, size: 14),
+                    const Icon(Icons.delete_outline, color: _C.red, size: 12),
               ),
             ),
+            if (s.tieneTracking) ...[
+              const SizedBox(width: 5),
+              GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => VerRutaScreen(servicio: s),
+                  ),
+                ),
+                child: Container(
+                  width: 26,
+                  height: 26,
+                  // padding:
+                  //     const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5C518).withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(7),
+                    border: Border.all(
+                      color: const Color(0xFFF5C518).withOpacity(0.2),
+                    ),
+                  ),
+                  child: const Icon(Icons.map_outlined,
+                      color: Color(0xFFF5C518), size: 12),
+                  //const Row(
+                  //   mainAxisSize: MainAxisSize.min,
+                  //   children: [
+                  //     Icon(Icons.map_outlined,
+                  //         color: Color(0xFFF5C518), size: 12),
+                  //     //SizedBox(width: 4),
+                  //     // Text(
+                  //     //   '${s.kmRecorridos.toStringAsFixed(1)} km',
+                  //     //   style: const TextStyle(
+                  //     //     fontSize: 9,
+                  //     //     color: Color(0xFFF5C518),
+                  //     //     fontWeight: FontWeight.w500,
+                  //     //   ),
+                  //     // ),
+                  //   ],
+                  // ),
+                ),
+              ),
+            ],
           ] else ...[
             // Servicio facturado — solo ícono de advertencia
             GestureDetector(
@@ -927,7 +971,8 @@ class _GoalDairyState extends State<GoalDairy> {
             onTap: () async {
               await Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const RegistroServicio()),
+                //MaterialPageRoute(builder: (_) => const RegistroServicio()),
+                MaterialPageRoute(builder: (_) => const TrackingScreen()),
               );
               if (mounted) {
                 setState(() => _cargando = true);

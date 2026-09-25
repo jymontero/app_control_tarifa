@@ -151,8 +151,14 @@ class FireStoreDataBase {
     int valor,
     bool facturada,
     String tipoServicio,
-    String metodoPago,
-  ) async {
+    String metodoPago, {
+    double kmRecorridos = 0,
+    String nombreInicio = '',
+    String nombreFin = '',
+    GeoPoint? puntoInicio,
+    GeoPoint? puntoFin,
+    List<GeoPoint> rutaPuntos = const [],
+  }) async {
     Map<String, dynamic> servicio = {
       "fecha": fecha,
       "hora": hora,
@@ -160,6 +166,13 @@ class FireStoreDataBase {
       "facturada": facturada,
       "tipoServicio": tipoServicio,
       "metodoPago": metodoPago,
+      // Campos tracking — solo se guardan si tienen valor
+      if (kmRecorridos > 0) 'kmRecorridos': kmRecorridos,
+      if (nombreInicio.isNotEmpty) 'nombreInicio': nombreInicio,
+      if (nombreFin.isNotEmpty) 'nombreFin': nombreFin,
+      if (puntoInicio != null) 'puntoInicio': puntoInicio,
+      if (puntoFin != null) 'puntoFin': puntoFin,
+      if (rutaPuntos.isNotEmpty) 'rutaPuntos': rutaPuntos,
     };
     await db.collection('servicios').doc().set(servicio);
   }

@@ -14,6 +14,7 @@ import 'package:taxi_servicios/providers/tanqueo_provider.dart';
 import 'package:taxi_servicios/providers/theme_provider.dart';
 import 'package:taxi_servicios/ui/presentation/screens/home_screen.dart';
 import 'package:taxi_servicios/providers/configuracion_turno_provider.dart';
+import 'package:taxi_servicios/providers/tracking_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +33,8 @@ void main() async {
         ChangeNotifierProvider(create: (_) => PerfilProvider()),
         ChangeNotifierProvider(create: (_) => ReportesProvider()),
         ChangeNotifierProvider(create: (_) => ConfiguracionTurnoProvider()),
+        ChangeNotifierProvider(
+            create: (_) => TrackingProvider()..inicializar()),
         // TurnoProvider depende de ConfiguracionTurnoProvider
         ChangeNotifierProxyProvider<ConfiguracionTurnoProvider, TurnoProvider>(
           create: (_) => TurnoProvider()..inicializar(),

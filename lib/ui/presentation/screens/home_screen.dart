@@ -12,6 +12,7 @@ import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_ganancias/homeganancia_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_reportes/reportes_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_servicios/registroservicio_screen.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_tracking/tracking_screen.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
 
 import 'screens_tanqueo/gas_screen.dart';
@@ -188,7 +189,8 @@ class _Home extends State<Home> {
                 onPressed: () async {
                   await Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const RegistroServicio()),
+                    //MaterialPageRoute(builder: (_) => const RegistroServicio()),
+                    MaterialPageRoute(builder: (_) => const TrackingScreen()),
                   );
                 },
                 child: const Icon(
