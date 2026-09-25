@@ -53,6 +53,11 @@ dependencies:
   math_expressions: ^2.4.0
   shared_preferences: ^2.2.3
   # shared_preferences: ^2.2.3
+  flutter_map: ^6.1.0        # mapa OpenStreetMap
+  latlong2: ^0.9.0           # tipo LatLng para flutter_map
+  geolocator: ^11.0.0        # GPS y permisos
+  wakelock_plus: ^1.1.4      # mantener pantalla encendida
+  http: ^1.2.0               # peticiones HTTP para Nominatim
 
 dev_dependencies:
   flutter_test:
