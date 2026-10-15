@@ -972,12 +972,18 @@ class _GoalDairyState extends State<GoalDairy> {
               await Navigator.push(
                 context,
                 //MaterialPageRoute(builder: (_) => const RegistroServicio()),
-                MaterialPageRoute(builder: (_) => const TrackingScreen()),
+                MaterialPageRoute(
+                    builder: (_) => TrackingScreen(onServicioRegistrado: () {
+                          if (mounted) {
+                            setState(() => _cargando = true);
+                            _cargarServiciosHoy();
+                          }
+                        })),
               );
-              if (mounted) {
-                setState(() => _cargando = true);
-                await _cargarServiciosHoy();
-              }
+              // if (mounted) {
+              //   setState(() => _cargando = true);
+              //   await _cargarServiciosHoy();
+              // }
             },
             child: Container(
               width: double.infinity,
