@@ -298,4 +298,10 @@ class TrackingProvider with ChangeNotifier, WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
+
+  void resetear() {
+    _detenerTimers();
+    _resetear(); // el método privado que ya tienes
+    notifyListeners();
+  }
 }
