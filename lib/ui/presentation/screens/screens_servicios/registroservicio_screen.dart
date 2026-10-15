@@ -7,6 +7,7 @@ import 'package:pattern_formatter/pattern_formatter.dart';
 import 'package:provider/provider.dart';
 //import 'package:quickalert/quickalert.dart';
 import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
+import 'package:taxi_servicios/providers/tracking_provider.dart';
 import 'package:taxi_servicios/providers/turno_provider.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
 import 'package:taxi_servicios/ui/presentation/widgets/app_bar.dart';
@@ -29,7 +30,8 @@ class _C {
 
 class RegistroServicio extends StatefulWidget {
   final Map<String, dynamic>? datoTracking;
-  const RegistroServicio({super.key, this.datoTracking});
+  final VoidCallback? onRegistrado;
+  const RegistroServicio({super.key, this.datoTracking, this.onRegistrado});
 
   @override
   State<RegistroServicio> createState() => _RegistroServicioState();
@@ -43,7 +45,7 @@ class _RegistroServicioState extends State<RegistroServicio> {
   final DateTime _time = DateTime.now().toLocal();
   String _tipoServicio = 'taxi'; // 'taxi' | 'plataforma'
   String _metodoPago = 'efectivo'; // 'efectivo' | 'transferencia'
-
+  bool _permitirSalida = false;
   // Fecha del turno: 0=ayer, 1=hoy
   int _fechaSeleccionada = 1;
 
@@ -287,7 +289,9 @@ class _RegistroServicioState extends State<RegistroServicio> {
       );
 
       //if (!mounted) return;
-      Navigator.pop(context);
+      widget.onRegistrado?.call();
+      // Navigator.pop(context);
+      Navigator.popUntil(context, (route) => route.isFirst);
     }
   }
 
@@ -295,41 +299,78 @@ class _RegistroServicioState extends State<RegistroServicio> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const AppBarCustomized(),
-      backgroundColor: _C.bg,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 16),
-              _buildTitulo(),
-              const SizedBox(height: 16),
-              _buildToggleTipoServicio(),
-              const SizedBox(height: 10),
-              _buildToggleMetodoPago(),
-              const SizedBox(height: 10),
-              _buildCampoValor(),
-              const SizedBox(height: 10),
-              _buildHoraAutomatica(),
-              const SizedBox(height: 10),
-              _buildSelectorFecha(),
-              const SizedBox(height: 14),
-              _buildChipResumen(),
-              const SizedBox(height: 14),
-              _buildCardTracking(),
-              const SizedBox(height: 14),
-              _buildBotonGuardar(),
-              const SizedBox(height: 8),
-              _buildBotonCancelar(),
-              const SizedBox(height: 16),
-            ],
+    final navigator = Navigator.of(context);
+    return PopScope(
+        canPop: _permitirSalida,
+        onPopInvoked: (bool didPop) async {
+          if (didPop) return;
+
+          // Evita salir accidentalmente.
+          await showDialog<void>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              backgroundColor: _C.bg,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text(
+                '¿Quieres salir del registro?',
+                style: TextStyle(color: Colors.white),
+              ),
+              content: const Text(
+                'Para cancelar el registro y volver al inicio, '
+                'pulsa el botón "Cancelar" dentro de esta pantalla. '
+                'Si todavía estás registrando el servicio, '
+                'selecciona "Seguir editando".',
+                style: TextStyle(color: Colors.white70),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text(
+                    'Seguir editando',
+                    style: TextStyle(color: Color(0xFFF5C518)),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+        child: Scaffold(
+          appBar: const AppBarCustomized(),
+          backgroundColor: _C.bg,
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 16),
+                  _buildTitulo(),
+                  const SizedBox(height: 16),
+                  _buildToggleTipoServicio(),
+                  const SizedBox(height: 10),
+                  _buildToggleMetodoPago(),
+                  const SizedBox(height: 10),
+                  _buildCampoValor(),
+                  const SizedBox(height: 10),
+                  _buildHoraAutomatica(),
+                  const SizedBox(height: 10),
+                  _buildSelectorFecha(),
+                  const SizedBox(height: 14),
+                  _buildChipResumen(),
+                  const SizedBox(height: 14),
+                  _buildCardTracking(),
+                  const SizedBox(height: 14),
+                  _buildBotonGuardar(),
+                  const SizedBox(height: 8),
+                  _buildBotonCancelar(),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
-    );
+        ));
   }
 
   // ── Widgets ──────────────────────────────────────────────────────────────────
@@ -742,7 +783,51 @@ class _RegistroServicioState extends State<RegistroServicio> {
 
   Widget _buildBotonCancelar() {
     return GestureDetector(
-      onTap: () => Navigator.pop(context),
+      onTap: () async {
+        final confirmar = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            backgroundColor: _C.bg,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Text(
+              '¿Cancelar el registro?',
+              style: TextStyle(color: Colors.white),
+            ),
+            content: const Text(
+              'Se descartará el registro actual y volverás al inicio. '
+              'Esta acción no se puede deshacer.',
+              style: TextStyle(color: Colors.white70),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text(
+                  'Seguir editando',
+                  style: TextStyle(color: Color(0xFFF5C518)),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text(
+                  'Sí, cancelar',
+                  style: TextStyle(color: Color(0xFFF87171)),
+                ),
+              ),
+            ],
+          ),
+        );
+
+        if (!mounted || confirmar != true) return;
+
+        final tracking = context.read<TrackingProvider>();
+        tracking.resetear();
+
+        if (!mounted) return;
+
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 11),
         decoration: BoxDecoration(
@@ -751,8 +836,13 @@ class _RegistroServicioState extends State<RegistroServicio> {
           border: Border.all(color: _C.cardBorder),
         ),
         child: const Center(
-          child: Text('Cancelar',
-              style: TextStyle(fontSize: 12, color: _C.secondary)),
+          child: Text(
+            'Cancelar',
+            style: TextStyle(
+              fontSize: 12,
+              color: _C.secondary,
+            ),
+          ),
         ),
       ),
     );
