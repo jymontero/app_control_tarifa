@@ -307,288 +307,285 @@ class _TrackingScreenState extends State<TrackingScreen> {
         },
         child: Scaffold(
           backgroundColor: _C.bg,
-          body: Consumer<TrackingProvider>(
-            builder: (_, tracking, __) {
-              // Centrar mapa en posición actual
-              if (_centrarMapa &&
-                  tracking.puntos.isNotEmpty &&
-                  tracking.activo) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  try {
-                    _mapController.move(tracking.puntos.last, 16);
-                  } catch (_) {}
-                });
-              }
-
-              return Stack(
-                children: [
-                  // ── Mapa ────────────────────────────────────────────────────────
-                  FlutterMap(
-                    mapController: _mapController,
-                    options: MapOptions(
-                      initialCenter: tracking.puntos.isNotEmpty
-                          ? tracking.puntos.last
+          body: Stack(
+            children: [
+              // ── Mapa ──────────────────────────────────────────────────────
+              FlutterMap(
+                mapController: _mapController,
+                options: MapOptions(
+                  initialCenter:
+                      context.read<TrackingProvider>().puntos.isNotEmpty
+                          ? context.read<TrackingProvider>().puntos.last
                           : const LatLng(4.7110, -74.0721),
-                      initialZoom: 16,
-                      onMapEvent: (event) {
-                        // Si el usuario mueve el mapa manualmente deja de centrar
-                        if (event is MapEventMove &&
-                            event.source == MapEventSource.dragStart) {
-                          setState(() => _centrarMapa = false);
-                        }
-                      },
+                  initialZoom: 16,
+                  onMapEvent: (event) {
+                    if (event is MapEventMove &&
+                        event.source == MapEventSource.dragStart) {
+                      setState(() => _centrarMapa = false);
+                    }
+                  },
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate:
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.taxi.servicios',
+                  ),
+                  // Consumer 1 — solo Polyline
+                  Consumer<TrackingProvider>(
+                    builder: (_, tracking, __) {
+                      // Centrar mapa aquí — solo cuando llega punto nuevo
+                      if (_centrarMapa &&
+                          tracking.puntos.isNotEmpty &&
+                          tracking.activo) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          try {
+                            _mapController.move(tracking.puntos.last, 16);
+                          } catch (_) {}
+                        });
+                      }
+                      if (tracking.puntos.length < 2) return const SizedBox();
+                      return PolylineLayer(
+                        polylines: [
+                          Polyline(
+                            points: tracking.puntos,
+                            color: _C.accent,
+                            strokeWidth: 4,
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                  // Consumer 2 — solo Marcadores
+                  Consumer<TrackingProvider>(
+                    builder: (_, tracking, __) => MarkerLayer(
+                      markers: [
+                        if (tracking.puntoInicio != null)
+                          Marker(
+                            point: tracking.puntoInicio!,
+                            width: 20,
+                            height: 20,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: _C.green,
+                                shape: BoxShape.circle,
+                                border:
+                                    Border.all(color: Colors.white, width: 2),
+                              ),
+                            ),
+                          ),
+                        if (tracking.puntos.isNotEmpty)
+                          Marker(
+                            point: tracking.puntos.last,
+                            width: 24,
+                            height: 24,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: _C.accent,
+                                shape: BoxShape.circle,
+                                border:
+                                    Border.all(color: Colors.white, width: 2.5),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
+                  ),
+                ],
+              ),
+
+              // ── Badge grabando — sin Consumer, no cambia ─────────────────
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 12,
+                left: 12,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _C.red.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: _C.red.withOpacity(0.3)),
+                  ),
+                  child: const Row(
                     children: [
-                      // Tiles OpenStreetMap — gratuito
-                      TileLayer(
-                        urlTemplate:
-                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        userAgentPackageName: 'com.taxi.servicios',
+                      Icon(Icons.circle, color: _C.red, size: 8),
+                      SizedBox(width: 5),
+                      Text('Grabando ruta',
+                          style: TextStyle(
+                              fontSize: 10,
+                              color: _C.red,
+                              fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                ),
+              ),
+
+              // ── Label barrio — Consumer pequeño solo para nombreInicio ───
+              Consumer<TrackingProvider>(
+                builder: (_, tracking, __) {
+                  if (tracking.nombreInicio.isEmpty) return const SizedBox();
+                  return Positioned(
+                    top: MediaQuery.of(context).padding.top + 12,
+                    right: 52,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _C.cardBg,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: _C.accent.withOpacity(0.3)),
                       ),
-                      // Ruta dibujada
-                      if (tracking.puntos.length > 1)
-                        PolylineLayer(
-                          polylines: [
-                            Polyline(
-                              points: tracking.puntos,
-                              color: _C.accent,
-                              strokeWidth: 4,
+                      child: Text(
+                        tracking.nombreInicio,
+                        style: const TextStyle(
+                            fontSize: 9,
+                            color: _C.accent,
+                            fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              // ── Botón centrar — sin Consumer ─────────────────────────────
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 12,
+                right: 12,
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() => _centrarMapa = true);
+                    final puntos = context.read<TrackingProvider>().puntos;
+                    if (puntos.isNotEmpty) {
+                      _mapController.move(puntos.last, 16);
+                    }
+                  },
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: _C.cardBg,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _C.cardBorder),
+                    ),
+                    child: const Icon(Icons.my_location_rounded,
+                        color: _C.accent, size: 16),
+                  ),
+                ),
+              ),
+
+              // ── Panel inferior — Consumer 3 solo para métricas ───────────
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF0D1F2D),
+                    border: Border(top: BorderSide(color: _C.cardBorder)),
+                  ),
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    14,
+                    16,
+                    MediaQuery.of(context).padding.bottom + 14,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Consumer 3 — solo métricas
+                      Consumer<TrackingProvider>(
+                        builder: (_, tracking, __) => Row(
+                          children: [
+                            _metricaItem(
+                              tracking.kmRecorridos.toStringAsFixed(1),
+                              'km',
+                              _C.accent,
+                            ),
+                            _metricaItem(
+                              tracking.tiempoFormateado,
+                              'tiempo',
+                              _C.primary,
+                            ),
+                            _metricaItem(
+                              tracking.velocidadActual.toStringAsFixed(0),
+                              'km/h',
+                              _C.green,
                             ),
                           ],
                         ),
-                      // Marcadores inicio y posición actual
-                      MarkerLayer(
-                        markers: [
-                          // Punto inicio
-                          if (tracking.puntoInicio != null)
-                            Marker(
-                              point: tracking.puntoInicio!,
-                              width: 20,
-                              height: 20,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: _C.green,
-                                  shape: BoxShape.circle,
-                                  border:
-                                      Border.all(color: Colors.white, width: 2),
+                      ),
+                      const SizedBox(height: 12),
+                      // Botón finalizar — sin Consumer
+                      GestureDetector(
+                        onTap: _finalizando ? null : _finalizar,
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          decoration: BoxDecoration(
+                            color:
+                                _finalizando ? _C.red.withOpacity(0.6) : _C.red,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (_finalizando) ...[
+                                const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                  ),
                                 ),
-                              ),
-                            ),
-                          // Posición actual
-                          if (tracking.puntos.isNotEmpty)
-                            Marker(
-                              point: tracking.puntos.last,
-                              width: 24,
-                              height: 24,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: _C.accent,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                      color: Colors.white, width: 2.5),
-                                ),
-                              ),
-                            ),
-                        ],
+                                const SizedBox(width: 8),
+                                const Text('Finalizando recorrido...',
+                                    style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.white)),
+                              ] else ...[
+                                const Icon(Icons.stop_rounded,
+                                    color: Colors.white, size: 18),
+                                const SizedBox(width: 8),
+                                const Text('Finalizar recorrido',
+                                    style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.white)),
+                              ],
+                            ],
+                          ),
+                        ),
                       ),
                     ],
                   ),
+                ),
+              ),
 
-                  // ── Badge grabando ───────────────────────────────────────────────
-                  Positioned(
-                    top: MediaQuery.of(context).padding.top + 12,
-                    left: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _C.red.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: _C.red.withOpacity(0.3)),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.circle, color: _C.red, size: 8),
-                          SizedBox(width: 5),
-                          Text('Grabando ruta',
-                              style: TextStyle(
-                                  fontSize: 10,
-                                  color: _C.red,
-                                  fontWeight: FontWeight.w500)),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // ── Label barrio actual ──────────────────────────────────────────
-                  if (tracking.nombreInicio.isNotEmpty)
-                    Positioned(
-                      top: MediaQuery.of(context).padding.top + 12,
-                      right: 52,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: _C.cardBg,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: _C.accent.withOpacity(0.3)),
-                        ),
-                        child: Text(
-                          tracking.nombreInicio,
-                          style: const TextStyle(
-                              fontSize: 9,
-                              color: _C.accent,
-                              fontWeight: FontWeight.w500),
-                        ),
-                      ),
-                    ),
-
-                  // ── Botón centrar ────────────────────────────────────────────────
-                  Positioned(
-                    top: MediaQuery.of(context).padding.top + 12,
-                    right: 12,
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() => _centrarMapa = true);
-                        if (tracking.puntos.isNotEmpty) {
-                          _mapController.move(tracking.puntos.last, 16);
-                        }
-                      },
-                      child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: _C.cardBg,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: _C.cardBorder),
-                        ),
-                        child: const Icon(Icons.my_location_rounded,
-                            color: _C.accent, size: 16),
-                      ),
-                    ),
-                  ),
-
-                  // ── Panel inferior fijo ──────────────────────────────────────────
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF0D1F2D),
-                        border: Border(top: BorderSide(color: _C.cardBorder)),
-                      ),
-                      padding: EdgeInsets.fromLTRB(
-                        16,
-                        14,
-                        16,
-                        MediaQuery.of(context).padding.bottom + 14,
-                      ),
+              // ── Loading inicial — Consumer pequeño ───────────────────────
+              Consumer<TrackingProvider>(
+                builder: (_, tracking, __) {
+                  if (!tracking.cargando) return const SizedBox();
+                  return Container(
+                    color: Colors.black.withOpacity(0.5),
+                    child: const Center(
                       child: Column(
-                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Métricas
-                          Row(
-                            children: [
-                              _metricaItem(
-                                tracking.kmRecorridos.toStringAsFixed(1),
-                                'km',
-                                _C.accent,
-                              ),
-                              _metricaItem(
-                                tracking.tiempoFormateado,
-                                'tiempo',
-                                _C.primary,
-                              ),
-                              _metricaItem(
-                                tracking.velocidadActual.toStringAsFixed(0),
-                                'km/h',
-                                _C.green,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          // Botón finalizar
-                          GestureDetector(
-                            onTap: _finalizando ? null : _finalizar,
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(vertical: 13),
-                              decoration: BoxDecoration(
-                                color: _finalizando
-                                    ? _C.red.withOpacity(0.6)
-                                    : _C.red,
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  if (_finalizando) ...[
-                                    const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                          Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    const Text(
-                                      'Finalizando recorrido...',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ] else ...[
-                                    const Icon(
-                                      Icons.stop_rounded,
-                                      color: Colors.white,
-                                      size: 18,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    const Text(
-                                      'Finalizar recorrido',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ),
+                          CircularProgressIndicator(color: _C.accent),
+                          SizedBox(height: 12),
+                          Text('Obteniendo ubicación...',
+                              style:
+                                  TextStyle(color: _C.primary, fontSize: 13)),
                         ],
                       ),
                     ),
-                  ),
-
-                  // ── Loading inicial ──────────────────────────────────────────────
-                  if (tracking.cargando)
-                    Container(
-                      color: Colors.black.withOpacity(0.5),
-                      child: const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            CircularProgressIndicator(color: _C.accent),
-                            SizedBox(height: 12),
-                            Text('Obteniendo ubicación...',
-                                style:
-                                    TextStyle(color: _C.primary, fontSize: 13)),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
+                  );
+                },
+              ),
+            ],
           ),
         ));
   }

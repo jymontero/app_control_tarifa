@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:taxi_servicios/services/location_service.dart';
@@ -12,7 +12,7 @@ enum EstadoTracking { inactivo, activo, finalizado }
 class TrackingProvider with ChangeNotifier, WidgetsBindingObserver {
   final LocationService _locationService = LocationService();
   final GeocodingService _geocodingService = GeocodingService();
-
+  StreamSubscription<Position>? _streamGPS;
   // ── Estado ────────────────────────────────────────────────────────────────────
   EstadoTracking _estado = EstadoTracking.inactivo;
   List<LatLng> _puntos = [];
@@ -23,7 +23,7 @@ class TrackingProvider with ChangeNotifier, WidgetsBindingObserver {
   String _nombreInicio = '';
   String _nombreFin = '';
   bool _cargando = false;
-
+  double _velocidadKmh = 0;
   // ── Timers independientes — SRP ───────────────────────────────────────────────
   Timer? _timerGPS; // captura GPS cada 5 segundos
   Timer? _timerStorage; // guarda en SharedPreferences cada 30 segundos
@@ -41,6 +41,7 @@ class TrackingProvider with ChangeNotifier, WidgetsBindingObserver {
   bool get cargando => _cargando;
   bool get activo => _estado == EstadoTracking.activo;
   bool get hayRecorrido => _puntos.isNotEmpty;
+  double get velocidadActual => _velocidadKmh;
 
   String get tiempoFormateado {
     final m = _segundos ~/ 60;
@@ -49,15 +50,6 @@ class TrackingProvider with ChangeNotifier, WidgetsBindingObserver {
   }
 
   // Velocidad aproximada en km/h
-  double get velocidadActual {
-    if (_puntos.length < 2) return 0;
-    final distancia = _locationService.calcularDistanciaMetros(
-      _puntos[_puntos.length - 2],
-      _puntos.last,
-    );
-    // distancia en 5 segundos → km/h
-    return (distancia / 5) * 3.6;
-  }
 
   // ── Inicializar ───────────────────────────────────────────────────────────────
 
@@ -208,18 +200,37 @@ class TrackingProvider with ChangeNotifier, WidgetsBindingObserver {
   // ── Timers ────────────────────────────────────────────────────────────────────
 
   void _iniciarTimerGPS() {
-    _timerGPS = Timer.periodic(const Duration(seconds: 5), (_) async {
-      final posicion = await _locationService.obtenerPosicionActual();
-      if (posicion == null) return;
+    _timerGPS?.cancel();
+    _streamGPS?.cancel();
 
-      // Solo agregar si se movió más de 10 metros (filtra ruido GPS)
-      if (_puntos.isNotEmpty) {
-        final distancia =
-            _locationService.calcularDistanciaMetros(_puntos.last, posicion);
-        if (distancia < 10) return;
+    _streamGPS = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 20, // solo emite si se movió más de 15 metros
+      ),
+    ).listen((posicion) {
+      // Fix velocidad
+      final velocidad = (posicion.speed) * 3.6;
+      _velocidadKmh = (velocidad < 5 || velocidad > 150) ? 0 : velocidad;
+
+      // Filtro precisión
+      if (posicion.accuracy > 15) {
+        _velocidadKmh = 0;
+        notifyListeners();
+        return;
       }
 
-      _puntos.add(posicion);
+      final punto = LatLng(posicion.latitude, posicion.longitude);
+
+      if (_puntos.isNotEmpty) {
+        final distancia =
+            _locationService.calcularDistanciaMetros(_puntos.last, punto);
+
+        // Filtro salto irreal
+        if (distancia > 200) return;
+      }
+
+      _puntos.add(punto);
       _kmRecorridos = _locationService.metrosAKm(
         _locationService.calcularDistanciaTotal(_puntos),
       );
