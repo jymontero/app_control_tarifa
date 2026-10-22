@@ -8,6 +8,8 @@ import 'package:taxi_servicios/providers/configuracion_provider.dart';
 import 'package:taxi_servicios/providers/contadordeservicios_provider.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_configuracion/listvariables_screen.dart';
 import 'package:taxi_servicios/providers/configuracion_turno_provider.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_presupuesto/plantilla_screen.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_presupuesto/presupuesto_screen.dart';
 
 // ── Paleta Dark Premium ───────────────────────────────────────────────────────
 class _C {
@@ -65,6 +67,9 @@ class _PerfilScreenState extends State<PerfilScreen> {
                     const SizedBox(height: 16),
                     _buildSeccion('CONFIGURACIÓN'),
                     _buildCardConfiguracion(),
+                    const SizedBox(height: 16),
+                    _buildSeccion('FINANZAS'),
+                    _buildCardFinanzas(),
                     const SizedBox(height: 16),
                     _buildBotonCerrarSesion(),
                     const SizedBox(height: 8),
@@ -871,6 +876,85 @@ class _PerfilScreenState extends State<PerfilScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCardFinanzas() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: _C.cardBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _C.cardBorder),
+      ),
+      child: Column(
+        children: [
+          _buildItemPerfil(
+            icono: Icons.account_balance_wallet_outlined,
+            titulo: 'Presupuesto mensual',
+            subtitulo: 'Gastos, meta diaria y ahorro',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PresupuestoScreen()),
+            ),
+          ),
+          const Divider(color: _C.cardBorder, height: 1, indent: 52),
+          _buildItemPerfil(
+            icono: Icons.playlist_add_check_rounded,
+            titulo: 'Plantilla de presupuesto',
+            subtitulo: 'Ítems base para todos los meses',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const PlantillaPresupuestoScreen()),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItemPerfil({
+    required IconData icono,
+    required String titulo,
+    required String subtitulo,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: _C.accent.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Icon(icono, color: _C.accent, size: 16),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(titulo,
+                      style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: _C.primary)),
+                  Text(subtitulo,
+                      style:
+                          const TextStyle(fontSize: 10, color: _C.secondary)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: _C.muted, size: 18),
+          ],
+        ),
+      ),
     );
   }
 }

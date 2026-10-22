@@ -4,7 +4,11 @@ import 'package:taxi_servicios/domain/entitis/estaciongas.dart';
 import 'package:taxi_servicios/domain/entitis/etiqueta.dart';
 import 'package:taxi_servicios/domain/entitis/gas.dart';
 import 'package:taxi_servicios/domain/entitis/ingresos.dart';
+import 'package:taxi_servicios/domain/entitis/movimiento_presupuesto.dart';
 import 'package:taxi_servicios/domain/entitis/perfil.dart';
+import 'package:taxi_servicios/domain/entitis/plantilla_item.dart';
+import 'package:taxi_servicios/domain/entitis/presupuesto_item.dart';
+import 'package:taxi_servicios/domain/entitis/presupuesto_mensual.dart';
 import 'package:taxi_servicios/domain/entitis/servicio.dart';
 import 'package:taxi_servicios/domain/entitis/turno.dart';
 import 'package:taxi_servicios/domain/entitis/variables.dart';
@@ -468,5 +472,191 @@ class FireStoreDataBase {
     for (final doc in query.docs) {
       await doc.reference.update({'confirmado': true});
     }
+  }
+
+  // ── Plantilla ─────────────────────────────────────────────────────
+
+  Future<List<PlantillaItem>> getPlantilla() async {
+    final query =
+        await db.collection('plantilla_presupuesto').orderBy('orden').get();
+    return query.docs.map((e) {
+      final item = PlantillaItem.fromJson(e.data());
+      item.id = e.id;
+      return item;
+    }).toList();
+  }
+
+  Future<void> addPlantillaItem(String nombre, int planBase, int orden) async {
+    await db.collection('plantilla_presupuesto').add({
+      'nombre': nombre,
+      'planBase': planBase,
+      'orden': orden,
+    });
+  }
+
+  Future<void> updatePlantillaItem(String id, int planBase) async {
+    await db.collection('plantilla_presupuesto').doc(id).update({
+      'planBase': planBase,
+    });
+  }
+
+  Future<void> deletePlantillaItem(String id) async {
+    await db.collection('plantilla_presupuesto').doc(id).delete();
+  }
+
+// ── Presupuesto mensual ───────────────────────────────────────────
+
+  Future<PresupuestoMensual?> getPresupuestoMensual(
+      String mes, String anio) async {
+    final query = await db
+        .collection('presupuesto_mensual')
+        .where('mes', isEqualTo: mes)
+        .where('anio', isEqualTo: anio)
+        .limit(1)
+        .get();
+
+    if (query.docs.isEmpty) return null;
+
+    final presupuesto = PresupuestoMensual.fromJson(query.docs.first.data());
+    presupuesto.id = query.docs.first.id;
+
+    // Cargar items de la subcolección
+    final itemsQuery = await db
+        .collection('presupuesto_mensual')
+        .doc(presupuesto.id)
+        .collection('items')
+        .orderBy('orden')
+        .get();
+
+    presupuesto.items = itemsQuery.docs.map((e) {
+      final item = PresupuestoItem.fromJson(e.data());
+      item.id = e.id;
+      return item;
+    }).toList();
+
+    return presupuesto;
+  }
+
+// Crea presupuesto nuevo desde plantilla
+  Future<PresupuestoMensual> crearPresupuestoDesdePlantilla(
+      String mes, String anio,
+      {int ahorroAnterior = 0,
+      int diasPlanificados = 0,
+      List<String> etiquetasContables = const []}) async {
+    // Obtener plantilla
+    final plantilla = await getPlantilla();
+    final totalPlan = plantilla.fold(0, (s, i) => s + i.planBase);
+    final totalACubrir = totalPlan - ahorroAnterior;
+    final metaOriginal =
+        diasPlanificados > 0 ? (totalACubrir / diasPlanificados).ceil() : 0;
+
+    // Crear documento principal
+    final docRef = await db.collection('presupuesto_mensual').add({
+      'mes': mes,
+      'anio': anio,
+      'ahorroAnterior': ahorroAnterior,
+      'diasPlanificados': diasPlanificados,
+      'etiquetasContables': etiquetasContables,
+      'estado': 'abierto',
+      'metaDiariaOriginal': metaOriginal, // ← nuevo
+    });
+
+    // Crear items desde plantilla
+    for (final item in plantilla) {
+      await docRef.collection('items').add({
+        'nombre': item.nombre,
+        'plan': item.planBase,
+        'real': 0,
+        'orden': item.orden,
+      });
+    }
+
+    // Retornar presupuesto creado
+    return getPresupuestoMensual(mes, anio).then((p) => p!);
+  }
+
+// Actualiza el valor real de un ítem
+  Future<void> actualizarRealItem({
+    required String presupuestoId,
+    required String itemId,
+    required String itemNombre,
+    required int realAnterior,
+    required int realNuevo,
+  }) async {
+    final fecha = DateTime.now();
+    final fechaStr = '${fecha.day}-${fecha.month}-${fecha.year}';
+    final horaStr =
+        '${fecha.hour.toString().padLeft(2, '0')}:${fecha.minute.toString().padLeft(2, '0')}';
+
+    // Actualizar item
+    await db
+        .collection('presupuesto_mensual')
+        .doc(presupuestoId)
+        .collection('items')
+        .doc(itemId)
+        .update({'real': realNuevo});
+
+    // Registrar movimiento
+    await db
+        .collection('presupuesto_mensual')
+        .doc(presupuestoId)
+        .collection('movimientos')
+        .add({
+      'fecha': fechaStr,
+      'hora': horaStr,
+      'itemNombre': itemNombre,
+      'valor': realNuevo - realAnterior,
+      'realAnterior': realAnterior,
+      'realNuevo': realNuevo,
+    });
+  }
+
+// Actualiza configuración del presupuesto
+  Future<void> actualizarConfigPresupuesto({
+    required String presupuestoId,
+    required int ahorroAnterior,
+    required int diasPlanificados,
+    required List<String> etiquetasContables,
+  }) async {
+    await db.collection('presupuesto_mensual').doc(presupuestoId).update({
+      'ahorroAnterior': ahorroAnterior,
+      'diasPlanificados': diasPlanificados,
+      'etiquetasContables': etiquetasContables,
+    });
+  }
+
+// Obtiene historial de movimientos del mes
+  Future<List<MovimientoPresupuesto>> getMovimientosMes(
+      String presupuestoId) async {
+    final query = await db
+        .collection('presupuesto_mensual')
+        .doc(presupuestoId)
+        .collection('movimientos')
+        .orderBy('fecha', descending: true)
+        .get();
+
+    return query.docs.map((e) {
+      final mov = MovimientoPresupuesto.fromJson(e.data());
+      mov.id = e.id;
+      return mov;
+    }).toList();
+  }
+
+  Future<void> cerrarMes(String presupuestoId, String mes, String anio) async {
+    // 1 — Cerrar mes actual
+    await db
+        .collection('presupuesto_mensual')
+        .doc(presupuestoId)
+        .update({'estado': 'cerrado'});
+
+    // 2 — Crear mes siguiente desde plantilla
+    final mesInt = int.parse(mes);
+    final anioInt = int.parse(anio);
+    final sigMes = DateTime(anioInt, mesInt + 1);
+
+    await crearPresupuestoDesdePlantilla(
+      sigMes.month.toString(),
+      sigMes.year.toString(),
+    );
   }
 }
