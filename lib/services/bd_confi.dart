@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:taxi_servicios/domain/entitis/estaciongas.dart';
 import 'package:taxi_servicios/domain/entitis/etiqueta.dart';
@@ -538,41 +539,48 @@ class FireStoreDataBase {
   }
 
 // Crea presupuesto nuevo desde plantilla
-  Future<PresupuestoMensual> crearPresupuestoDesdePlantilla(
+  Future<PresupuestoMensual?> crearPresupuestoDesdePlantilla(
       String mes, String anio,
       {int ahorroAnterior = 0,
       int diasPlanificados = 0,
       List<String> etiquetasContables = const []}) async {
-    // Obtener plantilla
-    final plantilla = await getPlantilla();
-    final totalPlan = plantilla.fold(0, (s, i) => s + i.planBase);
-    final totalACubrir = totalPlan - ahorroAnterior;
-    final metaOriginal =
-        diasPlanificados > 0 ? (totalACubrir / diasPlanificados).ceil() : 0;
+    try {
+      // Obtener plantilla
+      final plantilla = await getPlantilla();
+      final totalPlan = plantilla.fold(0, (s, i) => s + i.planBase);
+      final totalACubrir = totalPlan - ahorroAnterior;
+      final metaOriginal =
+          diasPlanificados > 0 ? (totalACubrir / diasPlanificados).ceil() : 0;
 
-    // Crear documento principal
-    final docRef = await db.collection('presupuesto_mensual').add({
-      'mes': mes,
-      'anio': anio,
-      'ahorroAnterior': ahorroAnterior,
-      'diasPlanificados': diasPlanificados,
-      'etiquetasContables': etiquetasContables,
-      'estado': 'abierto',
-      'metaDiariaOriginal': metaOriginal, // ← nuevo
-    });
-
-    // Crear items desde plantilla
-    for (final item in plantilla) {
-      await docRef.collection('items').add({
-        'nombre': item.nombre,
-        'plan': item.planBase,
-        'real': 0,
-        'orden': item.orden,
+      // Crear documento principal
+      final docRef = await db.collection('presupuesto_mensual').add({
+        'mes': mes,
+        'anio': anio,
+        'ahorroAnterior': ahorroAnterior,
+        'diasPlanificados': diasPlanificados,
+        'etiquetasContables': etiquetasContables,
+        'estado': 'abierto',
+        'metaDiariaOriginal': metaOriginal, // ← nuevo
       });
-    }
 
-    // Retornar presupuesto creado
-    return getPresupuestoMensual(mes, anio).then((p) => p!);
+      // Crear items desde plantilla
+      for (final item in plantilla) {
+        await docRef.collection('items').add({
+          'nombre': item.nombre,
+          'plan': item.planBase,
+          'real': 0,
+          'orden': item.orden,
+        });
+      }
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Retornar presupuesto creado
+      return await getPresupuestoMensual(
+          mes, anio); // ← retorna null si falla, no crashea
+    } catch (e) {
+      debugPrint('Error creando presupuesto: $e');
+      return null;
+    }
   }
 
 // Actualiza el valor real de un ítem
@@ -580,35 +588,39 @@ class FireStoreDataBase {
     required String presupuestoId,
     required String itemId,
     required String itemNombre,
-    required int realAnterior,
-    required int realNuevo,
+    required int abonoNuevo, // ← ahora es el ABONO, no el total
+    required int realActual,
   }) async {
+    final realNuevo = realActual + abonoNuevo;
     final fecha = DateTime.now();
     final fechaStr = '${fecha.day}-${fecha.month}-${fecha.year}';
     final horaStr =
         '${fecha.hour.toString().padLeft(2, '0')}:${fecha.minute.toString().padLeft(2, '0')}';
 
-    // Actualizar item
-    await db
+    final batch = db.batch();
+    // Operación 1 — actualizar real
+    final itemRef = db
         .collection('presupuesto_mensual')
         .doc(presupuestoId)
         .collection('items')
-        .doc(itemId)
-        .update({'real': realNuevo});
-
-    // Registrar movimiento
-    await db
+        .doc(itemId);
+    batch.update(itemRef, {'real': realNuevo});
+    // Operación 2 — registrar abono en historial
+    final movRef = db
         .collection('presupuesto_mensual')
         .doc(presupuestoId)
         .collection('movimientos')
-        .add({
+        .doc(); // ← auto-id
+    batch.set(movRef, {
       'fecha': fechaStr,
       'hora': horaStr,
       'itemNombre': itemNombre,
-      'valor': realNuevo - realAnterior,
-      'realAnterior': realAnterior,
+      'valor': abonoNuevo, // ← solo el abono
+      'realAnterior': realActual,
       'realNuevo': realNuevo,
     });
+
+    await batch.commit(); // ← las dos o ninguna
   }
 
 // Actualiza configuración del presupuesto
@@ -658,5 +670,74 @@ class FireStoreDataBase {
       sigMes.month.toString(),
       sigMes.year.toString(),
     );
+  }
+
+  Future<void> eliminarAbono({
+    required String presupuestoId,
+    required String itemId,
+    required String movimientoId,
+    required int valorAbono,
+    required int realActual,
+  }) async {
+    final realNuevo = realActual - valorAbono;
+
+    final batch = db.batch();
+
+    // Operación 1 — revertir real
+    final itemRef = db
+        .collection('presupuesto_mensual')
+        .doc(presupuestoId)
+        .collection('items')
+        .doc(itemId);
+    batch.update(itemRef, {'real': realNuevo.clamp(0, realActual)});
+
+    // Operación 2 — eliminar movimiento del historial
+    final movRef = db
+        .collection('presupuesto_mensual')
+        .doc(presupuestoId)
+        .collection('movimientos')
+        .doc(movimientoId);
+    batch.delete(movRef);
+
+    await batch.commit();
+  }
+
+  // Agregar en bd_confi.dart
+  Future<void> sincronizarItemsConPlantilla(String presupuestoId) async {
+    // Obtener plantilla actual
+    final plantilla = await getPlantilla();
+
+    // Obtener ítems actuales del presupuesto
+    final itemsQuery = await db
+        .collection('presupuesto_mensual')
+        .doc(presupuestoId)
+        .collection('items')
+        .get();
+
+    final nombresExistentes =
+        itemsQuery.docs.map((e) => e.data()['nombre'] as String).toSet();
+
+    // Agregar solo los que faltan
+    final itemsFaltantes =
+        plantilla.where((p) => !nombresExistentes.contains(p.nombre)).toList();
+
+    if (itemsFaltantes.isEmpty) return;
+
+    // Batch para agregar todos de una vez
+    final batch = db.batch();
+    for (final item in itemsFaltantes) {
+      final ref = db
+          .collection('presupuesto_mensual')
+          .doc(presupuestoId)
+          .collection('items')
+          .doc();
+      batch.set(ref, {
+        'nombre': item.nombre,
+        'plan': item.planBase,
+        'real': 0,
+        'orden': item.orden,
+      });
+    }
+    await batch.commit();
   }
 }

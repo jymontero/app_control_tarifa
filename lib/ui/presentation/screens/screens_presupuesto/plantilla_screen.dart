@@ -47,7 +47,7 @@ class _PlantillaPresupuestoScreenState
     final items = await _bd.getPlantilla();
     if (!mounted) return;
     setState(() {
-      _items = items;
+      _items = items..sort((b, a) => a.planBase.compareTo(b.planBase));
       _cargando = false;
     });
   }

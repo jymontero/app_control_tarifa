@@ -7,6 +7,8 @@ import 'package:taxi_servicios/domain/entitis/presupuesto_item.dart';
 import 'package:taxi_servicios/domain/entitis/movimiento_presupuesto.dart';
 import 'package:taxi_servicios/domain/entitis/etiqueta.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
+import 'package:taxi_servicios/services/miles_input_formatter.dart';
+import 'package:taxi_servicios/ui/presentation/screens/screens_calendarioTurno/turno_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_presupuesto/plantilla_screen.dart';
 
 // ── Paleta Dark Premium ───────────────────────────────────────────────────────
@@ -43,6 +45,7 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
       _presupuesto!.anio == DateTime.now().year.toString();
   final _fmt =
       NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 0);
+  final _fmtMiles = NumberFormat('#,##0', 'es_MX');
   int _diasTrabajadosHastaHoy = 0;
 
   @override
@@ -52,6 +55,15 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
     _cargarDatos();
   }
 
+// Agrega este helper en la clase
+  void _limpiarYSalir() {
+    if (!mounted) return;
+    setState(() {
+      _presupuesto = null; // ← esto activa el mensaje "sin presupuesto"
+      _movimientos = [];
+      _cargando = false;
+    });
+  }
   // ── Data ─────────────────────────────────────────────────────────────────────
 
   Future<void> _cargarDatos() async {
@@ -59,6 +71,17 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
 
     final mes = _fechaNav.month.toString();
     final anio = _fechaNav.year.toString();
+    final ahora = DateTime.now();
+
+    // ── Validación mes futuro ─────────────────────────────────────
+    final esFuturo = _fechaNav.year > ahora.year ||
+        (_fechaNav.year == ahora.year && _fechaNav.month > ahora.month);
+
+    if (esFuturo) {
+      // if (mounted) setState(() => _cargando = false);
+      _limpiarYSalir();
+      return;
+    }
 
     // Cargar etiquetas del turnero
     final etiquetas = await _bd.getEtiquetas();
@@ -66,11 +89,22 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
     // Buscar presupuesto del mes
     var presupuesto = await _bd.getPresupuestoMensual(mes, anio);
 
-    // Si no existe — crear desde plantilla
+    // ── Si no existe ──────────────────────────────────────────────
     if (presupuesto == null) {
+      final esMesActual =
+          _fechaNav.month == ahora.month && _fechaNav.year == ahora.year;
+
+      // Mes pasado sin presupuesto — mostrar vacío sin crear
+      if (!esMesActual) {
+        // if (mounted) setState(() => _cargando = false);
+        _limpiarYSalir();
+
+        return;
+      }
+
+      // Mes actual — verificar plantilla antes de crear
       final plantilla = await _bd.getPlantilla();
       if (plantilla.isEmpty) {
-        // Sin plantilla — mostrar aviso y no crear nada
         if (mounted) {
           setState(() => _cargando = false);
           ScaffoldMessenger.of(context).showSnackBar(
@@ -103,27 +137,54 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
               ),
             ),
           );
+          _limpiarYSalir();
         }
-        return; // ← salir sin crear nada
-      } else {
-        // Plantilla existe — crear presupuesto normal
-        presupuesto = await _bd.crearPresupuestoDesdePlantilla(
-          mes,
-          anio,
-          etiquetasContables: etiquetas
-              .where((e) => e.nombre == 'Taxi' || e.nombre == 'Plataforma')
-              .map((e) => e.nombre)
-              .toList(),
-        );
+        return;
+      }
+
+      // Plantilla existe — crear presupuesto del mes actual
+      presupuesto = await _bd.crearPresupuestoDesdePlantilla(
+        mes,
+        anio,
+        etiquetasContables: etiquetas
+            .where((e) => e.nombre == 'Taxi' || e.nombre == 'Plataforma')
+            .map((e) => e.nombre)
+            .toList(),
+      );
+
+      // Si falló la creación — salir
+      if (presupuesto == null) {
+        if (mounted) setState(() => _cargando = false);
+        return;
       }
     }
 
-    // Cargar movimientos si hay presupuesto
-    List<MovimientoPresupuesto> movimientos = [];
-    movimientos = await _bd.getMovimientosMes(presupuesto.id);
+    // ── Sincronización de ítems nuevos de plantilla ───────────────
+    // Solo si el mes está abierto
+    if (presupuesto.estaAbierto) {
+      await _bd.sincronizarItemsConPlantilla(presupuesto.id);
 
-    // Calcular días planificados desde turnero
+      // Verificar si hubo cambios para recargar
+      final plantillaActual = await _bd.getPlantilla();
+      final nombresActuales = presupuesto.items.map((i) => i.nombre).toSet();
+      final hayNuevos =
+          plantillaActual.any((p) => !nombresActuales.contains(p.nombre));
+
+      if (hayNuevos) {
+        presupuesto = await _bd.getPresupuestoMensual(mes, anio);
+        if (presupuesto == null) {
+          if (mounted) setState(() => _cargando = false);
+          return;
+        }
+      }
+    }
+
+    // ── Cargar movimientos ────────────────────────────────────────
+    final movimientos = await _bd.getMovimientosMes(presupuesto.id);
+
+    // ── Calcular días planificados desde turnero ──────────────────
     final turnos = await _bd.getTurnosMes(_fechaNav.month, _fechaNav.year);
+
     final diasPlanificados = turnos
         .where(
             (t) => presupuesto!.etiquetasContables.contains(t.etiquetaNombre))
@@ -132,7 +193,7 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
         .length;
 
     final hoy = DateTime.now();
-    _diasTrabajadosHastaHoy = turnos
+    final diasTrabajadosHastaHoy = turnos
         .where((t) =>
             presupuesto!.etiquetasContables.contains(t.etiquetaNombre) &&
             DateTime.parse(t.fecha)
@@ -141,7 +202,7 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
         .toSet()
         .length;
 
-    // Actualizar si cambió
+    // ── Actualizar días si cambiaron ──────────────────────────────
     if (diasPlanificados != presupuesto.diasPlanificados) {
       await _bd.actualizarConfigPresupuesto(
         presupuestoId: presupuesto.id,
@@ -151,13 +212,13 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
       );
       presupuesto = await _bd.getPresupuestoMensual(mes, anio);
     }
-
+    presupuesto?.items.sort((a, b) => b.plan.compareTo(a.plan));
     if (!mounted) return;
     setState(() {
       _presupuesto = presupuesto;
       _movimientos = movimientos;
       _etiquetas = etiquetas;
-      _diasTrabajadosHastaHoy = _diasTrabajadosHastaHoy;
+      _diasTrabajadosHastaHoy = diasTrabajadosHastaHoy;
       _cargando = false;
     });
   }
@@ -189,17 +250,16 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
 
   String _compacto(int valor) {
     if (valor >= 1000000) return '${(valor / 1000000).toStringAsFixed(1)}M';
-    if (valor >= 1000) return '${(valor / 1000).toStringAsFixed(0)}k';
+    //if (valor >= 1000) return '${(valor / 1000).toStringAsFixed(0)}k';
     return valor.toString();
   }
 
   // ── Editar real de un ítem ────────────────────────────────────────────────────
 
   Future<void> _editarReal(PresupuestoItem item) async {
-    final ctrl =
-        TextEditingController(text: item.real > 0 ? item.real.toString() : '');
+    final ctrl = TextEditingController(); // ← siempre en cero
 
-    final nuevoValor = await showModalBottomSheet<int>(
+    final abono = await showModalBottomSheet<int>(
       context: context,
       isScrollControlled: true,
       backgroundColor: _C.cardBg,
@@ -219,18 +279,30 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                    color: _C.muted, borderRadius: BorderRadius.circular(2)),
+                    color: _C.primary, borderRadius: BorderRadius.circular(2)),
               ),
             ),
-            Text('${item.nombre}',
+            Text(item.nombre,
                 style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: _C.primary)),
             const SizedBox(height: 4),
-            Text('Plan: ${_fmt.format(item.plan)}',
-                style: const TextStyle(fontSize: 11, color: _C.secondary)),
+            // Muestra el real acumulado actual
+            Row(
+              children: [
+                Text('Acumulado: ${_fmt.format(item.real)}',
+                    style: const TextStyle(fontSize: 11, color: _C.secondary)),
+                const SizedBox(width: 8),
+                Text('Plan: ${_fmt.format(item.plan)}',
+                    style: const TextStyle(fontSize: 11, color: _C.primary)),
+              ],
+            ),
             const SizedBox(height: 14),
+            // Label del campo
+            const Text('Nuevo abono',
+                style: TextStyle(fontSize: 10, color: _C.secondary)),
+            const SizedBox(height: 6),
             Container(
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.04),
@@ -242,14 +314,16 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
                 controller: ctrl,
                 keyboardType: TextInputType.number,
                 autofocus: true,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                ],
                 style: const TextStyle(
                     color: _C.primary,
                     fontSize: 16,
                     fontWeight: FontWeight.w500),
                 decoration: const InputDecoration(
-                  hintText: 'Valor real pagado',
-                  hintStyle: TextStyle(color: _C.muted, fontSize: 13),
+                  hintText: '0', // ← siempre en cero
+                  hintStyle: TextStyle(color: _C.primary, fontSize: 13),
                   border: InputBorder.none,
                   isDense: true,
                   prefixText: '\$ ',
@@ -257,11 +331,43 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 8),
+            // Preview del nuevo total
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: ctrl,
+              builder: (_, value, __) {
+                final abono = int.tryParse(value.text.replaceAll(',', "")) ?? 0;
+                final nuevoTotal = item.real + abono;
+                return Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _C.green.withOpacity(0.06),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _C.green.withOpacity(0.15)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Nuevo total:',
+                          style: TextStyle(fontSize: 10, color: _C.secondary)),
+                      Text(
+                        _fmt.format(nuevoTotal),
+                        style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: _C.green),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
             const SizedBox(height: 14),
             GestureDetector(
               onTap: () {
                 final raw = ctrl.text.trim();
-                if (raw.isEmpty) return;
+                if (raw.isEmpty || int.parse(raw) <= 0) return;
                 Navigator.pop(ctx, int.parse(raw));
               },
               child: Container(
@@ -271,7 +377,7 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Center(
-                  child: Text('Guardar',
+                  child: Text('Registrar abono',
                       style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
@@ -284,16 +390,20 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
       ),
     );
 
-    if (nuevoValor == null || _presupuesto == null) return;
+    if (abono == null || _presupuesto == null) return;
 
+    // Optimistic UI — actualizar en memoria inmediatamente
+
+    // Firebase en background con batch
     await _bd.actualizarRealItem(
       presupuestoId: _presupuesto!.id,
       itemId: item.id,
       itemNombre: item.nombre,
-      realAnterior: item.real,
-      realNuevo: nuevoValor,
+      abonoNuevo: abono, // ← solo el abono
+      realActual: item.real, // ← real antes del abono
     );
 
+    // Recargar para sincronizar historial
     await _cargarDatos();
   }
 
@@ -330,7 +440,8 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                      color: _C.muted, borderRadius: BorderRadius.circular(2)),
+                      color: _C.primary,
+                      borderRadius: BorderRadius.circular(2)),
                 ),
               ),
               const Text('Configuración',
@@ -354,11 +465,14 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
                 child: TextField(
                   controller: ctrlAhorro,
                   keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    MilesInputFormatter(_fmtMiles),
+                  ],
                   style: const TextStyle(color: _C.primary, fontSize: 13),
                   decoration: const InputDecoration(
                     hintText: '0',
-                    hintStyle: TextStyle(color: _C.muted),
+                    hintStyle: TextStyle(color: _C.primary),
                     border: InputBorder.none,
                     isDense: true,
                     prefixText: '\$ ',
@@ -461,7 +575,7 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
                   ? const Center(
                       child: CircularProgressIndicator(color: _C.accent))
                   : _presupuesto == null
-                      ? _buildSinPlantilla()
+                      ? _buildSinPresupuesto()
                       : _buildContenido(),
             ),
           ],
@@ -502,12 +616,32 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
                         fontWeight: FontWeight.w500,
                         color: _C.primary)),
               ),
+              GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const TurneroScreen()),
+                ),
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  margin: const EdgeInsets.only(right: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5C518).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(9),
+                    border: Border.all(
+                        color: const Color(0xFFF5C518).withOpacity(0.2)),
+                  ),
+                  child: const Icon(Icons.calendar_month_outlined,
+                      color: Color(0xFFF5C518), size: 15),
+                ),
+              ),
               // Botón configuración
               GestureDetector(
                 onTap: _editarConfig,
                 child: Container(
-                  width: 34,
-                  height: 34,
+                  width: 32,
+                  height: 32,
+                  margin: const EdgeInsets.only(right: 6),
                   decoration: BoxDecoration(
                     color: _C.accent.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(9),
@@ -518,17 +652,17 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
                 ),
               ),
               Container(
-                margin: const EdgeInsets.only(right: 8),
+                margin: const EdgeInsets.only(right: 6),
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: _esEditable
                       ? _C.green.withOpacity(0.1)
-                      : _C.muted.withOpacity(0.1),
+                      : _C.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: _esEditable
                         ? _C.green.withOpacity(0.3)
-                        : _C.muted.withOpacity(0.3),
+                        : _C.primary.withOpacity(0.3),
                   ),
                 ),
                 child: Text(
@@ -579,13 +713,49 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.account_balance_wallet_outlined,
-              color: _C.muted, size: 48),
+              color: _C.primary, size: 48),
           SizedBox(height: 12),
           Text('Sin plantilla configurada',
               style: TextStyle(color: _C.secondary, fontSize: 13)),
           SizedBox(height: 4),
           Text('Configura tu plantilla desde Perfil',
-              style: TextStyle(color: _C.muted, fontSize: 11)),
+              style: TextStyle(color: _C.primary, fontSize: 11)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSinPresupuesto() {
+    final ahora = DateTime.now();
+    final esFuturo = _fechaNav.year > ahora.year ||
+        (_fechaNav.year == ahora.year && _fechaNav.month > ahora.month);
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            esFuturo
+                ? Icons.calendar_today_outlined
+                : Icons.account_balance_wallet_outlined,
+            color: _C.muted,
+            size: 48,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            esFuturo
+                ? 'Este mes aún no está disponible'
+                : 'Sin presupuesto registrado',
+            style: const TextStyle(color: _C.secondary, fontSize: 13),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            esFuturo
+                ? 'Se creará automáticamente al cerrar el mes anterior'
+                : 'No hay datos para este período',
+            style: const TextStyle(color: _C.muted, fontSize: 11),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
@@ -773,9 +943,11 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
           Row(
             children: [
               _heroMetrica(
-                  'Total gastos', '\$${_compacto(p.totalPlan)}', _C.primary),
-              _heroMetrica('Ahorro anterior',
-                  '\$${_compacto(p.ahorroAnterior)}', _C.green),
+                  'Total gastos', _fmt.format(p.totalPlan), _C.primary),
+              _heroMetrica(
+                  'Ahorro ant.', _fmt.format(p.ahorroAnterior), _C.green),
+              _heroMetrica('Total a Cubrir',
+                  _fmt.format(p.totalPlan - p.ahorroAnterior), _C.red),
               _heroMetrica('Días plan.', '${p.diasPlanificados}', _C.accent),
             ],
           ),
@@ -794,9 +966,9 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(label, style: const TextStyle(fontSize: 8, color: _C.muted)),
+            Text(label, style: const TextStyle(fontSize: 8, color: _C.primary)),
             const SizedBox(height: 2),
             Text(valor,
                 style: TextStyle(
@@ -824,28 +996,28 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
             child: Row(
               children: [
                 Expanded(
-                  flex: 3,
+                  flex: 2,
                   child: Text('ITEM',
                       style: TextStyle(
-                          fontSize: 9, color: _C.muted, letterSpacing: 0.3)),
+                          fontSize: 9, color: _C.primary, letterSpacing: 0.3)),
                 ),
                 Expanded(
                   child: Text('PLAN',
-                      textAlign: TextAlign.right,
+                      textAlign: TextAlign.center,
                       style: TextStyle(
-                          fontSize: 9, color: _C.muted, letterSpacing: 0.3)),
+                          fontSize: 9, color: _C.primary, letterSpacing: 0.3)),
                 ),
                 Expanded(
                   child: Text('REAL',
-                      textAlign: TextAlign.right,
+                      textAlign: TextAlign.center,
                       style: TextStyle(
-                          fontSize: 9, color: _C.muted, letterSpacing: 0.3)),
+                          fontSize: 9, color: _C.primary, letterSpacing: 0.3)),
                 ),
                 Expanded(
                   child: Text('DIF',
-                      textAlign: TextAlign.right,
+                      textAlign: TextAlign.center,
                       style: TextStyle(
-                          fontSize: 9, color: _C.muted, letterSpacing: 0.3)),
+                          fontSize: 9, color: _C.primary, letterSpacing: 0.3)),
                 ),
               ],
             ),
@@ -860,7 +1032,7 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
             child: Row(
               children: [
                 const Expanded(
-                  flex: 3,
+                  flex: 2,
                   child: Text('TOTAL',
                       style: TextStyle(
                           fontSize: 10,
@@ -869,8 +1041,8 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
                 ),
                 Expanded(
                   child: Text(
-                    '\$${_compacto(p.totalPlan)}',
-                    textAlign: TextAlign.right,
+                    _fmt.format(p.totalPlan),
+                    textAlign: TextAlign.center,
                     style: const TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w500,
@@ -879,8 +1051,8 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
                 ),
                 Expanded(
                   child: Text(
-                    '\$${_compacto(p.totalReal)}',
-                    textAlign: TextAlign.right,
+                    _fmt.format(p.totalReal),
+                    textAlign: TextAlign.center,
                     style: const TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w500,
@@ -889,8 +1061,8 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
                 ),
                 Expanded(
                   child: Text(
-                    '\$${_compacto(p.totalPlan - p.totalReal)}',
-                    textAlign: TextAlign.right,
+                    _fmt.format(p.totalPlan - p.totalReal),
+                    textAlign: TextAlign.center,
                     style: const TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w500,
@@ -918,14 +1090,14 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
         child: Row(
           children: [
             Expanded(
-              flex: 3,
+              flex: 2,
               child: Row(
                 children: [
                   Container(
                     width: 6,
                     height: 6,
                     decoration: BoxDecoration(
-                      color: item.pagado ? _C.green : _C.muted,
+                      color: item.pagado ? _C.green : _C.primary,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -940,18 +1112,18 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
             ),
             Expanded(
               child: Text(
-                '\$${_compacto(item.plan)}',
-                textAlign: TextAlign.right,
+                _fmt.format(item.plan),
+                textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 10, color: _C.secondary),
               ),
             ),
             Expanded(
               child: Text(
-                item.real > 0 ? '\$${_compacto(item.real)}' : '—',
-                textAlign: TextAlign.right,
+                item.real > 0 ? _fmt.format(item.real) : '—',
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 10,
-                  color: item.real > 0 ? _C.green : _C.muted,
+                  color: item.real > 0 ? _C.green : _C.primary,
                   fontWeight:
                       item.real > 0 ? FontWeight.w500 : FontWeight.normal,
                 ),
@@ -959,8 +1131,8 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
             ),
             Expanded(
               child: Text(
-                '\$${_compacto(item.diferencia.abs())}',
-                textAlign: TextAlign.right,
+                _fmt.format(item.diferencia.abs()),
+                textAlign: TextAlign.center,
                 style: TextStyle(
                     fontSize: 10, color: difColor, fontWeight: FontWeight.w500),
               ),
@@ -992,7 +1164,8 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
               'Total a cubrir', _fmt.format(p.totalPlan), _C.primary),
           _resultadoFila('Gastado actual', _fmt.format(p.totalReal), _C.red),
           const Divider(color: _C.cardBorder, height: 16),
-          _resultadoFila('Ahorro del mes', _fmt.format(p.ahorroMes), _C.green,
+          _resultadoFila('Ahorro (Dif + Ahorro ant.)',
+              _fmt.format(p.ahorroMes + p.ahorroAnterior), _C.green,
               destacado: true),
         ],
       ),
@@ -1081,9 +1254,78 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
               ],
             ),
           ),
-          Text(_fmt.format(mov.realNuevo),
+          Text(_fmt.format(mov.valor),
               style: const TextStyle(
                   fontSize: 11, fontWeight: FontWeight.w500, color: _C.green)),
+          const SizedBox(width: 8),
+          // Botón eliminar abono
+          if (_esEditable)
+            GestureDetector(
+              onTap: () async {
+                final confirmar = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    backgroundColor: _C.cardBg,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: const BorderSide(color: _C.cardBorder),
+                    ),
+                    title: const Text('¿Eliminar abono?',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: _C.primary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500)),
+                    content: Text(
+                      'Se revertirán ${_fmt.format(mov.valor)} '
+                      'del real de "${mov.itemNombre}".',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: _C.secondary, fontSize: 12),
+                    ),
+                    actionsAlignment: MainAxisAlignment.spaceEvenly,
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text('Eliminar',
+                            style: TextStyle(color: _C.red)),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Cancelar',
+                            style: TextStyle(color: _C.secondary)),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirmar == true && _presupuesto != null) {
+                  // Buscar el item correspondiente
+                  final item = _presupuesto!.items.firstWhere(
+                      (i) => i.nombre == mov.itemNombre,
+                      orElse: () => throw Exception('Item no encontrado'));
+
+                  await _bd.eliminarAbono(
+                    presupuestoId: _presupuesto!.id,
+                    itemId: item.id,
+                    movimientoId: mov.id,
+                    valorAbono: mov.valor,
+                    realActual: item.real,
+                  );
+
+                  await _cargarDatos();
+                }
+              },
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: _C.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                child: const Icon(Icons.delete_outline_rounded,
+                    color: _C.red, size: 14),
+              ),
+            ),
         ],
       ),
     );
