@@ -7,7 +7,6 @@ import 'package:taxi_servicios/domain/entitis/presupuesto_item.dart';
 import 'package:taxi_servicios/domain/entitis/movimiento_presupuesto.dart';
 import 'package:taxi_servicios/domain/entitis/etiqueta.dart';
 import 'package:taxi_servicios/services/bd_confi.dart';
-import 'package:taxi_servicios/services/miles_input_formatter.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_calendarioTurno/turno_screen.dart';
 import 'package:taxi_servicios/ui/presentation/screens/screens_presupuesto/plantilla_screen.dart';
 
@@ -40,9 +39,13 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
   List<MovimientoPresupuesto> _movimientos = [];
   List<Etiqueta> _etiquetas = [];
   bool _cargando = true;
-  bool get _esEditable =>
-      _presupuesto!.mes == DateTime.now().month.toString() &&
-      _presupuesto!.anio == DateTime.now().year.toString();
+  bool get _esEditable {
+    final p = _presupuesto;
+    if (p == null) return false;
+    final ahora = DateTime.now();
+    return p.mes == ahora.month.toString() && p.anio == ahora.year.toString();
+  }
+
   final _fmt =
       NumberFormat.currency(locale: 'es_MX', symbol: '\$', decimalDigits: 0);
   final _fmtMiles = NumberFormat('#,##0', 'es_MX');
@@ -61,171 +64,212 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
     setState(() {
       _presupuesto = null; // ← esto activa el mensaje "sin presupuesto"
       _movimientos = [];
+      _diasTrabajadosHastaHoy = 0;
       _cargando = false;
     });
   }
   // ── Data ─────────────────────────────────────────────────────────────────────
 
   Future<void> _cargarDatos() async {
+    if (!mounted) return;
+
     setState(() => _cargando = true);
 
-    final mes = _fechaNav.month.toString();
-    final anio = _fechaNav.year.toString();
-    final ahora = DateTime.now();
+    try {
+      final mes = _fechaNav.month.toString();
+      final anio = _fechaNav.year.toString();
+      final ahora = DateTime.now();
 
-    // ── Validación mes futuro ─────────────────────────────────────
-    final esFuturo = _fechaNav.year > ahora.year ||
-        (_fechaNav.year == ahora.year && _fechaNav.month > ahora.month);
+      // ── Validar si el mes seleccionado es futuro ────────────────
+      final esFuturo = _fechaNav.year > ahora.year ||
+          (_fechaNav.year == ahora.year && _fechaNav.month > ahora.month);
 
-    if (esFuturo) {
-      // if (mounted) setState(() => _cargando = false);
-      _limpiarYSalir();
-      return;
-    }
-
-    // Cargar etiquetas del turnero
-    final etiquetas = await _bd.getEtiquetas();
-
-    // Buscar presupuesto del mes
-    var presupuesto = await _bd.getPresupuestoMensual(mes, anio);
-
-    // ── Si no existe ──────────────────────────────────────────────
-    if (presupuesto == null) {
-      final esMesActual =
-          _fechaNav.month == ahora.month && _fechaNav.year == ahora.year;
-
-      // Mes pasado sin presupuesto — mostrar vacío sin crear
-      if (!esMesActual) {
-        // if (mounted) setState(() => _cargando = false);
+      if (esFuturo) {
         _limpiarYSalir();
-
         return;
       }
 
-      // Mes actual — verificar plantilla antes de crear
-      final plantilla = await _bd.getPlantilla();
-      if (plantilla.isEmpty) {
-        if (mounted) {
-          setState(() => _cargando = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Row(
-                children: [
-                  Icon(Icons.info_outline_rounded,
-                      color: Color(0xFF0F1923), size: 16),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Primero configura tu plantilla de presupuesto en Perfil',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF0F1923)),
-                    ),
-                  ),
-                ],
-              ),
-              backgroundColor: const Color(0xFFF5C518),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-              action: SnackBarAction(
-                label: 'Ir a plantilla',
-                textColor: const Color(0xFF0F1923),
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const PlantillaPresupuestoScreen()),
-                ),
-              ),
-            ),
-          );
+      // ── Cargar etiquetas del turnero ────────────────────────────
+      final etiquetas = await _bd.getEtiquetas();
+
+      // ── Buscar presupuesto del mes ──────────────────────────────
+      final existente = await _bd.getPresupuestoMensual(mes, anio);
+
+      late PresupuestoMensual presupuestoActual;
+
+      if (existente != null) {
+        // El presupuesto existe: utilizarlo.
+        presupuestoActual = existente;
+      } else {
+        // ── No existe presupuesto ─────────────────────────────────
+        final esMesActual =
+            _fechaNav.month == ahora.month && _fechaNav.year == ahora.year;
+
+        // Mes pasado sin presupuesto: mostrar pantalla vacía.
+        if (!esMesActual) {
           _limpiarYSalir();
-        }
-        return;
-      }
-
-      // Plantilla existe — crear presupuesto del mes actual
-      presupuesto = await _bd.crearPresupuestoDesdePlantilla(
-        mes,
-        anio,
-        etiquetasContables: etiquetas
-            .where((e) => e.nombre == 'Taxi' || e.nombre == 'Plataforma')
-            .map((e) => e.nombre)
-            .toList(),
-      );
-
-      // Si falló la creación — salir
-      if (presupuesto == null) {
-        if (mounted) setState(() => _cargando = false);
-        return;
-      }
-    }
-
-    // ── Sincronización de ítems nuevos de plantilla ───────────────
-    // Solo si el mes está abierto
-    if (presupuesto.estaAbierto) {
-      await _bd.sincronizarItemsConPlantilla(presupuesto.id);
-
-      // Verificar si hubo cambios para recargar
-      final plantillaActual = await _bd.getPlantilla();
-      final nombresActuales = presupuesto.items.map((i) => i.nombre).toSet();
-      final hayNuevos =
-          plantillaActual.any((p) => !nombresActuales.contains(p.nombre));
-
-      if (hayNuevos) {
-        presupuesto = await _bd.getPresupuestoMensual(mes, anio);
-        if (presupuesto == null) {
-          if (mounted) setState(() => _cargando = false);
           return;
         }
+
+        // ── Verificar plantilla ────────────────────────────────────
+        final plantilla = await _bd.getPlantilla();
+
+        if (plantilla.isEmpty) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      color: Color(0xFF0F1923),
+                      size: 16,
+                    ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Primero configura tu plantilla de presupuesto en Perfil',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF0F1923),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                backgroundColor: const Color(0xFFF5C518),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                action: SnackBarAction(
+                  label: 'Ir a plantilla',
+                  textColor: const Color(0xFF0F1923),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PlantillaPresupuestoScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            );
+          }
+
+          _limpiarYSalir();
+          return;
+        }
+
+        // ── Crear presupuesto del mes actual ───────────────────────
+        presupuestoActual = await _bd.crearPresupuestoDesdePlantilla(
+          mes,
+          anio,
+          etiquetasContables: etiquetas
+              .where(
+                (e) => e.nombre == 'Taxi' || e.nombre == 'Plataforma',
+              )
+              .map((e) => e.nombre)
+              .toList(),
+        );
+      }
+
+      // ── Cargar movimientos ──────────────────────────────────────
+      final movimientos = await _bd.getMovimientosMes(presupuestoActual.id);
+
+      // ── Calcular días planificados desde turnero ────────────────
+      final turnos = await _bd.getTurnosMes(
+        _fechaNav.month,
+        _fechaNav.year,
+      );
+
+      final diasPlanificados = turnos
+          .where(
+            (t) =>
+                presupuestoActual.etiquetasContables.contains(t.etiquetaNombre),
+          )
+          .map((t) => t.fecha)
+          .toSet()
+          .length;
+
+      // ── Calcular días trabajados hasta hoy ──────────────────────
+      final hoy = DateTime.now();
+
+      final diasTrabajadosHastaHoy = turnos
+          .where(
+            (t) =>
+                presupuestoActual.etiquetasContables
+                    .contains(t.etiquetaNombre) &&
+                DateTime.parse(t.fecha).isBefore(
+                  DateTime(hoy.year, hoy.month, hoy.day + 1),
+                ),
+          )
+          .map((t) => t.fecha)
+          .toSet()
+          .length;
+
+      // ── Actualizar días si cambiaron ────────────────────────────
+      if (diasPlanificados != presupuestoActual.diasPlanificados) {
+        await _bd.actualizarConfigPresupuesto(
+          presupuestoId: presupuestoActual.id,
+          ahorroAnterior: presupuestoActual.ahorroAnterior,
+          diasPlanificados: diasPlanificados,
+          etiquetasContables: presupuestoActual.etiquetasContables,
+        );
+
+        // Recuperar presupuesto actualizado.
+        final actualizado = await _bd.getPresupuestoMensual(mes, anio);
+
+        if (actualizado == null) {
+          throw StateError(
+            'No se pudo recuperar el presupuesto actualizado.',
+          );
+        }
+
+        presupuestoActual = actualizado;
+      }
+
+      // ── Ordenar items ───────────────────────────────────────────
+      presupuestoActual.items.sort(
+        (a, b) => b.plan.compareTo(a.plan),
+      );
+
+      // ── Actualizar interfaz ─────────────────────────────────────
+      if (!mounted) return;
+
+      setState(() {
+        _presupuesto = presupuestoActual;
+        _movimientos = movimientos;
+        _etiquetas = etiquetas;
+        _diasTrabajadosHastaHoy = diasTrabajadosHastaHoy;
+        _cargando = false;
+      });
+    } catch (e, stackTrace) {
+      debugPrint('Error al cargar presupuesto: $e');
+      debugPrintStack(stackTrace: stackTrace);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No fue posible cargar el presupuesto. Intenta nuevamente.',
+            ),
+          ),
+        );
+      }
+    } finally {
+      // Garantizar que la pantalla no quede cargando.
+      if (mounted && _cargando) {
+        setState(() => _cargando = false);
       }
     }
-
-    // ── Cargar movimientos ────────────────────────────────────────
-    final movimientos = await _bd.getMovimientosMes(presupuesto.id);
-
-    // ── Calcular días planificados desde turnero ──────────────────
-    final turnos = await _bd.getTurnosMes(_fechaNav.month, _fechaNav.year);
-
-    final diasPlanificados = turnos
-        .where(
-            (t) => presupuesto!.etiquetasContables.contains(t.etiquetaNombre))
-        .map((t) => t.fecha)
-        .toSet()
-        .length;
-
-    final hoy = DateTime.now();
-    final diasTrabajadosHastaHoy = turnos
-        .where((t) =>
-            presupuesto!.etiquetasContables.contains(t.etiquetaNombre) &&
-            DateTime.parse(t.fecha)
-                .isBefore(DateTime(hoy.year, hoy.month, hoy.day + 1)))
-        .map((t) => t.fecha)
-        .toSet()
-        .length;
-
-    // ── Actualizar días si cambiaron ──────────────────────────────
-    if (diasPlanificados != presupuesto.diasPlanificados) {
-      await _bd.actualizarConfigPresupuesto(
-        presupuestoId: presupuesto.id,
-        ahorroAnterior: presupuesto.ahorroAnterior,
-        diasPlanificados: diasPlanificados,
-        etiquetasContables: presupuesto.etiquetasContables,
-      );
-      presupuesto = await _bd.getPresupuestoMensual(mes, anio);
-    }
-    presupuesto?.items.sort((a, b) => b.plan.compareTo(a.plan));
-    if (!mounted) return;
-    setState(() {
-      _presupuesto = presupuesto;
-      _movimientos = movimientos;
-      _etiquetas = etiquetas;
-      _diasTrabajadosHastaHoy = diasTrabajadosHastaHoy;
-      _cargando = false;
-    });
   }
 
   void _cambiarMes(int delta) {
     setState(() {
       _fechaNav = DateTime(_fechaNav.year, _fechaNav.month + delta);
+      _cargando = true;
     });
     _cargarDatos();
   }
@@ -410,14 +454,15 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
   // ── Editar configuración ──────────────────────────────────────────────────────
 
   Future<void> _editarConfig() async {
-    if (_presupuesto == null) return;
+    final presupuesto = _presupuesto;
+    if (presupuesto == null) return;
     final ctrlAhorro = TextEditingController(
-        text: _presupuesto!.ahorroAnterior > 0
-            ? _presupuesto!.ahorroAnterior.toString()
+        text: presupuesto.ahorroAnterior > 0
+            ? presupuesto.ahorroAnterior.toString()
             : '');
 
     final etiquetasSeleccionadas =
-        List<String>.from(_presupuesto!.etiquetasContables);
+        List<String>.from(presupuesto.etiquetasContables);
 
     await showModalBottomSheet(
       context: context,
@@ -467,7 +512,6 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
                   keyboardType: TextInputType.number,
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
-                    MilesInputFormatter(_fmtMiles),
                   ],
                   style: const TextStyle(color: _C.primary, fontSize: 13),
                   decoration: const InputDecoration(
@@ -522,14 +566,53 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
                   );
                 }).toList(),
               ),
+              if (_esEditable) ...[
+                GestureDetector(
+                  onTap: () async {
+                    final agregados =
+                        await _bd.importarItemsDePlantilla(presupuesto.id);
+                    if (!mounted) return;
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text(agregados == 0
+                          ? 'No hay ítems nuevos en la plantilla'
+                          : 'Se importaron $agregados ítem(s) de la plantilla'),
+                    ));
+                    _cargarDatos();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: _C.accent.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _C.accent.withOpacity(0.2)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.download_rounded,
+                            color: _C.accent, size: 16),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Importar ítems de la plantilla\n'
+                            'Puede volver a traer ítems que eliminaste de este mes',
+                            style: TextStyle(fontSize: 10, color: _C.secondary),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
               const SizedBox(height: 16),
               GestureDetector(
                 onTap: () async {
                   final ahorro = int.tryParse(ctrlAhorro.text) ?? 0;
                   await _bd.actualizarConfigPresupuesto(
-                    presupuestoId: _presupuesto!.id,
+                    presupuestoId: presupuesto.id,
                     ahorroAnterior: ahorro,
-                    diasPlanificados: _presupuesto!.diasPlanificados,
+                    diasPlanificados: presupuesto.diasPlanificados,
                     etiquetasContables: etiquetasSeleccionadas,
                   );
                   if (mounted) {
@@ -651,6 +734,23 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
                       color: _C.accent, size: 16),
                 ),
               ),
+              if (_esEditable && _presupuesto != null) ...[
+                GestureDetector(
+                  onTap: _agregarItem,
+                  child: Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: _C.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(9),
+                      border: Border.all(color: _C.green.withOpacity(0.25)),
+                    ),
+                    child: const Icon(Icons.add_rounded,
+                        color: _C.green, size: 18),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               Container(
                 margin: const EdgeInsets.only(right: 6),
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -705,6 +805,229 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
     );
   }
 
+  Future<void> _agregarItem() async {
+    final ctrlNombre = TextEditingController();
+    final ctrlPlan = TextEditingController();
+    bool agregarAPlantilla = false;
+
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: _C.cardBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) => Padding(
+          padding: EdgeInsets.fromLTRB(
+              16, 16, 16, MediaQuery.of(ctx).viewInsets.bottom + 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('Nuevo ítem del mes',
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: _C.primary)),
+              const SizedBox(height: 14),
+              TextField(
+                controller: ctrlNombre,
+                style: const TextStyle(color: _C.primary, fontSize: 13),
+                decoration: const InputDecoration(
+                    hintText: 'Nombre del gasto',
+                    hintStyle: TextStyle(color: _C.muted)),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: ctrlPlan,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                style: const TextStyle(color: _C.primary, fontSize: 13),
+                decoration: const InputDecoration(
+                    hintText: 'Valor planificado',
+                    hintStyle: TextStyle(color: _C.muted),
+                    prefixText: '\$ '),
+              ),
+              CheckboxListTile(
+                value: agregarAPlantilla,
+                onChanged: (v) =>
+                    setModal(() => agregarAPlantilla = v ?? false),
+                title: const Text('Agregar también a la plantilla',
+                    style: TextStyle(fontSize: 11, color: _C.secondary)),
+                activeColor: _C.accent,
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+              ),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: () {
+                  if (ctrlNombre.text.trim().isEmpty ||
+                      (int.tryParse(ctrlPlan.text) ?? 0) <= 0) return;
+                  Navigator.pop(ctx, true);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  decoration: BoxDecoration(
+                      color: _C.accent,
+                      borderRadius: BorderRadius.circular(14)),
+                  child: const Center(
+                    child: Text('Agregar',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF0F1923))),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (ok != true || _presupuesto == null) return;
+
+    await _bd.agregarItemAlMes(
+      presupuestoId: _presupuesto!.id,
+      nombre: ctrlNombre.text.trim(),
+      plan: int.parse(ctrlPlan.text),
+      orden: _presupuesto!.items.length + 1,
+      agregarAPlantilla: agregarAPlantilla,
+    );
+    await _cargarDatos();
+  }
+
+  Future<void> _editarPlan(PresupuestoItem item) async {
+    final ctrl = TextEditingController(text: item.plan.toString());
+    bool actualizarPlantilla = false;
+
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: _C.cardBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModal) => Padding(
+          padding: EdgeInsets.fromLTRB(
+              16, 16, 16, MediaQuery.of(ctx).viewInsets.bottom + 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Plan de ${item.nombre}',
+                  style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: _C.primary)),
+              const SizedBox(height: 14),
+              TextField(
+                controller: ctrl,
+                autofocus: true,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                style: const TextStyle(color: _C.primary, fontSize: 16),
+                decoration: const InputDecoration(prefixText: '\$ '),
+              ),
+              CheckboxListTile(
+                value: actualizarPlantilla,
+                onChanged: (v) =>
+                    setModal(() => actualizarPlantilla = v ?? false),
+                title: const Text('Actualizar también la plantilla',
+                    style: TextStyle(fontSize: 11, color: _C.secondary)),
+                activeColor: _C.accent,
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+              ),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: () {
+                  if ((int.tryParse(ctrl.text) ?? 0) <= 0) return;
+                  Navigator.pop(ctx, true);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  decoration: BoxDecoration(
+                      color: _C.accent,
+                      borderRadius: BorderRadius.circular(14)),
+                  child: const Center(
+                    child: Text('Guardar',
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF0F1923))),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (ok != true || _presupuesto == null) return;
+
+    await _bd.editarPlanItem(
+      presupuestoId: _presupuesto!.id,
+      itemId: item.id,
+      nombre: item.nombre,
+      nuevoPlan: int.parse(ctrl.text),
+      actualizarPlantilla: actualizarPlantilla,
+    );
+    await _cargarDatos();
+  }
+
+  Future<void> _confirmarEliminarItem(PresupuestoItem item) async {
+    // Los abonos ya están en memoria, no hace falta otra consulta
+    final abonos = _movimientos.where((m) => m.itemId == item.id).toList();
+    final total = abonos.fold(0, (s, m) => s + m.valor);
+    final s = abonos.length == 1 ? '' : 's';
+
+    final detalle = abonos.isEmpty
+        ? 'Se eliminará "${item.nombre}" de este mes.'
+        : 'Tiene ${abonos.length} abono$s registrado$s por ${_fmt.format(total)}.\n'
+            'Se eliminarán el ítem y su historial de pagos.';
+
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: _C.cardBg,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: _C.cardBorder),
+        ),
+        title: Text('¿Eliminar "${item.nombre}"?',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+                color: _C.primary, fontSize: 15, fontWeight: FontWeight.w500)),
+        content: Text(detalle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: _C.secondary, fontSize: 12)),
+        actionsAlignment: MainAxisAlignment.spaceEvenly,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar', style: TextStyle(color: _C.red)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child:
+                const Text('Cancelar', style: TextStyle(color: _C.secondary)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true || _presupuesto == null) return;
+
+    await _bd.eliminarItemConAbonos(
+      presupuestoId: _presupuesto!.id,
+      itemId: item.id,
+    );
+    await _cargarDatos();
+  }
   // ── Sin plantilla ─────────────────────────────────────────────────────────────
 
   Widget _buildSinPlantilla() {
@@ -765,7 +1088,7 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
 
   Widget _buildContenido() {
     final p = _presupuesto!;
-    final desfase = _presupuesto!.calcularDesfase(_diasTrabajadosHastaHoy);
+    final desfase = p.calcularDesfase(_diasTrabajadosHastaHoy);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 16),
@@ -825,9 +1148,9 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
 
               if (confirmar == true && mounted) {
                 await _bd.cerrarMes(
-                  _presupuesto!.id,
-                  _presupuesto!.mes,
-                  _presupuesto!.anio,
+                  p.id,
+                  p.mes,
+                  p.anio,
                 );
                 // Navegar al mes siguiente
                 setState(() {
@@ -1072,6 +1395,14 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
               ],
             ),
           ),
+          if (_esEditable)
+            const Padding(
+              padding: EdgeInsets.fromLTRB(12, 6, 12, 8),
+              child: Text(
+                'Toca un ítem para abonar · Mantén presionado para editar o eliminar',
+                style: TextStyle(fontSize: 9, color: _C.primary),
+              ),
+            ),
         ],
       ),
     );
@@ -1081,6 +1412,7 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
     final difColor = item.diferencia >= 0 ? _C.green : _C.red;
     return GestureDetector(
       onTap: _esEditable ? () => _editarReal(item) : null,
+      onLongPress: _esEditable ? () => _menuItem(item) : null,
       child: Container(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
         decoration: BoxDecoration(
@@ -1143,6 +1475,62 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
     );
   }
 
+  void _menuItem(PresupuestoItem item) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: _C.cardBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                    color: _C.muted, borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            Text(item.nombre,
+                style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: _C.primary)),
+            const SizedBox(height: 8),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading:
+                  const Icon(Icons.edit_outlined, color: _C.accent, size: 18),
+              title: const Text('Editar plan',
+                  style: TextStyle(fontSize: 12, color: _C.primary)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _editarPlan(item);
+              },
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.delete_outline_rounded,
+                  color: _C.red, size: 18),
+              title: const Text('Eliminar ítem',
+                  style: TextStyle(fontSize: 12, color: _C.red)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _confirmarEliminarItem(item);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ── Resultado ─────────────────────────────────────────────────────────────────
 
   Widget _buildResultado(PresupuestoMensual p) {
@@ -1164,8 +1552,7 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
               'Total a cubrir', _fmt.format(p.totalPlan), _C.primary),
           _resultadoFila('Gastado actual', _fmt.format(p.totalReal), _C.red),
           const Divider(color: _C.cardBorder, height: 16),
-          _resultadoFila('Ahorro (Dif + Ahorro ant.)',
-              _fmt.format(p.ahorroMes + p.ahorroAnterior), _C.green,
+          _resultadoFila('Ahorro', _fmt.format(p.ahorroMes), _C.green,
               destacado: true),
         ],
       ),
@@ -1300,9 +1687,10 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
 
                 if (confirmar == true && _presupuesto != null) {
                   // Buscar el item correspondiente
-                  final item = _presupuesto!.items.firstWhere(
-                      (i) => i.nombre == mov.itemNombre,
-                      orElse: () => throw Exception('Item no encontrado'));
+                  final matches =
+                      _presupuesto!.items.where((i) => i.id == mov.itemId);
+                  if (matches.isEmpty) return;
+                  final item = matches.first;
 
                   await _bd.eliminarAbono(
                     presupuestoId: _presupuesto!.id,

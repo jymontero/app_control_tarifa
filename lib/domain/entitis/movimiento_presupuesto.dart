@@ -6,6 +6,7 @@ class MovimientoPresupuesto {
   final int valor;
   final int realAnterior;
   final int realNuevo;
+  final String itemId;
 
   MovimientoPresupuesto({
     required this.fecha,
@@ -14,6 +15,7 @@ class MovimientoPresupuesto {
     required this.valor,
     required this.realAnterior,
     required this.realNuevo,
+    required this.itemId,
   });
 
   factory MovimientoPresupuesto.fromJson(Map<String, dynamic> json) {
@@ -24,6 +26,7 @@ class MovimientoPresupuesto {
       valor: json['valor'] as int,
       realAnterior: json['realAnterior'] as int,
       realNuevo: json['realNuevo'] as int,
+      itemId: json['itemId'] as String? ?? '',
     );
   }
 
@@ -34,5 +37,6 @@ class MovimientoPresupuesto {
         'valor': valor,
         'realAnterior': realAnterior,
         'realNuevo': realNuevo,
+        'itemId': itemId,
       };
 }

@@ -508,7 +508,10 @@ class FireStoreDataBase {
 // ── Presupuesto mensual ───────────────────────────────────────────
 
   Future<PresupuestoMensual?> getPresupuestoMensual(
-      String mes, String anio) async {
+    String mes,
+    String anio,
+  ) async {
+    // ── Buscar presupuesto del mes ───────────────────────────────
     final query = await db
         .collection('presupuesto_mensual')
         .where('mes', isEqualTo: mes)
@@ -518,16 +521,15 @@ class FireStoreDataBase {
 
     if (query.docs.isEmpty) return null;
 
-    final presupuesto = PresupuestoMensual.fromJson(query.docs.first.data());
-    presupuesto.id = query.docs.first.id;
+    // ── Construir presupuesto ────────────────────────────────────
+    final doc = query.docs.first;
 
-    // Cargar items de la subcolección
-    final itemsQuery = await db
-        .collection('presupuesto_mensual')
-        .doc(presupuesto.id)
-        .collection('items')
-        .orderBy('orden')
-        .get();
+    final presupuesto = PresupuestoMensual.fromJson(doc.data());
+    presupuesto.id = doc.id;
+
+    // ── Cargar items ─────────────────────────────────────────────
+    final itemsQuery =
+        await doc.reference.collection('items').orderBy('orden').get();
 
     presupuesto.items = itemsQuery.docs.map((e) {
       final item = PresupuestoItem.fromJson(e.data());
@@ -539,48 +541,93 @@ class FireStoreDataBase {
   }
 
 // Crea presupuesto nuevo desde plantilla
-  Future<PresupuestoMensual?> crearPresupuestoDesdePlantilla(
-      String mes, String anio,
-      {int ahorroAnterior = 0,
-      int diasPlanificados = 0,
-      List<String> etiquetasContables = const []}) async {
-    try {
-      // Obtener plantilla
-      final plantilla = await getPlantilla();
-      final totalPlan = plantilla.fold(0, (s, i) => s + i.planBase);
-      final totalACubrir = totalPlan - ahorroAnterior;
-      final metaOriginal =
-          diasPlanificados > 0 ? (totalACubrir / diasPlanificados).ceil() : 0;
 
-      // Crear documento principal
-      final docRef = await db.collection('presupuesto_mensual').add({
-        'mes': mes,
-        'anio': anio,
-        'ahorroAnterior': ahorroAnterior,
-        'diasPlanificados': diasPlanificados,
-        'etiquetasContables': etiquetasContables,
-        'estado': 'abierto',
-        'metaDiariaOriginal': metaOriginal, // ← nuevo
+  Future<PresupuestoMensual> crearPresupuestoDesdePlantilla(
+    String mes,
+    String anio, {
+    int ahorroAnterior = 0,
+    int diasPlanificados = 0,
+    List<String> etiquetasContables = const [],
+  }) async {
+    // ── Obtener plantilla ────────────────────────────────────────
+    final plantilla = await getPlantilla();
+
+    if (plantilla.isEmpty) {
+      throw StateError(
+        'No existe una plantilla de presupuesto.',
+      );
+    }
+
+    // ── Calcular valores ─────────────────────────────────────────
+    final totalPlan = plantilla.fold<int>(
+      0,
+      (s, item) => s + item.planBase,
+    );
+
+    final totalACubrir = totalPlan - ahorroAnterior;
+
+    final metaOriginal =
+        diasPlanificados > 0 ? (totalACubrir / diasPlanificados).ceil() : 0;
+
+    // ── Preparar referencias ─────────────────────────────────────
+    final presupuestoRef = db.collection('presupuesto_mensual').doc();
+
+    final batch = db.batch();
+
+    // ── Crear documento principal ────────────────────────────────
+    batch.set(presupuestoRef, {
+      'mes': mes,
+      'anio': anio,
+      'ahorroAnterior': ahorroAnterior,
+      'diasPlanificados': diasPlanificados,
+      'etiquetasContables': etiquetasContables,
+      'estado': 'abierto',
+      'metaDiariaOriginal': metaOriginal,
+    });
+
+    // ── Preparar items ───────────────────────────────────────────
+    final List<PresupuestoItem> itemsCreados = [];
+
+    for (final item in plantilla) {
+      final itemRef = presupuestoRef.collection('items').doc();
+
+      batch.set(itemRef, {
+        'nombre': item.nombre,
+        'plan': item.planBase,
+        'real': 0,
+        'orden': item.orden,
       });
 
-      // Crear items desde plantilla
-      for (final item in plantilla) {
-        await docRef.collection('items').add({
-          'nombre': item.nombre,
-          'plan': item.planBase,
-          'real': 0,
-          'orden': item.orden,
-        });
-      }
-      await Future.delayed(const Duration(milliseconds: 500));
+      final nuevoItem = PresupuestoItem(
+        nombre: item.nombre,
+        plan: item.planBase,
+        real: 0,
+        orden: item.orden,
+      );
 
-      // Retornar presupuesto creado
-      return await getPresupuestoMensual(
-          mes, anio); // ← retorna null si falla, no crashea
-    } catch (e) {
-      debugPrint('Error creando presupuesto: $e');
-      return null;
+      nuevoItem.id = itemRef.id;
+
+      itemsCreados.add(nuevoItem);
     }
+
+    // ── Guardar todo en Firestore ─────────────────────────────────
+    await batch.commit();
+
+    // ── Construir presupuesto para retornar ──────────────────────
+    final presupuesto = PresupuestoMensual(
+      mes: mes,
+      anio: anio,
+      ahorroAnterior: ahorroAnterior,
+      diasPlanificados: diasPlanificados,
+      etiquetasContables: etiquetasContables,
+      estado: 'abierto',
+      metaDiariaOriginal: metaOriginal,
+      items: itemsCreados,
+    );
+
+    presupuesto.id = presupuestoRef.id;
+
+    return presupuesto;
   }
 
 // Actualiza el valor real de un ítem
@@ -618,6 +665,7 @@ class FireStoreDataBase {
       'valor': abonoNuevo, // ← solo el abono
       'realAnterior': realActual,
       'realNuevo': realNuevo,
+      'itemId': itemId,
     });
 
     await batch.commit(); // ← las dos o ninguna
@@ -739,5 +787,122 @@ class FireStoreDataBase {
       });
     }
     await batch.commit();
+  }
+
+  Future<void> agregarItemAlMes({
+    required String presupuestoId,
+    required String nombre,
+    required int plan,
+    required int orden,
+    bool agregarAPlantilla = false,
+  }) async {
+    final batch = db.batch();
+
+    final itemRef = db
+        .collection('presupuesto_mensual')
+        .doc(presupuestoId)
+        .collection('items')
+        .doc();
+    batch.set(itemRef, {
+      'nombre': nombre,
+      'plan': plan,
+      'real': 0,
+      'orden': orden,
+    });
+
+    if (agregarAPlantilla) {
+      final plantillaRef = db.collection('plantilla_presupuesto').doc();
+      batch.set(plantillaRef, {
+        'nombre': nombre,
+        'planBase': plan,
+        'orden': orden,
+      });
+    }
+
+    await batch.commit(); // las dos o ninguna
+  }
+
+  Future<void> editarPlanItem({
+    required String presupuestoId,
+    required String itemId,
+    required String nombre,
+    required int nuevoPlan,
+    bool actualizarPlantilla = false,
+  }) async {
+    final batch = db.batch();
+
+    final itemRef = db
+        .collection('presupuesto_mensual')
+        .doc(presupuestoId)
+        .collection('items')
+        .doc(itemId);
+    batch.update(itemRef, {'plan': nuevoPlan});
+
+    if (actualizarPlantilla) {
+      final q = await db
+          .collection('plantilla_presupuesto')
+          .where('nombre', isEqualTo: nombre)
+          .limit(1)
+          .get();
+      if (q.docs.isNotEmpty) {
+        batch.update(q.docs.first.reference, {'planBase': nuevoPlan});
+      }
+    }
+
+    await batch.commit();
+  }
+
+  Future<void> eliminarItemConAbonos({
+    required String presupuestoId,
+    required String itemId,
+  }) async {
+    final base = db.collection('presupuesto_mensual').doc(presupuestoId);
+
+    // Buscar los movimientos de ESE ítem por id
+    final movs = await base
+        .collection('movimientos')
+        .where('itemId', isEqualTo: itemId)
+        .get();
+
+    final batch = db.batch();
+    for (final doc in movs.docs) {
+      batch.delete(doc.reference);
+    }
+    batch.delete(base.collection('items').doc(itemId));
+
+    await batch.commit(); // movimientos + ítem, o nada
+  }
+
+  Future<int> importarItemsDePlantilla(String presupuestoId) async {
+    final plantilla = await getPlantilla();
+
+    final actuales = await db
+        .collection('presupuesto_mensual')
+        .doc(presupuestoId)
+        .collection('items')
+        .get();
+    final nombres =
+        actuales.docs.map((e) => e.data()['nombre'] as String).toSet();
+
+    final faltantes =
+        plantilla.where((p) => !nombres.contains(p.nombre)).toList();
+    if (faltantes.isEmpty) return 0;
+
+    final batch = db.batch();
+    for (final item in faltantes) {
+      final ref = db
+          .collection('presupuesto_mensual')
+          .doc(presupuestoId)
+          .collection('items')
+          .doc();
+      batch.set(ref, {
+        'nombre': item.nombre,
+        'plan': item.planBase,
+        'real': 0,
+        'orden': item.orden,
+      });
+    }
+    await batch.commit();
+    return faltantes.length;
   }
 }
