@@ -566,6 +566,7 @@ class _PresupuestoScreenState extends State<PresupuestoScreen> {
                   );
                 }).toList(),
               ),
+              const SizedBox(height: 6),
               if (_esEditable) ...[
                 GestureDetector(
                   onTap: () async {

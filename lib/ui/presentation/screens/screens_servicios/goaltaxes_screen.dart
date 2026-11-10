@@ -288,7 +288,7 @@ class _GoalDairyState extends State<GoalDairy> {
             _buildMetricsRow(),
             const SizedBox(height: 5),
             // _buildBotonRegistrar(),
-            _buildConsolidado(),
+            //_buildConsolidado(),
             const SizedBox(height: 12),
             _buildHistorialHeader(),
             Expanded(
@@ -330,22 +330,99 @@ class _GoalDairyState extends State<GoalDairy> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'RECAUDADO HOY',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: _C.secondary,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _fmt.format(obtenido),
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w500,
-                  color: _C.primary,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'RECAUDADO HOY',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: _C.secondary,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _fmt.format(obtenido),
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w500,
+                          color: _C.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: _C.green.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border:
+                                  Border.all(color: _C.green.withOpacity(0.25)),
+                            ),
+                            child: Column(
+                              children: [
+                                const Text(
+                                  'Efectivo',
+                                  style:
+                                      TextStyle(fontSize: 9, color: _C.green),
+                                ),
+                                Text(
+                                  _fmt.format(_efectivoTotal),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: _C.green,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color:
+                                  Colors.purpleAccent.shade100.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                  color: Colors.purpleAccent.shade100
+                                      .withOpacity(0.25)),
+                            ),
+                            child: Column(
+                              children: [
+                                const Text(
+                                  'Transfr.',
+                                  style: TextStyle(
+                                      fontSize: 9, color: Color(0xFFA78BFA)),
+                                ),
+                                Text(
+                                  _fmt.format(_transferenciaTotal),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFFA78BFA),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
+                    ],
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
               ClipRRect(
@@ -447,117 +524,117 @@ class _GoalDairyState extends State<GoalDairy> {
     );
   }
 
-  Widget _buildConsolidado() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-      child: Row(
-        children: [
-          // Tipo de servicio
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A2535),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF1E2D3D)),
-              ),
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('TIPO SERVICIO',
-                      style: TextStyle(
-                          fontSize: 10,
-                          color: Color(0xFF94A3B8),
-                          letterSpacing: 0.3)),
-                  const SizedBox(height: 6),
-                  _consolidadoFila(
-                      'Taxi', '$_taxiCount', const Color(0xFFF5C518)),
-                  const SizedBox(height: 4),
-                  _consolidadoFila('Plataforma', '$_plataformaCount',
-                      const Color(0xFF60A5FA)),
-                  const SizedBox(height: 6),
-                  // Barra proporcional
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(2),
-                    child: Row(
-                      children: [
-                        Flexible(
-                          flex: _taxiCount > 0 ? _taxiCount : 1,
-                          child: Container(
-                            height: 4,
-                            color: const Color(0xFFF5C518).withOpacity(0.7),
-                          ),
-                        ),
-                        Flexible(
-                          flex: _plataformaCount > 0 ? _plataformaCount : 0,
-                          child: Container(
-                            height: 4,
-                            color: const Color(0xFF60A5FA).withOpacity(0.7),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 6),
-          // Método de pago
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A2535),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF1E2D3D)),
-              ),
-              padding: const EdgeInsets.all(10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('MÉTODO PAGO',
-                      style: TextStyle(
-                          fontSize: 10,
-                          color: Color(0xFF94A3B8),
-                          letterSpacing: 0.3)),
-                  const SizedBox(height: 6),
-                  _consolidadoFila('Efectivo', _compacto(_efectivoTotal),
-                      const Color(0xFF4ADE80)),
-                  const SizedBox(height: 4),
-                  _consolidadoFila('Transf.', _compacto(_transferenciaTotal),
-                      const Color(0xFFA78BFA)),
-                  const SizedBox(height: 6),
-                  // Barra proporcional
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(2),
-                    child: Row(
-                      children: [
-                        Flexible(
-                          flex: _efectivoTotal > 0 ? _efectivoTotal : 1,
-                          child: Container(
-                            height: 4,
-                            color: const Color(0xFF4ADE80).withOpacity(0.7),
-                          ),
-                        ),
-                        Flexible(
-                          flex:
-                              _transferenciaTotal > 0 ? _transferenciaTotal : 0,
-                          child: Container(
-                            height: 4,
-                            color: const Color(0xFFA78BFA).withOpacity(0.7),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // Widget _buildConsolidado() {
+  //   return Padding(
+  //     padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+  //     child: Row(
+  //       children: [
+  //         // Tipo de servicio
+  //         Expanded(
+  //           child: Container(
+  //             decoration: BoxDecoration(
+  //               color: const Color(0xFF1A2535),
+  //               borderRadius: BorderRadius.circular(12),
+  //               border: Border.all(color: const Color(0xFF1E2D3D)),
+  //             ),
+  //             padding: const EdgeInsets.all(10),
+  //             child: Column(
+  //               crossAxisAlignment: CrossAxisAlignment.start,
+  //               children: [
+  //                 const Text('TIPO SERVICIO',
+  //                     style: TextStyle(
+  //                         fontSize: 10,
+  //                         color: Color(0xFF94A3B8),
+  //                         letterSpacing: 0.3)),
+  //                 const SizedBox(height: 6),
+  //                 _consolidadoFila(
+  //                     'Taxi', '$_taxiCount', const Color(0xFFF5C518)),
+  //                 const SizedBox(height: 4),
+  //                 _consolidadoFila('Plataforma', '$_plataformaCount',
+  //                     const Color(0xFF60A5FA)),
+  //                 const SizedBox(height: 6),
+  //                 // Barra proporcional
+  //                 ClipRRect(
+  //                   borderRadius: BorderRadius.circular(2),
+  //                   child: Row(
+  //                     children: [
+  //                       Flexible(
+  //                         flex: _taxiCount > 0 ? _taxiCount : 1,
+  //                         child: Container(
+  //                           height: 4,
+  //                           color: const Color(0xFFF5C518).withOpacity(0.7),
+  //                         ),
+  //                       ),
+  //                       Flexible(
+  //                         flex: _plataformaCount > 0 ? _plataformaCount : 0,
+  //                         child: Container(
+  //                           height: 4,
+  //                           color: const Color(0xFF60A5FA).withOpacity(0.7),
+  //                         ),
+  //                       ),
+  //                     ],
+  //                   ),
+  //                 ),
+  //               ],
+  //             ),
+  //           ),
+  //         ),
+  //         const SizedBox(width: 6),
+  //         // Método de pago
+  //         Expanded(
+  //           child: Container(
+  //             decoration: BoxDecoration(
+  //               color: const Color(0xFF1A2535),
+  //               borderRadius: BorderRadius.circular(12),
+  //               border: Border.all(color: const Color(0xFF1E2D3D)),
+  //             ),
+  //             padding: const EdgeInsets.all(10),
+  //             child: Column(
+  //               crossAxisAlignment: CrossAxisAlignment.start,
+  //               children: [
+  //                 const Text('MÉTODO PAGO',
+  //                     style: TextStyle(
+  //                         fontSize: 10,
+  //                         color: Color(0xFF94A3B8),
+  //                         letterSpacing: 0.3)),
+  //                 const SizedBox(height: 6),
+  //                 _consolidadoFila('Efectivo', _compacto(_efectivoTotal),
+  //                     const Color(0xFF4ADE80)),
+  //                 const SizedBox(height: 4),
+  //                 _consolidadoFila('Transf.', _compacto(_transferenciaTotal),
+  //                     const Color(0xFFA78BFA)),
+  //                 const SizedBox(height: 6),
+  //                 // Barra proporcional
+  //                 ClipRRect(
+  //                   borderRadius: BorderRadius.circular(2),
+  //                   child: Row(
+  //                     children: [
+  //                       Flexible(
+  //                         flex: _efectivoTotal > 0 ? _efectivoTotal : 1,
+  //                         child: Container(
+  //                           height: 4,
+  //                           color: const Color(0xFF4ADE80).withOpacity(0.7),
+  //                         ),
+  //                       ),
+  //                       Flexible(
+  //                         flex:
+  //                             _transferenciaTotal > 0 ? _transferenciaTotal : 0,
+  //                         child: Container(
+  //                           height: 4,
+  //                           color: const Color(0xFFA78BFA).withOpacity(0.7),
+  //                         ),
+  //                       ),
+  //                     ],
+  //                   ),
+  //                 ),
+  //               ],
+  //             ),
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Widget _consolidadoFila(String label, String valor, Color color) {
     return Row(
